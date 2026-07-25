@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2026-07-25
+
+### Added
+
+- **DeepSeek plugin** (`tongflow-api-deepseek`) — DeepSeek V4 as a text
+  provider for `gen-text` / `combine-text` / `split-text`, with a per-node
+  **model dropdown** offering `deepseek-v4-flash` / `deepseek-v4-pro` each
+  with thinking on/off (four choices).
+- **Streaming "thinking" bubble** — when a plugin streams its reasoning
+  (DeepSeek thinking mode), it now appears live in an auto-scrolling bubble
+  anchored beside the node while it runs, separate from the status label and
+  non-occluding. Backed by `progress(..., thinking=True)` in the SDK.
+- **SenseNova-Vision plugin** (`tongflow-modal-sensenova-vision`) — SenseTime's
+  unified vision model: image understanding / visual QA, detection & OCR
+  structured text, full-scene surface normals, salient-object matting, and a
+  human-pose overlay (an alternative implementation of those slots).
+- **Open-vocabulary sound separation** (`separate-sound` node) — describe any
+  sound in words ("dog barking") and split the audio into that sound and
+  everything else.
+
+### Changed
+
+- **Cloud plugin execution path** (Python SDK **tongflow 0.2.7 → 0.2.17**) — a
+  new single-container cloud execution surface so plugins can run in the
+  user's own Modal without a per-call venv + subprocess:
+  - `serve_slot` / `run_and_report` — single-slot execution and a background
+    single-node runner that reports back over an HTTP callback;
+  - `serve_stream` / `serve_stream_from_spec` — single-container streaming
+    slot execution, including a browser-direct stream entry;
+  - self-reported progress (and streamed reasoning) over an HTTP sink, so
+    remote plugins drive the node status and thinking bubble;
+  - an **injectable workflow invoker** that skips the venv + subprocess hop;
+  - **default-slot claims** (`TONGFLOW_DEFAULT_SLOTS`, `@node_slot(default=True)`)
+    so a plugin can declare the default implementation for a slot while still
+    importing under older, already-deployed runtimes.
+
+### Fixed
+
+- SDK `HttpStore` now sends a User-Agent (works around a Cloudflare 403) and
+  emits a stable event id in `serve_stream` (tongflow 0.2.13).
+
 ## [0.2.1] - 2026-07-12
 
 ### Added
