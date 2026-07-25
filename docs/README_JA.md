@@ -169,6 +169,7 @@ Google または WeChat でサインインすれば、すぐに創作を始め�
 - [tongflow-api-bytedance](https://github.com/tong-io/tongflow-api-bytedance) — ByteDance Volcengine Ark、ノードごとの**モデルピッカー**：Doubao テキスト・視覚、Seedream 画像生成/編集/融合、Seedance テキスト / 画像 / 音声 → 動画
 - [tongflow-api-apimart](https://github.com/tong-io/tongflow-api-apimart) — APIMart ゲートウェイ。ノード上で**モデルを選択**可能：画像生成 / 編集（Z-Image、Seedream、Nano Banana、GPT-Image）、テキスト / 画像 → 動画（Kling、VEO3、Sora2、Seedance）、`gen_text`（GPT-5、Claude、Gemini）、Whisper 文字起こしと TTS
 - [tongflow-api-agnes](https://github.com/tong-io/tongflow-api-agnes) — Agnes AI ゲートウェイ：`gen_text` / テキストツール / 画像理解（`agnes-2.0-flash`）、画像生成 / 編集 / 融合（`agnes-image-2.x-flash`）、テキスト / 画像 / 最初・最後フレーム → 動画（`agnes-video-v2.0`）
+- [tongflow-api-xai](https://github.com/tong-io/tongflow-api-xai) — xAI Grok、ノードごとの**モデルピッカー**：`gen_text`（Grok 4.x）、画像理解、Grok Imagine テキスト→画像
 - [tongflow-api-replicate](https://github.com/tong-io/tongflow-api-replicate) — Replicate、ノードごとの**モデルピッカー**でカタログ全体をカバー：テキスト、視覚、画像 生成/編集/融合/アップスケール/切り抜き、テキスト / 画像 → 動画、文字起こし、TTS / ボイスクローン、音楽、画像 → 3D（FLUX、Seedream、Veo、Kling、Whisper、Hunyuan3D…）
 - [tongflow-api-fal](https://github.com/tong-io/tongflow-api-fal) — fal.ai、ノードごとの**モデルピッカー**：画像（生成/編集/融合/アップスケール/切り抜き/ポーズ/法線/セグメンテーション）、動画（テキスト / 画像 → 動画、最初・最後フレーム、トーキングヘッド、リップシンク、アップスケール）、音声（文字起こし、TTS、ボイスクローン、音楽、音源分離）、画像 → 3D
 - [tongflow-api-runway](https://github.com/tong-io/tongflow-api-runway) — Runway Dev 統合 API、ノードごとの**モデルピッカー**：動画（Gen-4.5、Gen-4 Turbo、Aleph 編集、Act-Two、Seedance、Veo）、画像（GPT Image 2、Seedream 5、Gemini image 3）、ElevenLabs TTS

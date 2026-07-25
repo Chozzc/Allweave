@@ -169,6 +169,7 @@ TongFlow **桌面版**是一个轻量（约 10 MB）的壳应用，直接加载�
 - [tongflow-api-bytedance](https://github.com/tong-io/tongflow-api-bytedance) — 火山方舟，按节点**模型选择**：豆包文本与视觉、Seedream 图像生成/编辑/融合、Seedance 文 / 图 / 音 → 视频
 - [tongflow-api-apimart](https://github.com/tong-io/tongflow-api-apimart) — APIMart 聚合网关，支持节点上**按模型选择**：图像生成 / 编辑（Z-Image、Seedream、Nano Banana、GPT-Image）、文 / 图 → 视频（可灵、VEO3、Sora2、Seedance）、`gen_text`（GPT-5、Claude、Gemini）、Whisper 转录与 TTS
 - [tongflow-api-agnes](https://github.com/tong-io/tongflow-api-agnes) — Agnes AI 网关：`gen_text` / 文本工具 / 图像理解（`agnes-2.0-flash`）、图像生成 / 编辑 / 融合（`agnes-image-2.x-flash`）、文 / 图 / 首尾帧 → 视频（`agnes-video-v2.0`）
+- [tongflow-api-xai](https://github.com/tong-io/tongflow-api-xai) — xAI Grok，按节点**模型选择**：`gen_text`（Grok 4.x）、图像理解、Grok Imagine 文生图
 - [tongflow-api-replicate](https://github.com/tong-io/tongflow-api-replicate) — Replicate，按节点**模型选择**覆盖全目录：文本、视觉、图像 生成/编辑/融合/放大/抠图、文 / 图 → 视频、转写、TTS / 声音克隆、音乐、图 → 3D（FLUX、Seedream、Veo、Kling、Whisper、Hunyuan3D…）
 - [tongflow-api-fal](https://github.com/tong-io/tongflow-api-fal) — fal.ai，按节点**模型选择**：图像（生成/编辑/融合/放大/抠图/姿态/法线/分割）、视频（文 / 图 → 视频、首尾帧、说话头、唇同步、放大）、音频（转写、TTS、声音克隆、音乐、声源分离）与 图 → 3D
 - [tongflow-api-runway](https://github.com/tong-io/tongflow-api-runway) — Runway Dev 统一 API，按节点**模型选择**：视频（Gen-4.5、Gen-4 Turbo、Aleph 编辑、Act-Two、Seedance、Veo）、图像（GPT Image 2、Seedream 5、Gemini image 3）与 ElevenLabs TTS
