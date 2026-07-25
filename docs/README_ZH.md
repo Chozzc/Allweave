@@ -162,7 +162,7 @@ TongFlow **桌面版**是一个轻量（约 10 MB）的壳应用，直接加载�
 
 ### API 插件
 
-- [tongflow-api-openrouter-free](https://github.com/tong-io/tongflow-api-openrouter-free) — OpenRouter，按节点**模型选择**：`gen_text`（默认免费，另可选 GPT-5.5 / Claude / Gemini / Grok / DeepSeek）、视觉 / 音频理解、图像生成/编辑与转写
+- [tongflow-api-openrouter](https://github.com/tong-io/tongflow-api-openrouter) — OpenRouter，按节点**模型选择**：`gen_text`（默认免费，另可选 GPT-5.5 / Claude / Gemini / Grok / DeepSeek）、视觉 / 音频理解、图像生成/编辑与转写
 - [tongflow-api-gemini](https://github.com/tong-io/tongflow-api-gemini) — Google Gemini，按节点**模型选择**：文本、视觉、图像（Nano Banana / Imagen 4）、Veo 视频、TTS 与转写
 - [tongflow-api-openai](https://github.com/tong-io/tongflow-api-openai) — OpenAI，按节点**模型选择**：`gen_text`、图像生成/编辑/融合（`gpt-image-2`）、视觉、文档 OCR、Whisper 转写与 TTS
 - [tongflow-api-deepseek](https://github.com/tong-io/tongflow-api-deepseek) — 基于 DeepSeek V4（`flash` / `pro`，带流式**思考**气泡）的 `gen_text` 及文本工具

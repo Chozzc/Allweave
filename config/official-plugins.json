@@ -1,7 +1,7 @@
 {
     "org": "https://github.com/tong-io",
     "plugins": [
-        "tongflow-api-openrouter-free",
+        "tongflow-api-openrouter",
         "tongflow-api-gemini",
         "tongflow-api-openai",
         "tongflow-api-deepseek",

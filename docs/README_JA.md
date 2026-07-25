@@ -162,7 +162,7 @@ Google または WeChat でサインインすれば、すぐに創作を始め�
 
 ### API プラグイン
 
-- [tongflow-api-openrouter-free](https://github.com/tong-io/tongflow-api-openrouter-free) — OpenRouter、ノードごとの**モデルピッカー**：`gen_text`（デフォルト無料、GPT-5.5 / Claude / Gemini / Grok / DeepSeek も選択可）、視覚 / 音声理解、画像生成/編集、文字起こし
+- [tongflow-api-openrouter](https://github.com/tong-io/tongflow-api-openrouter) — OpenRouter、ノードごとの**モデルピッカー**：`gen_text`（デフォルト無料、GPT-5.5 / Claude / Gemini / Grok / DeepSeek も選択可）、視覚 / 音声理解、画像生成/編集、文字起こし
 - [tongflow-api-gemini](https://github.com/tong-io/tongflow-api-gemini) — Google Gemini、ノードごとの**モデルピッカー**：テキスト、視覚、画像（Nano Banana / Imagen 4）、Veo 動画、TTS、文字起こし
 - [tongflow-api-openai](https://github.com/tong-io/tongflow-api-openai) — OpenAI、ノードごとの**モデルピッカー**：`gen_text`、画像生成/編集/融合（`gpt-image-2`）、視覚、ドキュメント OCR、Whisper 文字起こし、TTS
 - [tongflow-api-deepseek](https://github.com/tong-io/tongflow-api-deepseek) — DeepSeek V4（`flash` / `pro`、ストリーミング**思考**バブル付き）ベースの `gen_text` およびテキストツール
