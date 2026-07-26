@@ -100,3 +100,14 @@ def test_scan_models_duplicate_model_errors(tmp_path):
     )
     payload = _entry(_write_plugin(tmp_path, src), _write_abi(tmp_path))
     assert any("duplicate model" in e["message"] for e in payload["errors"])
+
+
+def test_scan_accepts_router_prefix(tmp_path):
+    # tongflow-router-* (aggregator plugins) are entry.py runners like -api-.
+    root = tmp_path / "plugins"
+    pdir = root / "tongflow-router-fake"
+    pdir.mkdir(parents=True)
+    (pdir / "entry.py").write_text(_HANDLERS, encoding="utf-8")
+    payload = _entry(root, _write_abi(tmp_path))
+    assert payload["errors"] == []
+    assert "tongflow-router-fake" in payload["plugins"]

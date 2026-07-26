@@ -58,7 +58,9 @@ def _detect_runner(plugin_dir: Path) -> tuple[str | None, str | None]:
     # "unknown prefix"; surface a clear rename hint instead.
     lowered = plugin_id.lower()
     if plugin_id != lowered and (
-        lowered.startswith("tongflow-modal-") or lowered.startswith("tongflow-api-")
+        lowered.startswith("tongflow-modal-")
+        or lowered.startswith("tongflow-api-")
+        or lowered.startswith("tongflow-router-")
     ):
         return None, (
             f"{plugin_dir}:1: pluginId must be all lowercase; "
@@ -85,10 +87,14 @@ def _detect_runner(plugin_dir: Path) -> tuple[str | None, str | None]:
         prefix_runner = "modal"
     elif plugin_id.startswith("tongflow-api-"):
         prefix_runner = "api"
+    elif plugin_id.startswith("tongflow-router-"):
+        # Aggregator/router plugins (one key routing to many third-party models)
+        # are entry.py-based local runners — identical execution to "api".
+        prefix_runner = "api"
     else:
         return None, (
             f"{plugin_dir}:1: unknown pluginId prefix; "
-            "fix: use tongflow-modal-<name> or tongflow-api-<name>"
+            "fix: use tongflow-modal-<name>, tongflow-api-<name>, or tongflow-router-<name>"
         )
 
     if not has_deploy and not has_entry:
