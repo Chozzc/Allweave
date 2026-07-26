@@ -15,7 +15,7 @@ from tongflow.engine.assets import (
     convert_asset_outputs_to_file_refs,
     materialize_asset_inputs,
 )
-from tongflow.engine.bindings import resolve_node_params
+from tongflow.engine.bindings import resolve_node_param_sets, resolve_node_params
 from tongflow.engine.invoker import parse_progress_line
 from tongflow.engine.output_view import compute_output_view
 from tongflow.engine.store import DiskStore, MemoryStore
@@ -91,6 +91,75 @@ def test_resolve_node_params_scalar_with_multiple_values_raises():
     state = {"dn1": {"texts": ["first", "second"]}}
     with pytest.raises(ValueError, match="'My Node' input 'text'.*2 upstream"):
         resolve_node_params(node, {}, state, [{"id": "dn1"}], {})
+
+
+def test_resolve_node_param_sets_batch_fan_out():
+    # The batchField expands into one param set per value; other fields broadcast.
+    node = {
+        "batchField": "text",
+        "bindings": {
+            "text": {
+                "kind": "handle",
+                "consumerShape": "scalar",
+                "sources": [{"fromNodeId": "dn1", "fromField": "texts"}],
+            },
+            "voice": {"kind": "config", "value": "alto"},
+        },
+    }
+    state = {"dn1": {"texts": ["a", "b", "c"]}}
+    sets = resolve_node_param_sets(node, {}, state, [{"id": "dn1"}], {})
+    assert sets == [
+        {"voice": "alto", "text": "a"},
+        {"voice": "alto", "text": "b"},
+        {"voice": "alto", "text": "c"},
+    ]
+    # Single-invocation variant refuses fan-out.
+    with pytest.raises(ValueError, match="fans out"):
+        resolve_node_params(node, {}, state, [{"id": "dn1"}], {})
+
+
+def test_resolve_node_param_sets_batch_single_value_is_one_set():
+    node = {
+        "batchField": "text",
+        "bindings": {
+            "text": {
+                "kind": "handle",
+                "consumerShape": "scalar",
+                "sources": [{"fromNodeId": "dn1", "fromField": "texts"}],
+            }
+        },
+    }
+    state = {"dn1": {"texts": ["solo"]}}
+    assert resolve_node_param_sets(node, {}, state, [{"id": "dn1"}], {}) == [
+        {"text": "solo"}
+    ]
+
+
+def test_resolve_node_param_sets_non_batch_scalar_still_raises():
+    # batchField only exempts its own field; other scalar inputs stay strict.
+    node = {
+        "batchField": "text",
+        "bindings": {
+            "text": {
+                "kind": "handle",
+                "consumerShape": "scalar",
+                "sources": [{"fromNodeId": "dn1", "fromField": "texts"}],
+            },
+            "refAudio": {
+                "kind": "handle",
+                "consumerShape": "scalar",
+                "sources": [{"fromNodeId": "dn2", "fromField": "fileKeys"}],
+            },
+        },
+    }
+    state = {
+        "dn1": {"texts": ["a", "b"]},
+        "dn2": {"fileKeys": ["x.mp3", "y.mp3"]},
+    }
+    with pytest.raises(ValueError, match="input 'refAudio'"):
+        resolve_node_param_sets(
+            node, {}, state, [{"id": "dn1"}, {"id": "dn2"}], {}
+        )
 
 
 def test_resolve_node_params_array_and_config_and_input():
@@ -561,6 +630,55 @@ def test_run_workflow_uses_static_data_when_input_omitted(tmp_path, monkeypatch)
         auto_install=False,
     )
     assert result["outputs"][exec_id]["text"] == "OVERRIDE"
+
+
+def test_run_workflow_batch_fan_out(tmp_path, monkeypatch):
+    # A batchField with N upstream values → N plugin invocations, outputs
+    # concatenated in batch order into a single flat channel.
+    abi_path = _write_abi(tmp_path)
+    plugins_dir, plugin_id, workflow, exec_id = _stub_plugin_and_workflow(tmp_path)
+    _patch_scan(monkeypatch, plugin_id)
+
+    workflow["dataNodes"][0]["staticData"] = {"texts": ["alpha", "beta", "gamma"]}
+    workflow["executableNodes"][0]["batchField"] = "text"
+
+    events = []
+    result = run_workflow(
+        workflow,
+        plugins_dir=plugins_dir,
+        data_dir=tmp_path / "data",
+        abi_path=abi_path,
+        auto_install=False,
+        on_progress=events.append,
+    )
+
+    assert result["status"] == "success"
+    assert result["outputs"][exec_id]["text"] == ["ALPHA", "BETA", "GAMMA"]
+    assert result["outputs_by_name"]["out_text"] == ["ALPHA", "BETA", "GAMMA"]
+    msgs = [e.get("message") for e in events if e["type"] == "plugin_progress"]
+    assert "batch 1/3" in msgs and "batch 3/3" in msgs
+
+
+def test_run_workflow_scalar_overflow_fails_node(tmp_path, monkeypatch):
+    # Without a batchField, N>1 values into a scalar input fail the node
+    # loudly instead of silently processing only the first value.
+    abi_path = _write_abi(tmp_path)
+    plugins_dir, plugin_id, workflow, exec_id = _stub_plugin_and_workflow(tmp_path)
+    _patch_scan(monkeypatch, plugin_id)
+
+    workflow["dataNodes"][0]["staticData"] = {"texts": ["alpha", "beta"]}
+
+    result = run_workflow(
+        workflow,
+        plugins_dir=plugins_dir,
+        data_dir=tmp_path / "data",
+        abi_path=abi_path,
+        auto_install=False,
+    )
+
+    assert result["status"] == "failed"
+    assert exec_id not in result["outputs"]
+    assert any("expects a single value" in e for e in result["errors"])
 
 
 # --- paths resolution -------------------------------------------------------

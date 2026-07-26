@@ -7,9 +7,11 @@ TongFlow app required. It is a direct translation of ``executeWorkflowTask`` in
 
 1. seed data-node state from ``staticData`` (workflow inputs override on read)
 2. for each tier in ``executionLevels`` (already topologically sorted):
-   resolve params from bindings -> materialize asset inputs -> spawn the plugin
-   -> persist asset outputs -> project into the ABI output view -> refresh the
-   downstream data nodes this node feeds
+   resolve params from bindings (fanning out over the node's ``batchField``
+   when it collected multiple upstream values — one plugin invocation per
+   value, outputs concatenated in batch order) -> materialize asset inputs ->
+   spawn the plugin -> persist asset outputs -> project into the ABI output
+   view -> refresh the downstream data nodes this node feeds
 3. aggregate per-node outputs / errors and return.
 
 The exported JSON is a self-contained execution plan (sorted levels, resolved
@@ -25,7 +27,7 @@ from typing import Any, Callable, Optional, Union
 
 from .abi_schema import load_abi_schema, resolve_abi_path
 from .assets import convert_asset_outputs_to_file_refs, materialize_asset_inputs
-from .bindings import resolve_node_params
+from .bindings import resolve_node_param_sets
 from .invoker import invoke_plugin
 from .output_view import compute_output_view
 from .paths import resolve_data_dir, resolve_plugins_dir
@@ -76,6 +78,28 @@ def _inline_outputs_in_obj(obj: Any, store: MemoryStore) -> Any:
         if data is not None:
             return base64.b64encode(data).decode("ascii")
     return obj
+
+
+def _merge_batch_results(results: list[dict[str, Any]]) -> dict[str, Any]:
+    """Merge per-item outputs of a batch fan-out into one payload.
+
+    Each business field becomes the concatenation of the per-item values in
+    batch order (per-item lists are extended, scalars appended), so
+    ``compute_output_view`` sees one flat channel and downstream nodes read
+    all items. ``success`` / ``error`` meta fields are dropped — the runner
+    already raised on any per-item failure.
+    """
+    merged: dict[str, Any] = {"success": True}
+    for r in results:
+        for k, v in r.items():
+            if k in ("success", "error") or v is None:
+                continue
+            bucket = merged.setdefault(k, [])
+            if isinstance(v, list):
+                bucket.extend(v)
+            else:
+                bucket.append(v)
+    return merged
 
 
 def _load_workflow(workflow: Union[str, Path, dict[str, Any]]) -> dict[str, Any]:
@@ -324,35 +348,62 @@ def run_workflow(
                         f"Plugin {plugin_id} not found in scanned manifest."
                     )
 
-                params = resolve_node_params(
+                param_sets = resolve_node_param_sets(
                     node, output_views, data_node_state, data_nodes, inputs
                 )
-                business_input = materialize_asset_inputs(
-                    slot, params, abi, search_dirs, store
-                )
                 plugin_dir = plugins_dir / cfg["localSubdir"]
-                if invoker is not None:
-                    raw = invoker(plugin_id, slot, business_input, plugin_dir, model)
-                else:
-                    raw = invoke_plugin(
-                        python=python,
-                        plugin_dir=plugin_dir,
-                        entry_file=cfg.get("entryFile", "entry.py"),
-                        plugin_id=plugin_id,
-                        node_slot=slot,
-                        prompt=business_input,
-                        sdk_root=SDK_ROOT,
-                        task_id=task_id,
-                        model=model,
-                        on_progress=on_progress,
+                total = len(param_sets)
+                item_results: list[dict[str, Any]] = []
+                for item_idx, params in enumerate(param_sets):
+                    if total > 1:
+                        emit(
+                            {
+                                "type": "plugin_progress",
+                                "nodeId": node_id,
+                                "message": f"batch {item_idx + 1}/{total}",
+                            }
+                        )
+                    business_input = materialize_asset_inputs(
+                        slot, params, abi, search_dirs, store
                     )
-                result = convert_asset_outputs_to_file_refs(slot, raw, abi, store)
-
-                if result.get("success") is False:
-                    raise RuntimeError(
-                        str(result.get("error") or "Plugin returned success=false")
+                    if invoker is not None:
+                        raw = invoker(
+                            plugin_id, slot, business_input, plugin_dir, model
+                        )
+                    else:
+                        raw = invoke_plugin(
+                            python=python,
+                            plugin_dir=plugin_dir,
+                            entry_file=cfg.get("entryFile", "entry.py"),
+                            plugin_id=plugin_id,
+                            node_slot=slot,
+                            prompt=business_input,
+                            sdk_root=SDK_ROOT,
+                            task_id=task_id,
+                            model=model,
+                            on_progress=on_progress,
+                        )
+                    item = convert_asset_outputs_to_file_refs(
+                        slot, raw, abi, store
                     )
 
+                    if item.get("success") is False:
+                        suffix = (
+                            f" (batch item {item_idx + 1}/{total})"
+                            if total > 1
+                            else ""
+                        )
+                        raise RuntimeError(
+                            str(item.get("error") or "Plugin returned success=false")
+                            + suffix
+                        )
+                    item_results.append(item)
+
+                result = (
+                    item_results[0]
+                    if total == 1
+                    else _merge_batch_results(item_results)
+                )
                 node_outputs[node_id] = result
 
                 routes = node.get("outputs") or []
