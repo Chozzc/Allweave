@@ -703,15 +703,27 @@ export class WorkflowExporter {
                     //    (the runner handles fan-out separately).
                     const consumerShape: "scalar" | "array" =
                         fSpec.array || fSpec.collect ? "array" : "scalar";
-                    out[field] = {
-                        kind: "handle",
-                        sources: matches.map((u) =>
+                    // Sibling data nodes materialized from the same producer
+                    // channel pass through to identical sources — keep one,
+                    // or the consumer would read the channel once per sibling.
+                    const seen = new Set<string>();
+                    const sources = matches
+                        .map((u) =>
                             this.resolveBindingSource(
                                 u.node,
                                 u.edgeSourceHandle,
                                 fSpec.nodeType,
                             ),
-                        ),
+                        )
+                        .filter((s) => {
+                            const key = `${s.fromNodeId} ${s.fromField}`;
+                            if (seen.has(key)) return false;
+                            seen.add(key);
+                            return true;
+                        });
+                    out[field] = {
+                        kind: "handle",
+                        sources,
                         targetHandle: handleId,
                         consumerShape,
                     };
@@ -743,7 +755,11 @@ export class WorkflowExporter {
 
     /**
      * Pick the right `fromField` for a binding source:
-     *  - upstream is a data node → dataField (`texts` / `fileKeys`) from DATA_NODE_TYPES.
+     *  - upstream is a data node fed by an executable → pass through to the
+     *    producer's ABI sourceField (the data node is a pure channel; see
+     *    `findExecutableProducer`).
+     *  - upstream is a standalone data node → dataField (`texts` / `fileKeys`)
+     *    from DATA_NODE_TYPES.
      *  - upstream is an executable / Add executable → ABI sourceField via the
      *    upstream's output routes; prefer the route whose nodeType matches the
      *    consumer's expected nodeType (so multi-channel sources route correctly).
@@ -758,6 +774,21 @@ export class WorkflowExporter {
         const upstreamType = upstream.type ?? "";
 
         if (isDataNode(upstreamType)) {
+            // Channel pass-through: a data node fed by an executable is a pure
+            // channel in one-click execution — bind the consumer straight to
+            // the producer's runtime output. The materialized node's edit-time
+            // staticData must never leak into execution, and the producer's
+            // runtime cardinality (e.g. a split's item count) must win over
+            // the frozen canvas topology.
+            const producer = this.findExecutableProducer(upstream.id);
+            if (producer) {
+                return this.pickExecutableSourceField(
+                    producer.nodeId,
+                    producer.feature,
+                    producer.edgeSourceHandle,
+                    consumerNodeType,
+                );
+            }
             const info = DATA_NODE_TYPES[upstreamType];
             return { fromNodeId: upstream.id, fromField: info.outputField };
         }
@@ -798,6 +829,29 @@ export class WorkflowExporter {
             fromNodeId: upstream.id,
             fromField: info?.outputField ?? "texts",
         };
+    }
+
+    /**
+     * The ABI executable feeding a data node, if any. A data node has at most
+     * one producer (data → data edges are rejected by connection rules).
+     */
+    private findExecutableProducer(dataNodeId: string): {
+        nodeId: string;
+        feature: string;
+        edgeSourceHandle: string | undefined;
+    } | null {
+        for (const edge of this.edges) {
+            if (edge.target !== dataNodeId) continue;
+            const reg = getAbiNodeRegistration(edge.source);
+            if (reg) {
+                return {
+                    nodeId: edge.source,
+                    feature: reg.feature,
+                    edgeSourceHandle: edge.sourceHandle ?? undefined,
+                };
+            }
+        }
+        return null;
     }
 
     private pickExecutableSourceField(

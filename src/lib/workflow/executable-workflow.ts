@@ -22,7 +22,10 @@ import type { Edge, Node } from "@xyflow/react";
  *    `AbiOutputView`.
  *  - upstream is a data node → canvas-side data field (`texts` / `fileKeys`).
  *    The runner reads from `dataNodeState` (initialized from `staticData` and
- *    refreshed after each executable completes).
+ *    refreshed after each executable completes). Only standalone data nodes
+ *    (uploads / manual input) bind this way — a data node fed by an
+ *    executable is a pure channel and the exporter binds the consumer
+ *    straight to the producer's output field instead.
  *
  * `consumerShape` reflects the ABI shape of the destination input:
  *  - `"scalar"` → runner takes the first value across collected sources.
