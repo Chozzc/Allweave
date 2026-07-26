@@ -162,13 +162,24 @@ Google または WeChat でサインインすれば、すぐに創作を始め�
 
 ### API プラグイン
 
-- [tongflow-api-openrouter-free](https://github.com/tong-io/tongflow-api-openrouter-free) — デフォルトの `gen_text` ルート、OpenRouter の無料モデルを使用
-- [tongflow-api-gemini](https://github.com/tong-io/tongflow-api-gemini) — Google Gemini ベースの `gen_text` および画像生成 / 編集 / 合成（Nano Banana）
-- [tongflow-api-openai](https://github.com/tong-io/tongflow-api-openai) — OpenAI ベースの `gen_text` および画像生成 / 編集 / 融合（`gpt-image-2`）
+ファーストパーティ（各ラボ自身のモデル）：
+
+- [tongflow-api-gemini](https://github.com/tong-io/tongflow-api-gemini) — Google Gemini、ノードごとの**モデルピッカー**：テキスト、視覚、画像（Nano Banana / Imagen 4）、Veo 動画、TTS、文字起こし
+- [tongflow-api-openai](https://github.com/tong-io/tongflow-api-openai) — OpenAI、ノードごとの**モデルピッカー**：`gen_text`、画像生成/編集/融合（`gpt-image-2`）、視覚、ドキュメント OCR、Whisper 文字起こし、TTS
 - [tongflow-api-deepseek](https://github.com/tong-io/tongflow-api-deepseek) — DeepSeek V4（`flash` / `pro`、ストリーミング**思考**バブル付き）ベースの `gen_text` およびテキストツール
-- [tongflow-api-bytedance](https://github.com/tong-io/tongflow-api-bytedance) — Volcengine Ark（Doubao Seedance 2.0）ベースのテキスト / 画像 / 音声 → 動画
-- [tongflow-api-apimart](https://github.com/tong-io/tongflow-api-apimart) — APIMart ゲートウェイ。ノード上で**モデルを選択**可能：画像生成 / 編集（Z-Image、Seedream、Nano Banana、GPT-Image）、テキスト / 画像 → 動画（Kling、VEO3、Sora2、Seedance）、`gen_text`（GPT-5、Claude、Gemini）、Whisper 文字起こしと TTS
-- [tongflow-api-agnes](https://github.com/tong-io/tongflow-api-agnes) — Agnes AI ゲートウェイ：`gen_text` / テキストツール / 画像理解（`agnes-2.0-flash`）、画像生成 / 編集 / 融合（`agnes-image-2.x-flash`）、テキスト / 画像 / 最初・最後フレーム → 動画（`agnes-video-v2.0`）
+- [tongflow-api-bytedance](https://github.com/tong-io/tongflow-api-bytedance) — ByteDance Volcengine Ark、ノードごとの**モデルピッカー**：Doubao テキスト・視覚、Seedream 画像生成/編集/融合、Seedance テキスト / 画像 / 音声 → 動画
+- [tongflow-api-xai](https://github.com/tong-io/tongflow-api-xai) — xAI Grok、ノードごとの**モデルピッカー**：`gen_text`（Grok 4.x）、画像理解、Grok Imagine テキスト→画像
+- [tongflow-api-agnes](https://github.com/tong-io/tongflow-api-agnes) — Agnes AI：`gen_text` / テキストツール / 画像理解（`agnes-2.0-flash`）、画像生成 / 編集 / 融合（`agnes-image-2.x-flash`）、テキスト / 画像 / 最初・最後フレーム → 動画（`agnes-video-v2.0`）
+- [tongflow-api-runway](https://github.com/tong-io/tongflow-api-runway) — Runway Dev 統合 API、ノードごとの**モデルピッカー**：動画（Gen-4.5、Gen-4 Turbo、Aleph 編集、Act-Two、Seedance、Veo）、画像（GPT Image 2、Seedream 5、Gemini image 3）、ElevenLabs TTS
+
+### ルーター / 集約プラグイン
+
+1 つの key で複数ラボのモデルを転送：
+
+- [tongflow-router-openrouter](https://github.com/tong-io/tongflow-router-openrouter) — OpenRouter、ノードごとの**モデルピッカー**：`gen_text`（デフォルト無料、GPT-5.5 / Claude / Gemini / Grok / DeepSeek も選択可）、視覚 / 音声理解、画像生成/編集、文字起こし
+- [tongflow-router-apimart](https://github.com/tong-io/tongflow-router-apimart) — APIMart ゲートウェイ。ノード上で**モデルを選択**可能：画像生成 / 編集（Z-Image、Seedream、Nano Banana、GPT-Image）、テキスト / 画像 → 動画（Kling、VEO3、Sora2、Seedance）、`gen_text`（GPT-5、Claude、Gemini）、Whisper 文字起こしと TTS
+- [tongflow-router-replicate](https://github.com/tong-io/tongflow-router-replicate) — Replicate、ノードごとの**モデルピッカー**でカタログ全体をカバー：テキスト、視覚、画像 生成/編集/融合/アップスケール/切り抜き、テキスト / 画像 → 動画、文字起こし、TTS / ボイスクローン、音楽、画像 → 3D（FLUX、Seedream、Veo、Kling、Whisper、Hunyuan3D…）
+- [tongflow-router-fal](https://github.com/tong-io/tongflow-router-fal) — fal.ai、ノードごとの**モデルピッカー**：画像（生成/編集/融合/アップスケール/切り抜き/ポーズ/法線/セグメンテーション）、動画（テキスト / 画像 → 動画、最初・最後フレーム、トーキングヘッド、リップシンク、アップスケール）、音声（文字起こし、TTS、ボイスクローン、音楽、音源分離）、画像 → 3D
 
 ### GPU/CPU プラグイン
 
