@@ -4,6 +4,10 @@ Direct translation of ``resolveNodeParams`` in ``src/lib/task/runner.ts``.
 Values are read, in order, from: the upstream executable's projected output
 view, the live data-node state (``texts`` / ``fileKeys``), then the
 workflow-level inputs (for data nodes flagged as inputs).
+
+A scalar-shaped input that collects more than one upstream value is an error:
+one-click execution must never silently drop items produced by an upstream
+split (canvas-side execution fans those out interactively).
 """
 
 from __future__ import annotations
@@ -59,6 +63,19 @@ def resolve_node_params(
             for s in binding.get("sources", []):
                 collected.extend(read_source(s["fromNodeId"], s["fromField"]))
             if binding.get("consumerShape") == "scalar":
+                if len(collected) > 1:
+                    label = (
+                        node.get("label")
+                        or node.get("feature")
+                        or node.get("id")
+                        or "?"
+                    )
+                    raise ValueError(
+                        f"Node '{label}' input '{field}' expects a single value "
+                        f"but received {len(collected)} upstream values. "
+                        f"Refusing to silently drop all but the first — reduce "
+                        f"the upstream to one value."
+                    )
                 if collected:
                     params[field] = collected[0]
             else:

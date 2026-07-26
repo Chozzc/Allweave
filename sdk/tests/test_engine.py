@@ -5,6 +5,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 from tongflow.engine import run_workflow
 from tongflow.engine import plugins as plugins_mod
 from tongflow.engine import runner as runner_mod
@@ -69,9 +71,26 @@ def test_resolve_node_params_handle_scalar_from_data_node():
             }
         }
     }
-    state = {"dn1": {"texts": ["first", "second"]}}
+    state = {"dn1": {"texts": ["only"]}}
     params = resolve_node_params(node, {}, state, [{"id": "dn1"}], {})
-    assert params["text"] == "first"
+    assert params["text"] == "only"
+
+
+def test_resolve_node_params_scalar_with_multiple_values_raises():
+    # A scalar input receiving N>1 values must error, not silently take [0].
+    node = {
+        "label": "My Node",
+        "bindings": {
+            "text": {
+                "kind": "handle",
+                "consumerShape": "scalar",
+                "sources": [{"fromNodeId": "dn1", "fromField": "texts"}],
+            }
+        },
+    }
+    state = {"dn1": {"texts": ["first", "second"]}}
+    with pytest.raises(ValueError, match="'My Node' input 'text'.*2 upstream"):
+        resolve_node_params(node, {}, state, [{"id": "dn1"}], {})
 
 
 def test_resolve_node_params_array_and_config_and_input():
