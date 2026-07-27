@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2026-07-28
+
+### Fixed
+
+- **One-click execution now handles dynamic split counts end-to-end** (#116) —
+  a split's runtime item count drives downstream batch nodes: one plugin call
+  per item (`batchField` fan-out in the engine), outputs collected in batch
+  order. Previously only the first item was processed, silently.
+- **Intermediate data nodes are pure channels in one-click runs** — consumers
+  bind straight to the producer's output, so stale edit-time values of
+  materialized nodes no longer leak into execution. Re-save workflows exported
+  before this version to pick up the new bindings.
+- **Loud failure instead of silent data loss** — a single-value input that
+  receives multiple upstream values now fails the node with a clear message.
+
 ## [0.2.2] - 2026-07-25
 
 ### Added
