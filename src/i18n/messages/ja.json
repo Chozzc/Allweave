@@ -69,11 +69,7 @@
         "step1Title": "ステップ 1：Modal でトークンを取得",
         "openTokens": "modal.com/settings/tokens を開く",
         "signupHint": "アカウントがなければ、まず無料登録を。",
-        "step2Title": "ステップ 2：ここに貼り付け",
-        "tokenIdLabel": "トークン ID",
-        "tokenSecretLabel": "トークンシークレット",
-        "prefixWarningId": "形式が違うようです。トークン ID は通常 ak- で始まります。",
-        "prefixWarningSecret": "形式が違うようです。シークレットは通常 as- で始まります。",
+        "step2Title": "ステップ 2：ここにまるごと貼り付け",
         "saveConnect": "保存して連携",
         "connectedToast": "Modal を連携しました",
         "connectFailed": "保存に失敗しました。もう一度お試しください",
@@ -90,7 +86,12 @@
         "helpWechatPrompt": "設定でつまずいたら、QR コードから WeChat グループへ。誰かが手伝ってくれます。",
         "helpWechatQrAlt": "WeChat グループの QR コード",
         "helpDiscordPrompt": "設定でつまずいたら、コミュニティで気軽に聞いてください。",
-        "helpDiscordLink": "Discord に参加"
+        "helpDiscordLink": "Discord に参加",
+        "pasteHint": "Modal に表示されるコマンドをそのまま貼り付ければ、トークン ID とシークレットを自動で読み取ります。",
+        "detectedId": "トークン ID {id}",
+        "detectedSecret": "トークンシークレットを検出",
+        "missingId": "トークン ID が見つかりません（ak- で始まります）",
+        "missingSecret": "シークレットが見つかりません（as- で始まります）"
     },
     "Onboarding": {
         "welcomeTitle": "TongFlow へようこそ",
