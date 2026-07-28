@@ -69,11 +69,7 @@
         "step1Title": "第一步：去 Modal 获取 Token",
         "openTokens": "打开 modal.com/settings/tokens",
         "signupHint": "还没有账号？先免费注册一个。",
-        "step2Title": "第二步：粘贴到这里",
-        "tokenIdLabel": "Token ID",
-        "tokenSecretLabel": "Token Secret",
-        "prefixWarningId": "格式看起来不太对——Token ID 通常以 ak- 开头，请再确认一下。",
-        "prefixWarningSecret": "格式看起来不太对——Token Secret 通常以 as- 开头，请再确认一下。",
+        "step2Title": "第二步：整段粘贴到这里",
         "saveConnect": "保存并连接",
         "connectedToast": "Modal 已连接",
         "connectFailed": "保存失败，请重试",
@@ -90,7 +86,12 @@
         "helpWechatPrompt": "配置遇到问题？扫码进微信群，有人带你跑通。",
         "helpWechatQrAlt": "微信群二维码",
         "helpDiscordPrompt": "配置遇到问题？来社群里问一声，有人帮你搞定。",
-        "helpDiscordLink": "加入 Discord"
+        "helpDiscordLink": "加入 Discord",
+        "pasteHint": "把 Modal 页面上的整行命令直接粘贴进来，会自动识别 Token ID 和 Secret。",
+        "detectedId": "Token ID {id}",
+        "detectedSecret": "已识别 Token Secret",
+        "missingId": "还没识别到 Token ID（ak- 开头）",
+        "missingSecret": "还没识别到 Token Secret（as- 开头）"
     },
     "Onboarding": {
         "welcomeTitle": "欢迎使用 TongFlow",

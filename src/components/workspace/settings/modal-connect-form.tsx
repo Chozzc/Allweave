@@ -1,11 +1,11 @@
 "use client";
 
-import { ExternalLink, Loader2 } from "lucide-react";
+import { CheckCircle2, Circle, ExternalLink, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { markModalConnected } from "@/hooks/use-env-setup";
 import { useInChinaTz } from "@/hooks/use-in-china-tz";
 import { apiPatch } from "@/lib/api/client";
@@ -18,6 +18,45 @@ import {
 
 const MODAL_TOKENS_URL = "https://modal.com/settings/tokens";
 const DISCORD_URL = "https://discord.gg/K7V8az94Zf";
+
+// Modal token prefixes; a minimum tail length avoids matching a bare "ak-"
+// the user is still typing.
+const TOKEN_ID_RE = /ak-[A-Za-z0-9_-]{4,}/;
+const TOKEN_SECRET_RE = /as-[A-Za-z0-9_-]{4,}/;
+
+function maskToken(token: string): string {
+    if (token.length <= 10) return token;
+    return `${token.slice(0, 5)}…${token.slice(-4)}`;
+}
+
+function TokenParseStatus({
+    found,
+    foundLabel,
+    missingLabel,
+}: {
+    found: boolean;
+    foundLabel: string;
+    missingLabel: string;
+}) {
+    return (
+        <p
+            className={`flex items-center gap-1.5 text-xs ${
+                found
+                    ? "text-green-600 dark:text-green-500"
+                    : "text-muted-foreground"
+            }`}
+        >
+            {found ? (
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+            ) : (
+                <Circle className="h-3.5 w-3.5 shrink-0" />
+            )}
+            <span className="font-mono">
+                {found ? foundLabel : missingLabel}
+            </span>
+        </p>
+    );
+}
 
 /**
  * Community hand-off for users who get stuck on setup: the WeChat group QR
@@ -71,7 +110,8 @@ function CommunityHelpFooter() {
 
 /**
  * Guided paste flow for connecting the user's Modal account: the "why"
- * story, a jump-off to Modal's token page, and two paste fields. Dialog- and
+ * story, a jump-off to Modal's token page, and one paste-anything box that
+ * extracts the token id/secret from the copied command. Dialog- and
  * wizard-agnostic — the caller wraps it and reacts to `onConnected`.
  */
 export function ModalConnectForm({
@@ -81,15 +121,14 @@ export function ModalConnectForm({
 }) {
     const t = useTranslations("ModalConnect");
     const managed = process.env.NEXT_PUBLIC_MANAGED_PLUGINS === "1";
-    const [tokenId, setTokenId] = useState("");
-    const [tokenSecret, setTokenSecret] = useState("");
+    const [raw, setRaw] = useState("");
     const [saving, setSaving] = useState(false);
 
-    const id = tokenId.trim();
-    const secret = tokenSecret.trim();
-    // Soft format check only — Modal's prefixes could change; never block.
-    const idLooksOff = id.length > 0 && !id.startsWith("ak-");
-    const secretLooksOff = secret.length > 0 && !secret.startsWith("as-");
+    // Modal's token page shows one `modal token set --token-id ak-…
+    // --token-secret as-…` command with a single copy button, so accept any
+    // pasted blob and extract the two values — no field splitting required.
+    const id = raw.match(TOKEN_ID_RE)?.[0] ?? "";
+    const secret = raw.match(TOKEN_SECRET_RE)?.[0] ?? "";
 
     const connect = async () => {
         setSaving(true);
@@ -137,42 +176,29 @@ export function ModalConnectForm({
 
             <div className="space-y-2">
                 <p className="text-sm font-medium">{t("step2Title")}</p>
+                <Textarea
+                    value={raw}
+                    placeholder="modal token set --token-id ak-… --token-secret as-…"
+                    rows={2}
+                    spellCheck={false}
+                    autoComplete="off"
+                    className="resize-none font-mono text-xs"
+                    onChange={(e) => setRaw(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                    {t("pasteHint")}
+                </p>
                 <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground">
-                        {t("tokenIdLabel")}
-                    </span>
-                    <Input
-                        value={tokenId}
-                        placeholder="ak-…"
-                        spellCheck={false}
-                        autoComplete="off"
-                        className="font-mono text-xs"
-                        onChange={(e) => setTokenId(e.target.value)}
+                    <TokenParseStatus
+                        found={Boolean(id)}
+                        foundLabel={t("detectedId", { id: maskToken(id) })}
+                        missingLabel={t("missingId")}
                     />
-                    {idLooksOff ? (
-                        <p className="text-xs text-amber-600 dark:text-amber-500">
-                            {t("prefixWarningId")}
-                        </p>
-                    ) : null}
-                </div>
-                <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground">
-                        {t("tokenSecretLabel")}
-                    </span>
-                    <Input
-                        value={tokenSecret}
-                        placeholder="as-…"
-                        type="password"
-                        spellCheck={false}
-                        autoComplete="off"
-                        className="font-mono text-xs"
-                        onChange={(e) => setTokenSecret(e.target.value)}
+                    <TokenParseStatus
+                        found={Boolean(secret)}
+                        foundLabel={t("detectedSecret")}
+                        missingLabel={t("missingSecret")}
                     />
-                    {secretLooksOff ? (
-                        <p className="text-xs text-amber-600 dark:text-amber-500">
-                            {t("prefixWarningSecret")}
-                        </p>
-                    ) : null}
                 </div>
             </div>
 

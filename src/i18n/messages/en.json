@@ -70,10 +70,6 @@
         "openTokens": "Open modal.com/settings/tokens",
         "signupHint": "No account yet? Signing up is free.",
         "step2Title": "Step 2 — Paste it here",
-        "tokenIdLabel": "Token ID",
-        "tokenSecretLabel": "Token Secret",
-        "prefixWarningId": "This doesn't look like a token ID (they usually start with ak-).",
-        "prefixWarningSecret": "This doesn't look like a token secret (they usually start with as-).",
         "saveConnect": "Save & connect",
         "connectedToast": "Modal connected",
         "connectFailed": "Couldn't save the token — please try again",
@@ -90,7 +86,12 @@
         "helpWechatPrompt": "Stuck on setup? Scan to join our WeChat group — someone will walk you through it.",
         "helpWechatQrAlt": "WeChat group QR code",
         "helpDiscordPrompt": "Stuck on setup? Hop into our community — happy to help.",
-        "helpDiscordLink": "Join Discord"
+        "helpDiscordLink": "Join Discord",
+        "pasteHint": "Paste the whole command Modal shows you — the Token ID and Secret are picked out automatically.",
+        "detectedId": "Token ID {id}",
+        "detectedSecret": "Token Secret detected",
+        "missingId": "Waiting for the Token ID (starts with ak-)",
+        "missingSecret": "Waiting for the Token Secret (starts with as-)"
     },
     "Onboarding": {
         "welcomeTitle": "Welcome to TongFlow",
