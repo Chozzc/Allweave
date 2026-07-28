@@ -27,7 +27,8 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { PluginsDialog } from "@/components/workspace/plugins-dialog";
-import { SettingsDialog } from "@/components/workspace/settings-dialog";
+import { SettingsDialog } from "@/components/workspace/settings/settings-dialog";
+import { useInChinaTz } from "@/hooks/use-in-china-tz";
 
 const LOCALE_OPTIONS = [
     { code: "zh", label: "中文" },
@@ -62,17 +63,8 @@ const WeChatIcon = ({ className }: { className?: string }) => (
  */
 function CommunityButton() {
     const t = useTranslations("Navigation");
-    const [inChina, setInChina] = useState(false);
+    const inChina = useInChinaTz();
     const [showQR, setShowQR] = useState(false);
-
-    useEffect(() => {
-        try {
-            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            setInChina(tz === "Asia/Shanghai" || tz === "Asia/Urumqi");
-        } catch {
-            // keep Discord
-        }
-    }, []);
 
     const label = inChina ? t("wechatGroup") : t("community");
 
