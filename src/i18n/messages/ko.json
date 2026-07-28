@@ -86,7 +86,11 @@
         "disconnectedToast": "Modal 연결을 해제했습니다",
         "disconnectConfirmTitle": "Modal 연결을 해제할까요?",
         "disconnectConfirmBody": "해제하면 GPU 노드를 실행할 수 없습니다(다시 연결하면 복구됩니다). Modal 계정 자체에는 영향이 없어요.",
-        "disconnectCancel": "취소"
+        "disconnectCancel": "취소",
+        "helpWechatPrompt": "설정이 막히면 QR 코드로 WeChat 그룹에 들어오세요. 누군가 도와드릴 거예요.",
+        "helpWechatQrAlt": "WeChat 그룹 QR 코드",
+        "helpDiscordPrompt": "설정이 막히면 커뮤니티에 편하게 물어보세요.",
+        "helpDiscordLink": "Discord 참여"
     },
     "Onboarding": {
         "welcomeTitle": "TongFlow에 오신 것을 환영합니다",

@@ -86,7 +86,11 @@
         "disconnectedToast": "Modal disconnected",
         "disconnectConfirmTitle": "Disconnect Modal?",
         "disconnectConfirmBody": "GPU nodes will stop running until you connect again. Your Modal account itself is not affected.",
-        "disconnectCancel": "Cancel"
+        "disconnectCancel": "Cancel",
+        "helpWechatPrompt": "Stuck on setup? Scan to join our WeChat group — someone will walk you through it.",
+        "helpWechatQrAlt": "WeChat group QR code",
+        "helpDiscordPrompt": "Stuck on setup? Hop into our community — happy to help.",
+        "helpDiscordLink": "Join Discord"
     },
     "Onboarding": {
         "welcomeTitle": "Welcome to TongFlow",

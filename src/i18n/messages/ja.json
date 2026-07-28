@@ -86,7 +86,11 @@
         "disconnectedToast": "Modal の連携を解除しました",
         "disconnectConfirmTitle": "Modal の連携を解除しますか？",
         "disconnectConfirmBody": "解除すると GPU ノードは実行できなくなります（再連携すれば戻ります）。Modal アカウント自体には影響しません。",
-        "disconnectCancel": "キャンセル"
+        "disconnectCancel": "キャンセル",
+        "helpWechatPrompt": "設定でつまずいたら、QR コードから WeChat グループへ。誰かが手伝ってくれます。",
+        "helpWechatQrAlt": "WeChat グループの QR コード",
+        "helpDiscordPrompt": "設定でつまずいたら、コミュニティで気軽に聞いてください。",
+        "helpDiscordLink": "Discord に参加"
     },
     "Onboarding": {
         "welcomeTitle": "TongFlow へようこそ",

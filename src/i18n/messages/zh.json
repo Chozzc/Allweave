@@ -86,7 +86,11 @@
         "disconnectedToast": "已断开 Modal",
         "disconnectConfirmTitle": "断开 Modal 连接？",
         "disconnectConfirmBody": "断开后 GPU 节点将无法运行，重新连接即可恢复。你的 Modal 账号本身不受影响。",
-        "disconnectCancel": "取消"
+        "disconnectCancel": "取消",
+        "helpWechatPrompt": "配置遇到问题？扫码进微信群，有人带你跑通。",
+        "helpWechatQrAlt": "微信群二维码",
+        "helpDiscordPrompt": "配置遇到问题？来社群里问一声，有人帮你搞定。",
+        "helpDiscordLink": "加入 Discord"
     },
     "Onboarding": {
         "welcomeTitle": "欢迎使用 TongFlow",

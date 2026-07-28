@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { markModalConnected } from "@/hooks/use-env-setup";
+import { useInChinaTz } from "@/hooks/use-in-china-tz";
 import { apiPatch } from "@/lib/api/client";
 import { openExternalUrl } from "@/lib/desktop/open-external";
 import { logger } from "@/lib/logger";
@@ -16,6 +17,57 @@ import {
 } from "@/lib/settings/env-key-metadata";
 
 const MODAL_TOKENS_URL = "https://modal.com/settings/tokens";
+const DISCORD_URL = "https://discord.gg/K7V8az94Zf";
+
+/**
+ * Community hand-off for users who get stuck on setup: the WeChat group QR
+ * for mainland-China users (Discord is unreachable there), Discord otherwise.
+ */
+function CommunityHelpFooter() {
+    const t = useTranslations("ModalConnect");
+    const inChina = useInChinaTz();
+
+    return (
+        <div className="space-y-2 border-t pt-3">
+            {inChina ? (
+                <>
+                    <p className="text-xs text-muted-foreground">
+                        {t("helpWechatPrompt")}
+                    </p>
+                    <div className="flex justify-center">
+                        <img
+                            src="/wechat-group-qr.png"
+                            alt={t("helpWechatQrAlt")}
+                            className="h-32 w-32 rounded-lg bg-white p-1.5"
+                        />
+                    </div>
+                    <div className="flex justify-center">
+                        <button
+                            type="button"
+                            className="inline-flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground underline underline-offset-4"
+                            onClick={() => openExternalUrl(DISCORD_URL)}
+                        >
+                            {t("helpDiscordLink")}
+                            <ExternalLink className="h-3 w-3" />
+                        </button>
+                    </div>
+                </>
+            ) : (
+                <p className="text-xs text-muted-foreground">
+                    {t("helpDiscordPrompt")}{" "}
+                    <button
+                        type="button"
+                        className="inline-flex items-center gap-0.5 text-primary hover:underline"
+                        onClick={() => openExternalUrl(DISCORD_URL)}
+                    >
+                        {t("helpDiscordLink")}
+                        <ExternalLink className="h-3 w-3" />
+                    </button>
+                </p>
+            )}
+        </div>
+    );
+}
 
 /**
  * Guided paste flow for connecting the user's Modal account: the "why"
@@ -135,6 +187,8 @@ export function ModalConnectForm({
                 ) : null}
                 {t("saveConnect")}
             </Button>
+
+            <CommunityHelpFooter />
         </div>
     );
 }
