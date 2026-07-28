@@ -44,6 +44,7 @@ import { logger } from "@/lib/logger";
 import { isValidFlowConnection } from "@/lib/workflow/connection-rules";
 import { parseWorkflowImportJson } from "@/lib/workflow/exporter";
 import { ModeSwitch } from "./mode-switch";
+import { OnboardingGate } from "./onboarding/onboarding-gate";
 import SmartIsland from "./smart-island";
 import { EDGE_TYPES, NODE_TYPES } from "./types";
 import { WorkflowTitleMenu } from "./workflow-title-menu";
@@ -407,6 +408,8 @@ function WorkspaceInner({
             <div className="absolute right-4 bottom-5 z-10">
                 <ModeSwitch />
             </div>
+
+            <OnboardingGate />
 
             <AlertDialog
                 open={pendingDeleteEdgeId !== null}

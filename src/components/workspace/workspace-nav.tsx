@@ -27,7 +27,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { PluginsDialog } from "@/components/workspace/plugins-dialog";
-import { SettingsDialog } from "@/components/workspace/settings-dialog";
+import { SettingsDialog } from "@/components/workspace/settings/settings-dialog";
 
 const LOCALE_OPTIONS = [
     { code: "zh", label: "中文" },

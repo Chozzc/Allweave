@@ -19,6 +19,13 @@ export const PluginEnvVarSchema = z.object({
     default: z.string().optional(),
     /** Where to obtain the key (e.g. the provider's API-keys page). */
     url: z.url().optional(),
+    /** Value shape; drives the input widget in the settings dialog. When
+     * absent, the app-side registry / suffix heuristics decide. */
+    type: z
+        .enum(["secret", "select", "boolean", "number", "url", "text"])
+        .optional(),
+    /** Allowed values for `type: "select"`. */
+    options: z.array(z.string()).optional(),
 });
 
 /**
