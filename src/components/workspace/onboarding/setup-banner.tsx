@@ -4,7 +4,8 @@ import { Zap } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ModalConnectDialog } from "../settings/modal-connect-dialog";
+import { MODAL_CONNECT } from "../settings/connect-configs";
+import { TokenConnectDialog } from "../settings/token-connect";
 
 /**
  * Slim persistent banner shown on the canvas until Modal is connected. No
@@ -31,7 +32,8 @@ export function SetupBanner() {
                     {t("bannerCta")}
                 </Button>
             </div>
-            <ModalConnectDialog
+            <TokenConnectDialog
+                config={MODAL_CONNECT}
                 open={connectOpen}
                 onOpenChange={setConnectOpen}
             />

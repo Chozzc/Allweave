@@ -1,0 +1,432 @@
+"use client";
+
+import { CheckCircle2, Circle, ExternalLink, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
+import toast from "react-hot-toast";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { useInChinaTz } from "@/hooks/use-in-china-tz";
+import { apiPatch } from "@/lib/api/client";
+import { openExternalUrl } from "@/lib/desktop/open-external";
+import { logger } from "@/lib/logger";
+
+const DISCORD_URL = "https://discord.gg/K7V8az94Zf";
+
+/** One credential extracted from the pasted blob. */
+export interface TokenSpec {
+    envKey: string;
+    /** Prefix-anchored pattern that picks the value out of any pasted text. */
+    pattern: RegExp;
+    /** Show the matched value masked in the parse status (ids yes, secrets no). */
+    masked: boolean;
+    /** i18n keys (within the provider namespace) for the parse status line. */
+    detectedKey: string;
+    missingKey: string;
+}
+
+/**
+ * A guided token-connect provider. All user-facing copy lives in the `ns`
+ * i18n namespace, which must carry the shared connect-flow key set (story1/2,
+ * storyManaged/storyLocal, step1Title, openTokens, signupHint, step2Title,
+ * pasteHint, saveConnect, connectedToast, connectFailed, cardTitle,
+ * cardBlurb, connectCta, connectedBadge, reconnect, disconnect,
+ * disconnectedToast, disconnectConfirm*, disconnectCancel).
+ */
+export interface TokenProviderConfig {
+    ns: "ModalConnect" | "HfConnect";
+    tokensUrl: string;
+    pastePlaceholder: string;
+    specs: TokenSpec[];
+    /** Optional store flips (e.g. Modal's onboarding banner). */
+    onConnectedStore?: () => void;
+    onDisconnectedStore?: () => void;
+}
+
+function maskToken(token: string): string {
+    if (token.length <= 10) return token;
+    return `${token.slice(0, 5)}…${token.slice(-4)}`;
+}
+
+function TokenParseStatus({
+    found,
+    foundLabel,
+    missingLabel,
+}: {
+    found: boolean;
+    foundLabel: string;
+    missingLabel: string;
+}) {
+    return (
+        <p
+            className={`flex items-center gap-1.5 text-xs ${
+                found
+                    ? "text-green-600 dark:text-green-500"
+                    : "text-muted-foreground"
+            }`}
+        >
+            {found ? (
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+            ) : (
+                <Circle className="h-3.5 w-3.5 shrink-0" />
+            )}
+            <span className="font-mono">
+                {found ? foundLabel : missingLabel}
+            </span>
+        </p>
+    );
+}
+
+/**
+ * Community hand-off for users who get stuck on setup: the WeChat group QR
+ * for mainland-China users (Discord is unreachable there), Discord otherwise.
+ * Copy lives in the ModalConnect namespace (provider-agnostic help keys).
+ */
+function CommunityHelpFooter() {
+    const t = useTranslations("ModalConnect");
+    const inChina = useInChinaTz();
+
+    return (
+        <div className="space-y-2 border-t pt-3">
+            {inChina ? (
+                <>
+                    <p className="text-xs text-muted-foreground">
+                        {t("helpWechatPrompt")}
+                    </p>
+                    <div className="flex justify-center">
+                        <img
+                            src="/wechat-group-qr.png"
+                            alt={t("helpWechatQrAlt")}
+                            className="h-32 w-32 rounded-lg bg-white p-1.5"
+                        />
+                    </div>
+                    <div className="flex justify-center">
+                        <button
+                            type="button"
+                            className="inline-flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground underline underline-offset-4"
+                            onClick={() => openExternalUrl(DISCORD_URL)}
+                        >
+                            {t("helpDiscordLink")}
+                            <ExternalLink className="h-3 w-3" />
+                        </button>
+                    </div>
+                </>
+            ) : (
+                <p className="text-xs text-muted-foreground">
+                    {t("helpDiscordPrompt")}{" "}
+                    <button
+                        type="button"
+                        className="inline-flex items-center gap-0.5 text-primary hover:underline"
+                        onClick={() => openExternalUrl(DISCORD_URL)}
+                    >
+                        {t("helpDiscordLink")}
+                        <ExternalLink className="h-3 w-3" />
+                    </button>
+                </p>
+            )}
+        </div>
+    );
+}
+
+/**
+ * Guided paste flow: the "why" story, a jump-off to the provider's token
+ * page, and one paste-anything box that extracts the credential(s) from the
+ * copied text. Dialog- and wizard-agnostic — the caller wraps it and reacts
+ * to `onConnected`.
+ */
+export function TokenConnectForm({
+    config,
+    onConnected,
+}: {
+    config: TokenProviderConfig;
+    onConnected?: () => void;
+}) {
+    const t = useTranslations(config.ns);
+    const managed = process.env.NEXT_PUBLIC_MANAGED_PLUGINS === "1";
+    const [raw, setRaw] = useState("");
+    const [saving, setSaving] = useState(false);
+
+    // Token pages usually show one copyable command/value, so accept any
+    // pasted blob and extract the value(s) — no field splitting required.
+    const parsed = config.specs.map(
+        (spec) => raw.match(spec.pattern)?.[0] ?? "",
+    );
+    const allFound = parsed.every(Boolean);
+
+    const connect = async () => {
+        setSaving(true);
+        try {
+            const env: Record<string, string> = {};
+            config.specs.forEach((spec, i) => {
+                env[spec.envKey] = parsed[i];
+            });
+            await apiPatch("/api/settings/env", { env });
+            config.onConnectedStore?.();
+            toast.success(t("connectedToast"));
+            onConnected?.();
+        } catch (error) {
+            logger.error(`Failed to save token (${config.ns}):`, error);
+            toast.error(t("connectFailed"));
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div className="space-y-4">
+            <ul className="space-y-1.5 text-sm text-muted-foreground">
+                <li>• {t("story1")}</li>
+                <li>• {t("story2")}</li>
+                <li>• {managed ? t("storyManaged") : t("storyLocal")}</li>
+            </ul>
+
+            <div className="space-y-2">
+                <p className="text-sm font-medium">{t("step1Title")}</p>
+                <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => openExternalUrl(config.tokensUrl)}
+                >
+                    {t("openTokens")}
+                    <ExternalLink className="ml-1 h-4 w-4" />
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                    {t("signupHint")}
+                </p>
+            </div>
+
+            <div className="space-y-2">
+                <p className="text-sm font-medium">{t("step2Title")}</p>
+                <Textarea
+                    value={raw}
+                    placeholder={config.pastePlaceholder}
+                    rows={2}
+                    spellCheck={false}
+                    autoComplete="off"
+                    className="resize-none font-mono text-xs"
+                    onChange={(e) => setRaw(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                    {t("pasteHint")}
+                </p>
+                <div className="space-y-1">
+                    {config.specs.map((spec, i) => (
+                        <TokenParseStatus
+                            key={spec.envKey}
+                            found={Boolean(parsed[i])}
+                            foundLabel={
+                                spec.masked
+                                    ? t(spec.detectedKey, {
+                                          id: maskToken(parsed[i]),
+                                      })
+                                    : t(spec.detectedKey)
+                            }
+                            missingLabel={t(spec.missingKey)}
+                        />
+                    ))}
+                </div>
+            </div>
+
+            <Button
+                type="button"
+                className="w-full"
+                disabled={!allFound || saving}
+                onClick={connect}
+            >
+                {saving ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                {t("saveConnect")}
+            </Button>
+
+            <CommunityHelpFooter />
+        </div>
+    );
+}
+
+/** Thin dialog wrapper around the connect form (settings card, banner). */
+export function TokenConnectDialog({
+    config,
+    open,
+    onOpenChange,
+    onConnected,
+}: {
+    config: TokenProviderConfig;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onConnected?: () => void;
+}) {
+    const t = useTranslations(config.ns);
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>{t("title")}</DialogTitle>
+                    <DialogDescription>{t("subtitle")}</DialogDescription>
+                </DialogHeader>
+                <TokenConnectForm
+                    config={config}
+                    onConnected={() => {
+                        onOpenChange(false);
+                        onConnected?.();
+                    }}
+                />
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+/**
+ * Settings-dialog card. Disconnected: the one-line story plus a prominent
+ * connect button. Connected: masked credential with reconnect / disconnect.
+ * Disconnecting clears only the provider's own keys — any platform
+ * bookkeeping is internal and intentionally retained.
+ */
+export function TokenConnectCard({
+    config,
+    values,
+    onChanged,
+}: {
+    config: TokenProviderConfig;
+    /** The settings dialog's flat env values map. */
+    values: Record<string, string>;
+    /** Called after connect/disconnect so the dialog refetches its env map. */
+    onChanged: () => void;
+}) {
+    const t = useTranslations(config.ns);
+    const [connectOpen, setConnectOpen] = useState(false);
+    const [disconnecting, setDisconnecting] = useState(false);
+    const connected = config.specs.every((spec) =>
+        (values[spec.envKey] ?? "").trim(),
+    );
+    const displaySpec =
+        config.specs.find((spec) => spec.masked) ?? config.specs[0];
+    const displayValue = (values[displaySpec.envKey] ?? "").trim();
+
+    const disconnect = async () => {
+        setDisconnecting(true);
+        try {
+            const env: Record<string, string> = {};
+            for (const spec of config.specs) env[spec.envKey] = "";
+            await apiPatch("/api/settings/env", { env });
+            config.onDisconnectedStore?.();
+            toast.success(t("disconnectedToast"));
+            onChanged();
+        } catch (error) {
+            logger.error(`Failed to disconnect (${config.ns}):`, error);
+        } finally {
+            setDisconnecting(false);
+        }
+    };
+
+    return (
+        <div className="space-y-2 rounded-lg border p-3">
+            <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">{t("cardTitle")}</span>
+                {connected ? (
+                    <Badge
+                        variant="secondary"
+                        className="gap-1 text-green-600 dark:text-green-500"
+                    >
+                        <CheckCircle2 className="h-3 w-3" />
+                        {t("connectedBadge")}
+                    </Badge>
+                ) : null}
+            </div>
+
+            {connected ? (
+                <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-xs text-muted-foreground">
+                        {displaySpec.masked
+                            ? maskToken(displayValue)
+                            : "••••••"}
+                    </span>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setConnectOpen(true)}
+                        >
+                            {t("reconnect")}
+                        </Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-muted-foreground hover:text-red-600"
+                                    disabled={disconnecting}
+                                >
+                                    {disconnecting ? (
+                                        <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                                    ) : null}
+                                    {t("disconnect")}
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                        {t("disconnectConfirmTitle")}
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        {t("disconnectConfirmBody")}
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>
+                                        {t("disconnectCancel")}
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction onClick={disconnect}>
+                                        {t("disconnect")}
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
+                </div>
+            ) : (
+                <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                        {t("cardBlurb")}
+                    </p>
+                    <Button
+                        type="button"
+                        className="w-full"
+                        onClick={() => setConnectOpen(true)}
+                    >
+                        {t("connectCta")}
+                    </Button>
+                </div>
+            )}
+
+            <TokenConnectDialog
+                config={config}
+                open={connectOpen}
+                onOpenChange={setConnectOpen}
+                onConnected={onChanged}
+            />
+        </div>
+    );
+}

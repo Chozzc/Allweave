@@ -29,11 +29,12 @@ export interface EnvKeyMeta {
 
 export const MODAL_TOKEN_ID_ENV = "MODAL_TOKEN_ID";
 export const MODAL_TOKEN_SECRET_ENV = "MODAL_TOKEN_SECRET";
+export const HF_TOKEN_ENV = "HF_TOKEN";
 
 export const ENV_KEY_METADATA: Record<string, EnvKeyMeta> = {
     [MODAL_TOKEN_ID_ENV]: { type: "secret", section: "modal" },
     [MODAL_TOKEN_SECRET_ENV]: { type: "secret", section: "modal" },
-    HF_TOKEN: { type: "secret", section: "compute" },
+    [HF_TOKEN_ENV]: { type: "secret", section: "compute" },
     TONGFLOW_MODAL_CALL_TIMEOUT_S: { type: "number" },
     // Enum knobs (values documented by each plugin's manifest description).
     WHISPER_MODEL: {
