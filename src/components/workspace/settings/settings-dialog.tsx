@@ -39,9 +39,18 @@ import {
     type GroupVar,
     type ProviderGroup,
 } from "./build-settings-sections";
-import { HF_CONNECT, MODAL_CONNECT } from "./connect-configs";
+import {
+    HF_CONNECT,
+    MODAL_CONNECT,
+    providerConnectConfig,
+} from "./connect-configs";
 import { EnvVarRow } from "./env-var-row";
-import { TokenConnectCard } from "./token-connect";
+import {
+    isTokenConnected,
+    TokenConnectCard,
+    TokenConnectCardBody,
+    TokenConnectedBadge,
+} from "./token-connect";
 import { useEnvSettings } from "./use-env-settings";
 
 const navBtnClass =
@@ -78,12 +87,15 @@ function ProviderCard({
     revealed,
     onChangeValue,
     onToggleReveal,
+    onEnvChanged,
 }: {
     group: ProviderGroup;
     values: Record<string, string>;
     revealed: Record<string, boolean>;
     onChangeValue: (key: string, value: string) => void;
     onToggleReveal: (key: string) => void;
+    /** Called after a connect/disconnect PATCH so the dialog refetches. */
+    onEnvChanged: () => void;
 }) {
     const t = useTranslations("Settings");
     const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -92,40 +104,56 @@ function ProviderCard({
         (values[v.key] ?? "").trim(),
     ).length;
     const allSet = setCount === group.requiredVars.length;
-    // "{provider} API Key" reads better than the raw env name, but only when
-    // the mapping is unambiguous: a single required secret.
+    // The guided connect flow needs an unambiguous mapping: a single
+    // required secret. Anything else falls back to plain rows.
     const soleSecret =
         group.requiredVars.length === 1 &&
         resolveEnvKeyType(group.requiredVars[0].key, group.requiredVars[0]) ===
             "secret";
+    const connectConfig = soleSecret
+        ? providerConnectConfig(
+              group.title,
+              group.requiredVars[0].key,
+              group.requiredVars[0].url,
+          )
+        : null;
 
     return (
         <div className="space-y-2 rounded-lg border p-3">
             <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">{group.title}</span>
-                <Badge variant={allSet ? "secondary" : "outline"}>
-                    {t("setBadge", {
-                        set: setCount,
-                        total: group.requiredVars.length,
-                    })}
-                </Badge>
+                {connectConfig ? (
+                    isTokenConnected(connectConfig, values) ? (
+                        <TokenConnectedBadge config={connectConfig} />
+                    ) : null
+                ) : (
+                    <Badge variant={allSet ? "secondary" : "outline"}>
+                        {t("setBadge", {
+                            set: setCount,
+                            total: group.requiredVars.length,
+                        })}
+                    </Badge>
+                )}
             </div>
 
-            {group.requiredVars.map((v) => (
-                <EnvVarRow
-                    key={v.key}
-                    v={v}
-                    label={
-                        soleSecret
-                            ? t("providerKeyLabel", { provider: group.title })
-                            : undefined
-                    }
-                    value={values[v.key] ?? ""}
-                    revealed={Boolean(revealed[v.key])}
-                    onChange={(value) => onChangeValue(v.key, value)}
-                    onToggleReveal={() => onToggleReveal(v.key)}
+            {connectConfig ? (
+                <TokenConnectCardBody
+                    config={connectConfig}
+                    values={values}
+                    onChanged={onEnvChanged}
                 />
-            ))}
+            ) : (
+                group.requiredVars.map((v) => (
+                    <EnvVarRow
+                        key={v.key}
+                        v={v}
+                        value={values[v.key] ?? ""}
+                        revealed={Boolean(revealed[v.key])}
+                        onChange={(value) => onChangeValue(v.key, value)}
+                        onToggleReveal={() => onToggleReveal(v.key)}
+                    />
+                ))
+            )}
 
             {group.optionalVars.length > 0 ? (
                 <>
@@ -305,6 +333,7 @@ export function SettingsDialog() {
                                         revealed={revealed}
                                         onChangeValue={setValue}
                                         onToggleReveal={toggleReveal}
+                                        onEnvChanged={() => void fetchEnv()}
                                     />
                                 ))}
                             </div>

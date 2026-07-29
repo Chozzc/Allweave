@@ -35,8 +35,9 @@ const DISCORD_URL = "https://discord.gg/K7V8az94Zf";
 /** One credential extracted from the pasted blob. */
 export interface TokenSpec {
     envKey: string;
-    /** Prefix-anchored pattern that picks the value out of any pasted text. */
-    pattern: RegExp;
+    /** Prefix-anchored pattern that picks the value out of any pasted text.
+     * Absent = loose extraction (strip `KEY=`, quotes, surrounding prose). */
+    pattern?: RegExp;
     /** Show the matched value masked in the parse status (ids yes, secrets no). */
     masked: boolean;
     /** i18n keys (within the provider namespace) for the parse status line. */
@@ -46,17 +47,21 @@ export interface TokenSpec {
 
 /**
  * A guided token-connect provider. All user-facing copy lives in the `ns`
- * i18n namespace, which must carry the shared connect-flow key set (story1/2,
- * storyManaged/storyLocal, step1Title, openTokens, signupHint, step2Title,
- * pasteHint, saveConnect, connectedToast, connectFailed, cardTitle,
- * cardBlurb, connectCta, connectedBadge, reconnect, disconnect,
- * disconnectedToast, disconnectConfirm*, disconnectCancel).
+ * i18n namespace (interpolated with `tValues`), which must carry the shared
+ * connect-flow key set (story1/2, storyManaged/storyLocal, step1Title,
+ * openTokens, signupHint, step2Title, pasteHint, saveConnect,
+ * connectedToast, connectFailed, cardTitle, cardBlurb, connectCta,
+ * connectedBadge, reconnect, disconnect, disconnectedToast,
+ * disconnectConfirm*, disconnectCancel).
  */
 export interface TokenProviderConfig {
-    ns: "ModalConnect" | "HfConnect";
-    tokensUrl: string;
+    ns: string;
+    /** Where to create the credential; step 1 is hidden when absent. */
+    tokensUrl?: string;
     pastePlaceholder: string;
     specs: TokenSpec[];
+    /** Interpolation values for every message (e.g. { provider: "OpenAI" }). */
+    tValues?: Record<string, string>;
     /** Optional store flips (e.g. Modal's onboarding banner). */
     onConnectedStore?: () => void;
     onDisconnectedStore?: () => void;
@@ -65,6 +70,33 @@ export interface TokenProviderConfig {
 function maskToken(token: string): string {
     if (token.length <= 10) return token;
     return `${token.slice(0, 5)}…${token.slice(-4)}`;
+}
+
+/**
+ * Best-effort credential extraction when no prefix pattern is known: strips
+ * an `KEY=` assignment, surrounding quotes, and — if several tokens remain —
+ * keeps the longest one (API keys are long blobs).
+ */
+function extractLoose(raw: string): string {
+    let s = raw.trim();
+    const eq = s.lastIndexOf("=");
+    if (eq >= 0) s = s.slice(eq + 1);
+    s = s
+        .trim()
+        .replace(/^["']+|["']+$/g, "")
+        .trim();
+    if (/\s/.test(s)) {
+        s = s.split(/\s+/).reduce((a, b) => (b.length > a.length ? b : a), "");
+    }
+    return s;
+}
+
+/** Whether every credential of a provider is present in the values map. */
+export function isTokenConnected(
+    config: TokenProviderConfig,
+    values: Record<string, string>,
+): boolean {
+    return config.specs.every((spec) => (values[spec.envKey] ?? "").trim());
 }
 
 function TokenParseStatus({
@@ -160,15 +192,17 @@ export function TokenConnectForm({
     config: TokenProviderConfig;
     onConnected?: () => void;
 }) {
-    const t = useTranslations(config.ns);
+    const rawT = useTranslations(config.ns);
+    const t = (key: string, values?: Record<string, string>) =>
+        rawT(key, { ...config.tValues, ...values });
     const managed = process.env.NEXT_PUBLIC_MANAGED_PLUGINS === "1";
     const [raw, setRaw] = useState("");
     const [saving, setSaving] = useState(false);
 
     // Token pages usually show one copyable command/value, so accept any
     // pasted blob and extract the value(s) — no field splitting required.
-    const parsed = config.specs.map(
-        (spec) => raw.match(spec.pattern)?.[0] ?? "",
+    const parsed = config.specs.map((spec) =>
+        spec.pattern ? (raw.match(spec.pattern)?.[0] ?? "") : extractLoose(raw),
     );
     const allFound = parsed.every(Boolean);
 
@@ -199,21 +233,26 @@ export function TokenConnectForm({
                 <li>• {managed ? t("storyManaged") : t("storyLocal")}</li>
             </ul>
 
-            <div className="space-y-2">
-                <p className="text-sm font-medium">{t("step1Title")}</p>
-                <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => openExternalUrl(config.tokensUrl)}
-                >
-                    {t("openTokens")}
-                    <ExternalLink className="ml-1 h-4 w-4" />
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                    {t("signupHint")}
-                </p>
-            </div>
+            {config.tokensUrl ? (
+                <div className="space-y-2">
+                    <p className="text-sm font-medium">{t("step1Title")}</p>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() =>
+                            config.tokensUrl &&
+                            openExternalUrl(config.tokensUrl)
+                        }
+                    >
+                        {t("openTokens")}
+                        <ExternalLink className="ml-1 h-4 w-4" />
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                        {t("signupHint")}
+                    </p>
+                </div>
+            ) : null}
 
             <div className="space-y-2">
                 <p className="text-sm font-medium">{t("step2Title")}</p>
@@ -281,8 +320,10 @@ export function TokenConnectDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>{t("title")}</DialogTitle>
-                    <DialogDescription>{t("subtitle")}</DialogDescription>
+                    <DialogTitle>{t("title", config.tValues)}</DialogTitle>
+                    <DialogDescription>
+                        {t("subtitle", config.tValues)}
+                    </DialogDescription>
                 </DialogHeader>
                 <TokenConnectForm
                     config={config}
@@ -296,13 +337,33 @@ export function TokenConnectDialog({
     );
 }
 
+/** Green "connected" badge shared by the standalone card and provider cards. */
+export function TokenConnectedBadge({
+    config,
+}: {
+    config: TokenProviderConfig;
+}) {
+    const t = useTranslations(config.ns);
+    return (
+        <Badge
+            variant="secondary"
+            className="gap-1 text-green-600 dark:text-green-500"
+        >
+            <CheckCircle2 className="h-3 w-3" />
+            {t("connectedBadge", config.tValues)}
+        </Badge>
+    );
+}
+
 /**
- * Settings-dialog card. Disconnected: the one-line story plus a prominent
- * connect button. Connected: masked credential with reconnect / disconnect.
- * Disconnecting clears only the provider's own keys — any platform
- * bookkeeping is internal and intentionally retained.
+ * Connect-state block without the card chrome, so callers can embed it in
+ * their own card (e.g. a provider card that also hosts advanced knobs).
+ * Disconnected: the one-line story plus a prominent connect button.
+ * Connected: masked credential with reconnect / disconnect. Disconnecting
+ * clears only the provider's own keys — any platform bookkeeping is internal
+ * and intentionally retained.
  */
-export function TokenConnectCard({
+export function TokenConnectCardBody({
     config,
     values,
     onChanged,
@@ -313,12 +374,11 @@ export function TokenConnectCard({
     /** Called after connect/disconnect so the dialog refetches its env map. */
     onChanged: () => void;
 }) {
-    const t = useTranslations(config.ns);
+    const rawT = useTranslations(config.ns);
+    const t = (key: string) => rawT(key, config.tValues);
     const [connectOpen, setConnectOpen] = useState(false);
     const [disconnecting, setDisconnecting] = useState(false);
-    const connected = config.specs.every((spec) =>
-        (values[spec.envKey] ?? "").trim(),
-    );
+    const connected = isTokenConnected(config, values);
     const displaySpec =
         config.specs.find((spec) => spec.masked) ?? config.specs[0];
     const displayValue = (values[displaySpec.envKey] ?? "").trim();
@@ -340,20 +400,7 @@ export function TokenConnectCard({
     };
 
     return (
-        <div className="space-y-2 rounded-lg border p-3">
-            <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">{t("cardTitle")}</span>
-                {connected ? (
-                    <Badge
-                        variant="secondary"
-                        className="gap-1 text-green-600 dark:text-green-500"
-                    >
-                        <CheckCircle2 className="h-3 w-3" />
-                        {t("connectedBadge")}
-                    </Badge>
-                ) : null}
-            </div>
-
+        <>
             {connected ? (
                 <div className="flex items-center justify-between gap-2">
                     <span className="font-mono text-xs text-muted-foreground">
@@ -426,6 +473,36 @@ export function TokenConnectCard({
                 open={connectOpen}
                 onOpenChange={setConnectOpen}
                 onConnected={onChanged}
+            />
+        </>
+    );
+}
+
+/** Standalone settings card: title + connected badge + connect body. */
+export function TokenConnectCard({
+    config,
+    values,
+    onChanged,
+}: {
+    config: TokenProviderConfig;
+    values: Record<string, string>;
+    onChanged: () => void;
+}) {
+    const t = useTranslations(config.ns);
+    return (
+        <div className="space-y-2 rounded-lg border p-3">
+            <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">
+                    {t("cardTitle", config.tValues)}
+                </span>
+                {isTokenConnected(config, values) ? (
+                    <TokenConnectedBadge config={config} />
+                ) : null}
+            </div>
+            <TokenConnectCardBody
+                config={config}
+                values={values}
+                onChanged={onChanged}
             />
         </div>
     );
