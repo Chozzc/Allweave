@@ -1098,7 +1098,18 @@
         "details": "詳細",
         "copy": "コピー",
         "copied": "コピーしました",
-        "close": "閉じる"
+        "close": "閉じる",
+        "needHelp": "解決しない場合はこちらへ：",
+        "wechatGroup": "WeChat グループ",
+        "wechatQrAlt": "WeChat グループの QR コード"
+    },
+    "TaskErrors": {
+        "subscription_required": "タスクの実行には TongFlow Cloud のサブスクリプションが必要です。右上のアカウントメニューから登録できます。",
+        "modal_not_connected": "Modal が未連携のため実行できません。「設定」で「Modal を連携」を押してください。1 分で完了し、毎月 $30 分の無料枠があります。",
+        "executor_rejected": "実行環境がタスクを拒否しました（HTTP {status}）。まず再実行してみてください。繰り返し失敗する場合は、設定で Modal をいったん解除して再連携してください。",
+        "task_not_found": "タスクが存在しないか期限切れです。もう一度実行してください。",
+        "workflow_invalid": "ワークフローに実行可能なデータがありません。保存し直してからお試しください。",
+        "task_failed_to_start": "タスクを開始できませんでした。少し待ってからもう一度お試しください。"
     },
     "Api": {
         "unknownError": "不明なエラー",

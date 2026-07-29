@@ -87,7 +87,10 @@ export async function dispatchTask(taskId: string): Promise<void> {
         notifyTask(
             taskId,
             TaskStatus.FAILED,
-            { message: "Task not found or expired" },
+            {
+                message: "Task not found or expired",
+                errorCode: "task_not_found",
+            },
             null,
         );
         return;
@@ -98,7 +101,10 @@ export async function dispatchTask(taskId: string): Promise<void> {
             notifyTask(
                 taskId,
                 WorkflowStatus.WORKFLOW_FAILED,
-                { message: "Workflow task missing workflowId" },
+                {
+                    message: "Workflow task missing workflowId",
+                    errorCode: "workflow_invalid",
+                },
                 null,
             );
             return;
@@ -110,7 +116,10 @@ export async function dispatchTask(taskId: string): Promise<void> {
             notifyTask(
                 taskId,
                 WorkflowStatus.WORKFLOW_FAILED,
-                { message: "Workflow not found or has no executable data" },
+                {
+                    message: "Workflow not found or has no executable data",
+                    errorCode: "workflow_invalid",
+                },
                 null,
             );
             return;
@@ -137,7 +146,10 @@ export async function executeTask(taskId: string): Promise<void> {
         notifyTask(
             taskId,
             TaskStatus.FAILED,
-            { message: "Task not found or expired" },
+            {
+                message: "Task not found or expired",
+                errorCode: "task_not_found",
+            },
             null,
         );
         return;

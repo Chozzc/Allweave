@@ -17,6 +17,8 @@ export interface ShowErrorToastOptions {
      * stack (e.g. one per task id). Omit for an auto-generated id.
      */
     id?: string;
+    /** Extra content below the actions (e.g. community-support links). */
+    footer?: React.ReactNode;
 }
 
 function ErrorToastCard({
@@ -24,11 +26,13 @@ function ErrorToastCard({
     title,
     message,
     detail,
+    footer,
 }: {
     toastId: string;
     title?: string;
     message: string;
     detail?: string;
+    footer?: React.ReactNode;
 }) {
     const t = getClientTranslator("Errors");
     const [expanded, setExpanded] = useState(false);
@@ -78,6 +82,7 @@ function ErrorToastCard({
                             {detail}
                         </pre>
                     )}
+                    {footer}
                 </div>
                 <button
                     type="button"
@@ -102,6 +107,7 @@ export function showErrorToast({
     message,
     detail,
     id,
+    footer,
 }: ShowErrorToastOptions): string {
     return toast.custom(
         (tInst) => (
@@ -110,6 +116,7 @@ export function showErrorToast({
                 title={title}
                 message={message}
                 detail={detail}
+                footer={footer}
             />
         ),
         { duration: Number.POSITIVE_INFINITY, id },

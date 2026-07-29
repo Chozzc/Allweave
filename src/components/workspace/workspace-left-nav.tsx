@@ -24,10 +24,11 @@ import { PortfolioDialog } from "@/components/workspace/portfolio-dialog";
 import { WorkflowDialog } from "@/components/workspace/workflow-dialog";
 import { listTasks, type Task } from "@/lib/api/task";
 import { logger } from "@/lib/logger";
-import { formatStoredTaskErrorForDisplay } from "@/lib/task/error-format";
+import { localizeStoredTaskError } from "@/lib/task/error-localize";
 
 export function WorkspaceLeftNav() {
     const t = useTranslations("Navigation");
+    const tTaskErrors = useTranslations("TaskErrors");
 
     // Task list state
     const [isTaskSheetOpen, setIsTaskSheetOpen] = useState(false);
@@ -217,7 +218,8 @@ export function WorkspaceLeftNav() {
                                             )}
                                         {task.error && (
                                             <div className="text-xs text-red-500 mt-1 line-clamp-2">
-                                                {formatStoredTaskErrorForDisplay(
+                                                {localizeStoredTaskError(
+                                                    tTaskErrors,
                                                     task.error,
                                                 )}
                                             </div>

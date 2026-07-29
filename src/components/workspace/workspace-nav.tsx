@@ -40,7 +40,7 @@ const LOCALE_OPTIONS = [
 const navBtnClass =
     "h-10 w-10 rounded-xl bg-white border border-gray-100 hover:bg-gray-50 text-gray-500 hover:text-gray-900 dark:bg-zinc-800 dark:border-zinc-700 dark:text-gray-400 dark:hover:text-white dark:hover:bg-zinc-700 transition-all duration-200";
 
-const DISCORD_URL = "https://discord.gg/K7V8az94Zf";
+import { DISCORD_URL } from "@/constants/community";
 
 // Discord SVG Icon
 const DiscordIcon = ({ className }: { className?: string }) => (

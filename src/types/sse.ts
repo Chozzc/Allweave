@@ -54,6 +54,10 @@ export interface SSEMessageData {
     /** True when `message` is streamed reasoning for the node thinking bubble. */
     thinking?: boolean;
     code?: number;
+    /** Stable machine code for a failure — localized via `TaskErrors.<code>`. */
+    errorCode?: string;
+    /** Interpolation values for the localized failure message. */
+    errorParams?: Record<string, string | number>;
     error?: string;
     status?: string;
     file_key?: string;

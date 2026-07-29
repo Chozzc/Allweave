@@ -125,6 +125,7 @@ export async function GET(request: NextRequest) {
                                     status: "FAILED",
                                     data: {
                                         message: "Task failed to start",
+                                        errorCode: "task_failed_to_start",
                                         error: String(error),
                                     },
                                 });
