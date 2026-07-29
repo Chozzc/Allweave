@@ -18,7 +18,8 @@ import { logger } from "@/lib/logger";
 import type { PluginEnvDecl } from "@/lib/plugins/plugin-env-manifest-schema";
 import { resolveEnvKeyType } from "@/lib/settings/env-key-metadata";
 import { buildSettingsSections } from "../settings/build-settings-sections";
-import { ModalConnectForm } from "../settings/modal-connect-form";
+import { MODAL_CONNECT } from "../settings/connect-configs";
+import { TokenConnectForm } from "../settings/token-connect";
 
 /** How many provider keys the optional step offers (the rest live in Settings). */
 const WIZARD_PROVIDER_LIMIT = 5;
@@ -123,7 +124,10 @@ export function WelcomeWizard({
                         <DialogHeader>
                             <DialogTitle>{t("connectTitle")}</DialogTitle>
                         </DialogHeader>
-                        <ModalConnectForm onConnected={() => setStep(3)} />
+                        <TokenConnectForm
+                            config={MODAL_CONNECT}
+                            onConnected={() => setStep(3)}
+                        />
                         <div className="flex justify-start">
                             <Button
                                 type="button"

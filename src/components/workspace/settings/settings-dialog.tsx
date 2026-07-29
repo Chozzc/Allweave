@@ -30,8 +30,8 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+    HF_TOKEN_ENV,
     MODAL_TOKEN_ID_ENV,
-    MODAL_TOKEN_SECRET_ENV,
     resolveEnvKeyType,
 } from "@/lib/settings/env-key-metadata";
 import {
@@ -39,8 +39,9 @@ import {
     type GroupVar,
     type ProviderGroup,
 } from "./build-settings-sections";
+import { HF_CONNECT, MODAL_CONNECT } from "./connect-configs";
 import { EnvVarRow } from "./env-var-row";
-import { ModalConnectCard } from "./modal-connect-card";
+import { TokenConnectCard } from "./token-connect";
 import { useEnvSettings } from "./use-env-settings";
 
 const navBtnClass =
@@ -223,6 +224,11 @@ export function SettingsDialog() {
     const hasModal = sections.modalVars.some(
         (v) => v.key === MODAL_TOKEN_ID_ENV,
     );
+    const hasHf = sections.computeVars.some((v) => v.key === HF_TOKEN_ENV);
+    // HF renders as a connect card; other compute credentials stay plain rows.
+    const plainComputeVars = sections.computeVars.filter(
+        (v) => v.key !== HF_TOKEN_ENV,
+    );
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -261,19 +267,22 @@ export function SettingsDialog() {
                                     {t("computeSectionTitle")}
                                 </h3>
                                 {hasModal ? (
-                                    <ModalConnectCard
-                                        tokenId={
-                                            values[MODAL_TOKEN_ID_ENV] ?? ""
-                                        }
-                                        tokenSecret={
-                                            values[MODAL_TOKEN_SECRET_ENV] ?? ""
-                                        }
+                                    <TokenConnectCard
+                                        config={MODAL_CONNECT}
+                                        values={values}
                                         onChanged={() => void fetchEnv()}
                                     />
                                 ) : null}
-                                {sections.computeVars.length > 0 ? (
+                                {hasHf ? (
+                                    <TokenConnectCard
+                                        config={HF_CONNECT}
+                                        values={values}
+                                        onChanged={() => void fetchEnv()}
+                                    />
+                                ) : null}
+                                {plainComputeVars.length > 0 ? (
                                     <VarListCard
-                                        vars={sections.computeVars}
+                                        vars={plainComputeVars}
                                         values={values}
                                         revealed={revealed}
                                         onChangeValue={setValue}
