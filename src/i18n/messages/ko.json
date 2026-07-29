@@ -1193,6 +1193,7 @@
         "subscription_required": "작업을 실행하려면 TongFlow Cloud 구독이 필요해요. 오른쪽 위 계정 메뉴에서 구독할 수 있습니다.",
         "modal_not_connected": "Modal이 아직 연결되지 않아 실행할 수 없어요. 설정에서 “Modal 연결”을 눌러 주세요. 1분이면 되고, 매달 $30 무료 컴퓨팅이 제공됩니다.",
         "executor_rejected": "컴퓨팅 환경이 작업을 거부했어요(HTTP {status}). 먼저 다시 실행해 보시고, 계속 실패하면 설정에서 Modal을 해제 후 다시 연결해 주세요.",
+        "executor_provision_failed": "내 Modal 계정에 실행 환경을 배포하지 못했어요. 토큰이 만료되었거나 취소된 경우가 가장 흔합니다. 설정에서 Modal을 다시 연결한 뒤 시도해 주세요. 자세히에서 원본 오류를 볼 수 있어요.",
         "task_not_found": "작업이 존재하지 않거나 만료되었어요. 다시 실행해 주세요.",
         "workflow_invalid": "워크플로에 실행 가능한 데이터가 없어요. 워크플로를 다시 저장한 뒤 시도해 주세요.",
         "task_failed_to_start": "작업을 시작하지 못했어요. 잠시 후 다시 시도해 주세요."

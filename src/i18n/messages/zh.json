@@ -1193,6 +1193,7 @@
         "subscription_required": "需要订阅 TongFlow Cloud 才能运行任务——点右上角账号菜单即可开通。",
         "modal_not_connected": "还没连接 Modal，任务无法运行。打开「设置」点「连接 Modal」，一分钟搞定（每月 $30 免费算力）。",
         "executor_rejected": "你的算力环境拒绝了这个任务（HTTP {status}）。先重跑一次试试；反复失败的话，去「设置」断开并重新连接 Modal。",
+        "executor_provision_failed": "无法在你的 Modal 账号里部署执行环境——最常见的原因是 Token 失效或被撤销。去「设置」重新连接 Modal 后再试；点「详情」可以看原始错误。",
         "task_not_found": "任务不存在或已过期，请重新发起一次。",
         "workflow_invalid": "工作流没有可执行的数据，请重新保存工作流后再试。",
         "task_failed_to_start": "任务启动失败，请稍后重试。"

@@ -11,6 +11,7 @@ const KNOWN_TASK_ERROR_CODES = new Set([
     "subscription_required",
     "modal_not_connected",
     "executor_rejected",
+    "executor_provision_failed",
     "task_not_found",
     "workflow_invalid",
     "task_failed_to_start",
@@ -47,7 +48,10 @@ export function shouldOfferSupport(e: CodedTaskError): boolean {
     if (e.errorCode === "executor_rejected") {
         return Number(e.errorParams?.status ?? 0) >= 500;
     }
-    return e.errorCode === "task_failed_to_start";
+    return (
+        e.errorCode === "task_failed_to_start" ||
+        e.errorCode === "executor_provision_failed"
+    );
 }
 
 /** Localized headline from persisted `tasks.error` JSON; raw string fallback. */
