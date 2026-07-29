@@ -23,6 +23,9 @@ export type SerializedTaskError = {
     errorCode?: string;
     /** Interpolation values for the localized message (e.g. HTTP status). */
     errorParams?: Record<string, string | number>;
+    /** Raw upstream error lines (e.g. a Modal response body) for the
+     *  expandable Details panel. */
+    errors?: string[];
 };
 
 export function serializeTaskErrorForDb(e: SerializedTaskError): string {

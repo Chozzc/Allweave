@@ -69,6 +69,7 @@ export function formatStoredTaskErrorDetail(
         const o = JSON.parse(raw) as Partial<SerializedTaskError>;
         return buildTaskErrorDetail({
             message: o.message,
+            errors: o.errors,
             failures: o.failures,
         });
     } catch {

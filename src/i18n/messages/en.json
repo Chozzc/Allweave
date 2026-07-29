@@ -1193,6 +1193,7 @@
         "subscription_required": "A TongFlow Cloud subscription is needed to run tasks — open the account menu (top right) to subscribe.",
         "modal_not_connected": "Modal isn't connected yet, so nothing can run. Open Settings and hit “Connect Modal” — it takes a minute, with $30/month free compute.",
         "executor_rejected": "Your compute environment rejected the task (HTTP {status}). Try re-running it; if it keeps failing, disconnect and reconnect Modal in Settings.",
+        "executor_provision_failed": "Couldn't deploy the executor into your Modal account — most often the token was revoked or is invalid. Reconnect Modal in Settings and try again; open Details for the raw error.",
         "task_not_found": "This task no longer exists or has expired — please start it again.",
         "workflow_invalid": "The workflow has no runnable data — re-save the workflow and try again.",
         "task_failed_to_start": "The task couldn't start. Please try again in a moment."
