@@ -2,10 +2,15 @@
 
 import { useEffect, useRef } from "react";
 import { showErrorToast } from "@/components/ui/error-toast";
+import { CommunitySupportRow } from "@/components/workspace/community-support-row";
 import { TaskStatus, WorkflowStatus } from "@/constants/task-status";
 import { getClientTranslator } from "@/i18n/client";
 import type { SerializedWorkflowFailure } from "@/lib/task/error-envelope";
 import { buildTaskErrorDetail } from "@/lib/task/error-format";
+import {
+    localizeTaskError,
+    shouldOfferSupport,
+} from "@/lib/task/error-localize";
 import { SSE_TASK_MESSAGE_EVENT } from "@/lib/task/sse-events";
 import type { SSEMessage } from "@/types/sse";
 
@@ -21,6 +26,7 @@ export function TaskFailureToaster() {
 
     useEffect(() => {
         const t = getClientTranslator("Workspace.toast");
+        const tErr = getClientTranslator("TaskErrors");
 
         const handle = (event: CustomEvent<SSEMessage>) => {
             const message = event.detail;
@@ -46,7 +52,13 @@ export function TaskFailureToaster() {
             toastedRef.current.add(taskId);
 
             const data = message.data;
-            const errorText = data?.message?.trim() || data?.error?.trim();
+            const rawText = data?.message?.trim() || data?.error?.trim();
+            const coded = {
+                message: rawText,
+                errorCode: data?.errorCode,
+                errorParams: data?.errorParams,
+            };
+            const errorText = localizeTaskError(tErr, coded) || rawText;
             const detail = buildTaskErrorDetail({
                 message: errorText,
                 errors: data?.errors as string[] | undefined,
@@ -62,6 +74,10 @@ export function TaskFailureToaster() {
                 message: errorText || t("taskFailed"),
                 detail,
                 id: `task-failed:${taskId}`,
+                // Server-side faults get community links so users can reach us.
+                footer: shouldOfferSupport(coded) ? (
+                    <CommunitySupportRow />
+                ) : undefined,
             });
         };
 

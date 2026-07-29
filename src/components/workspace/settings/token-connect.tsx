@@ -25,12 +25,11 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { DISCORD_URL, WECHAT_GROUP_QR_SRC } from "@/constants/community";
 import { useInChinaTz } from "@/hooks/use-in-china-tz";
 import { apiPatch } from "@/lib/api/client";
 import { openExternalUrl } from "@/lib/desktop/open-external";
 import { logger } from "@/lib/logger";
-
-const DISCORD_URL = "https://discord.gg/K7V8az94Zf";
 
 /** One credential extracted from the pasted blob. */
 export interface TokenSpec {
@@ -146,7 +145,7 @@ function CommunityHelpFooter() {
                     </p>
                     <div className="flex justify-center">
                         <img
-                            src="/wechat-group-qr.png"
+                            src={WECHAT_GROUP_QR_SRC}
                             alt={t("helpWechatQrAlt")}
                             className="h-32 w-32 rounded-lg bg-white p-1.5"
                         />

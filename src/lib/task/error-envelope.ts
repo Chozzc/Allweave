@@ -16,8 +16,13 @@ export type SerializedWorkflowFailure = {
 
 /** Uniform JSON written to `tasks.error`; UI reads `message`. */
 export type SerializedTaskError = {
+    /** English fallback, shown when the client has no translation. */
     message: string;
     failures?: SerializedWorkflowFailure[];
+    /** Stable machine code — the client localizes it (`TaskErrors.<code>`). */
+    errorCode?: string;
+    /** Interpolation values for the localized message (e.g. HTTP status). */
+    errorParams?: Record<string, string | number>;
 };
 
 export function serializeTaskErrorForDb(e: SerializedTaskError): string {

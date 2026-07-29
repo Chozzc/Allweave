@@ -1184,7 +1184,18 @@
         "details": "详情",
         "copy": "复制",
         "copied": "已复制",
-        "close": "关闭"
+        "close": "关闭",
+        "needHelp": "解决不了？来社群里找我们：",
+        "wechatGroup": "微信群",
+        "wechatQrAlt": "微信群二维码"
+    },
+    "TaskErrors": {
+        "subscription_required": "需要订阅 TongFlow Cloud 才能运行任务——点右上角账号菜单即可开通。",
+        "modal_not_connected": "还没连接 Modal，任务无法运行。打开「设置」点「连接 Modal」，一分钟搞定（每月 $30 免费算力）。",
+        "executor_rejected": "你的算力环境拒绝了这个任务（HTTP {status}）。先重跑一次试试；反复失败的话，去「设置」断开并重新连接 Modal。",
+        "task_not_found": "任务不存在或已过期，请重新发起一次。",
+        "workflow_invalid": "工作流没有可执行的数据，请重新保存工作流后再试。",
+        "task_failed_to_start": "任务启动失败，请稍后重试。"
     },
     "Api": {
         "unknownError": "未知错误",
