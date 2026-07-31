@@ -1,6 +1,8 @@
 import { dispatchTask } from "@ext/task-dispatch";
+import { eq } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { isTerminalStatus } from "@/constants/task-status";
+import { getDb, tasks } from "@/db";
 import { jsonStringifyForSse } from "@/lib/json-sse";
 import { logger } from "@/lib/logger";
 import { getScope, runWithScope } from "@/lib/runtime/scope.server";
@@ -38,6 +40,39 @@ export async function GET(request: NextRequest) {
     // Resolve the tenant scope while the request context is still available;
     // the execution below outlives it, so pin the scope via ALS.
     const scope = await getScope();
+
+    // Terminal fast-path: a finished task must never be re-dispatched or
+    // re-streamed (a direct-stream reconnect would re-execute the slot).
+    // Replay the stored terminal state as a single SSE frame and close.
+    const db = await getDb();
+    const row = await db.query.tasks.findFirst({
+        where: eq(tasks.id, taskId),
+    });
+    if (row && (row.status === "completed" || row.status === "failed")) {
+        const done = row.status === "completed";
+        let data: Record<string, unknown> = {};
+        try {
+            data = JSON.parse(
+                (done ? row.result : row.error) ?? "{}",
+            ) as Record<string, unknown>;
+        } catch {
+            /* legacy rows may hold plain text — replay an empty payload */
+        }
+        const frame = `data: ${jsonStringifyForSse({
+            id: taskId,
+            status: done ? "COMPLETED" : "FAILED",
+            nodeId: row.nodeId,
+            data,
+        })}\n\n`;
+        return new Response(frame, {
+            headers: {
+                "Content-Type": "text/event-stream; charset=utf-8",
+                "Cache-Control": "no-cache",
+                Connection: "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        });
+    }
 
     // Direct stream mode (remote executors): kick off execution, then 302
     // the EventSource to the external SSE endpoint — progress flows from
