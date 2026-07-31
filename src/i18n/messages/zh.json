@@ -1225,7 +1225,18 @@
         "executor_provision_failed": "无法在你的 Modal 账号里部署执行环境——最常见的原因是 Token 失效或被撤销。去「设置」重新连接 Modal 后再试；点「详情」可以看原始错误。",
         "task_not_found": "任务不存在或已过期，请重新发起一次。",
         "workflow_invalid": "工作流没有可执行的数据，请重新保存工作流后再试。",
-        "task_failed_to_start": "任务启动失败，请稍后重试。"
+        "task_failed_to_start": "任务启动失败，请稍后重试。",
+        "missing_api_key": "还没配置 {key}，这个插件运行不了。粘贴一个 API Key 就能跑。"
+    },
+    "MissingKeyDialog": {
+        "title": "还差一个 API Key",
+        "body": "{key} 还没配置。点下面的按钮去创建一个，回来粘贴保存，然后重跑节点。",
+        "getKey": "去获取 API Key",
+        "placeholder": "粘贴你的 API Key",
+        "save": "保存",
+        "later": "稍后再说",
+        "saved": "已保存！重新运行节点就能用了。",
+        "done": "完成"
     },
     "Api": {
         "unknownError": "未知错误",

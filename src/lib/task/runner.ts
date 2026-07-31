@@ -12,6 +12,9 @@ import { ABI_NODES, type NodeSlot } from "@/generated/abi";
 import { logger } from "@/lib/logger";
 import { executePlugin } from "@/lib/plugin-executor/execute";
 import { prepareAssetInput } from "@/lib/plugin-executor/prepare-asset-input.server";
+import { findMissingRequiredKey } from "@/lib/plugins/missing-env-key";
+import { loadPluginEnvDecls } from "@/lib/plugins/plugin-env-manifests.server";
+import { loadEnvStore } from "@/lib/settings/env-store.server";
 import { serializeTaskErrorForDb } from "@/lib/task/error-envelope";
 import { notifyTask, registerTask, removeTask } from "./emitter";
 import { executeWorkflowViaEngine } from "./engine-delegate.server";
@@ -155,6 +158,48 @@ export async function executeTask(taskId: string): Promise<void> {
         return;
     }
 
+    // Preflight: a plugin whose required API key is unset can only die on
+    // startup — fail fast with a coded error the UI turns into a guided
+    // "paste your key" dialog, instead of spawning the plugin.
+    const stored = await loadEnvStore();
+    const missing = findMissingRequiredKey(
+        loadPluginEnvDecls(),
+        taskData.pluginId,
+        (key) => Boolean(stored[key]?.trim() || process.env[key]?.trim()),
+    );
+    if (missing) {
+        const failMsg = `${missing.key} is not set — add it in TongFlow Settings.`;
+        notifyTask(
+            taskId,
+            TaskStatus.FAILED,
+            {
+                message: failMsg,
+                errorCode: "missing_api_key",
+                errorParams: {
+                    key: missing.key,
+                    ...(missing.url && { url: missing.url }),
+                },
+            },
+            taskData.nodeId,
+        );
+        const preflightDb = await getDb();
+        await preflightDb
+            .update(tasks)
+            .set({
+                status: "failed",
+                error: serializeTaskErrorForDb({
+                    message: failMsg,
+                    errorCode: "missing_api_key",
+                    errorParams: {
+                        key: missing.key,
+                        ...(missing.url && { url: missing.url }),
+                    },
+                }),
+            })
+            .where(eq(tasks.id, taskId));
+        return;
+    }
+
     const controller = registerTask(taskId);
 
     try {
@@ -227,7 +272,18 @@ export async function executeTask(taskId: string): Promise<void> {
                 .update(tasks)
                 .set({
                     status: "failed",
-                    error: serializeTaskErrorForDb({ message: failMsg }),
+                    error: serializeTaskErrorForDb({
+                        message: failMsg,
+                        // Coded plugin failures (tongflow.errors.failure_payload)
+                        // localize in the history list too.
+                        ...(typeof rec.errorCode === "string" && {
+                            errorCode: rec.errorCode,
+                            errorParams: rec.errorParams as Record<
+                                string,
+                                string | number
+                            >,
+                        }),
+                    }),
                 })
                 .where(eq(tasks.id, taskId));
         } else {
