@@ -63,7 +63,7 @@ const ImageGenVideoNode = ({
 
     useEffect(() => {
         if (form.state.duration === undefined)
-            form.set("duration", VIDEO_DURATION_DEFAULT);
+            form.set("duration", VIDEO_DURATION_DEFAULT, { history: false });
     }, [form.state.duration, form.set]);
 
     const currentRatio: AspectRatio =

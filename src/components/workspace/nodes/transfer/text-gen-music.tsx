@@ -230,10 +230,12 @@ const TextGenMusicNode = ({ selected, data }: TextGenMusicNodeProps) => {
     // Persist non-ABI-required defaults so the workflow exporter / runtime
     // sees the same values the user sees in the UI.
     useEffect(() => {
-        if (form.state.bpm == null) form.set("bpm", DEFAULT_BPM);
+        if (form.state.bpm == null)
+            form.set("bpm", DEFAULT_BPM, { history: false });
     }, [form.state.bpm, form.set]);
     useEffect(() => {
-        if (form.state.keyscale == null) form.set("keyscale", DEFAULT_KEYSCALE);
+        if (form.state.keyscale == null)
+            form.set("keyscale", DEFAULT_KEYSCALE, { history: false });
     }, [form.state.keyscale, form.set]);
 
     const [tagsExpanded, setTagsExpanded] = useState(false);
