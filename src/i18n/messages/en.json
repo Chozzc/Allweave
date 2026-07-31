@@ -228,7 +228,34 @@
         "modeSwitch": {
             "createMode": "Create Mode",
             "executeMode": "Execute Mode",
+            "appMode": "App Mode",
             "upgradeRequired": "Upgrade to unlock Execute Mode"
+        },
+        "appView": {
+            "inputsTitle": "Inputs",
+            "outputsTitle": "Results",
+            "run": "Run",
+            "cancel": "Stop",
+            "stepProgress": "Step {current} of {total}",
+            "completed": "Done",
+            "failed": "Something went wrong",
+            "emptyWorkflow": "The canvas is empty. Build a workflow first.",
+            "invalidWorkflow": "This workflow has a cycle and can't run.",
+            "nothingToRun": "This workflow has no runnable steps yet.",
+            "noOutputsYet": "Results will show up here after a run.",
+            "dropFilesHere": "Drop files here or click to upload",
+            "copyText": "Copy",
+            "download": "Download",
+            "goToCreateMode": "Go to Create Mode",
+            "textPlaceholder": "Type here…",
+            "fieldType": {
+                "text": "Text",
+                "image": "Image",
+                "audio": "Audio",
+                "video": "Video",
+                "model": "3D model",
+                "file": "File"
+            }
         },
         "smartIsland": {
             "category": {

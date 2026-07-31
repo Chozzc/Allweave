@@ -228,7 +228,34 @@
         "modeSwitch": {
             "createMode": "创作模式",
             "executeMode": "执行模式",
+            "appMode": "应用模式",
             "upgradeRequired": "升级订阅以解锁执行模式"
+        },
+        "appView": {
+            "inputsTitle": "输入",
+            "outputsTitle": "结果",
+            "run": "运行",
+            "cancel": "停止",
+            "stepProgress": "第 {current}/{total} 步",
+            "completed": "已完成",
+            "failed": "运行失败",
+            "emptyWorkflow": "画布还是空的，先去搭一个工作流吧",
+            "invalidWorkflow": "工作流存在循环连接，无法运行",
+            "nothingToRun": "这个工作流还没有可运行的步骤",
+            "noOutputsYet": "运行后结果会显示在这里",
+            "dropFilesHere": "拖拽文件到这里，或点击上传",
+            "copyText": "复制",
+            "download": "下载",
+            "goToCreateMode": "去创作模式",
+            "textPlaceholder": "在这里输入…",
+            "fieldType": {
+                "text": "文本",
+                "image": "图片",
+                "audio": "音频",
+                "video": "视频",
+                "model": "3D 模型",
+                "file": "文件"
+            }
         },
         "smartIsland": {
             "category": {

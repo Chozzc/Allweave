@@ -39,10 +39,13 @@ import {
 import { usePreloadFeatures } from "@/hooks/use-features";
 import type { FlowState } from "@/hooks/use-flow";
 import { useFlow } from "@/hooks/use-flow";
+import { useTaskStore } from "@/hooks/use-task";
 import { useWorkflowRecovery } from "@/hooks/use-workflow-recovery";
 import { logger } from "@/lib/logger";
+import { cn } from "@/lib/utils";
 import { isValidFlowConnection } from "@/lib/workflow/connection-rules";
 import { parseWorkflowImportJson } from "@/lib/workflow/exporter";
+import { AppView } from "./app-view/app-view";
 import { ModeSwitch } from "./mode-switch";
 import { OnboardingGate } from "./onboarding/onboarding-gate";
 import SmartIsland from "./smart-island";
@@ -73,6 +76,12 @@ function WorkspaceInner({
 
     // Separate data and functions to avoid re-renders caused by function reference changes
     const { nodes, edges } = useFlow(useShallow(selector));
+
+    // App mode replaces the canvas with a form view. The ReactFlow tree stays
+    // mounted (visibility-hidden) so ABI node registrations, SSE output
+    // application and workflow recovery keep working while it's covered.
+    const workspaceMode = useTaskStore((state) => state.workspaceMode);
+    const isAppMode = workspaceMode === "app";
 
     // Get functions directly from the store (function references never change)
     const onNodesChange = useFlow.getState().onNodesChange;
@@ -362,54 +371,68 @@ function WorkspaceInner({
 
     return (
         <div className="relative w-full h-full overflow-hidden [&_.react-flow]:!bg-[#f6f7f9] dark:[&_.react-flow]:!bg-background">
-            <ReactFlow
-                nodes={nodes}
-                onNodesChange={onNodesChange}
-                edges={edges}
-                onEdgesChange={onEdgesChange}
-                onConnect={onConnect}
-                isValidConnection={isValidConnection}
-                // Manual new connections are disabled at the handle level
-                // (isConnectableStart={false}); users may only reconnect an
-                // existing edge's endpoint, validated by isValidConnection.
-                onReconnect={onReconnect}
-                onReconnectStart={onReconnectStart}
-                onReconnectEnd={onReconnectEnd}
-                nodeTypes={NODE_TYPES}
-                edgeTypes={EDGE_TYPES}
-                defaultEdgeOptions={{
-                    type: "custom-edge",
-                    selectable: false,
-                    focusable: false,
-                }}
-                // While reconnecting, ReactFlow hides the original edge and
-                // shows this connection-line preview following the cursor.
-                // Match the custom-edge style so it stays visible/cursor-tracked.
-                connectionLineStyle={{
-                    strokeWidth: 3,
-                    stroke: "#94a3b8",
-                    strokeLinecap: "round",
-                }}
-                onSelectionChange={onSelectionChange}
-                onNodeDoubleClick={handleNodeDoubleClick}
-                onPaneClick={handlePaneClick}
-                onNodeDragStart={handleDragStart}
-                onSelectionDragStart={handleDragStart}
-                nodeDragThreshold={1}
-                nodeOrigin={[0.5, 0.5]}
-                selectNodesOnDrag={false}
-                fitView
-                minZoom={0.001} // Minimum zoom limit
-                maxZoom={1000} // Maximum zoom limit
-                proOptions={{ hideAttribution: true }}
-                colorMode={colorMode}
+            <div
+                className={cn(
+                    "w-full h-full",
+                    isAppMode && "invisible pointer-events-none",
+                )}
+                aria-hidden={isAppMode}
             >
-                <Background />
-                <Controls />
-                <Panel position="bottom-center" className="!mb-5 z-10">
-                    <SmartIsland />
-                </Panel>
-            </ReactFlow>
+                <ReactFlow
+                    nodes={nodes}
+                    onNodesChange={onNodesChange}
+                    edges={edges}
+                    onEdgesChange={onEdgesChange}
+                    onConnect={onConnect}
+                    isValidConnection={isValidConnection}
+                    // Manual new connections are disabled at the handle level
+                    // (isConnectableStart={false}); users may only reconnect an
+                    // existing edge's endpoint, validated by isValidConnection.
+                    onReconnect={onReconnect}
+                    onReconnectStart={onReconnectStart}
+                    onReconnectEnd={onReconnectEnd}
+                    nodeTypes={NODE_TYPES}
+                    edgeTypes={EDGE_TYPES}
+                    defaultEdgeOptions={{
+                        type: "custom-edge",
+                        selectable: false,
+                        focusable: false,
+                    }}
+                    // While reconnecting, ReactFlow hides the original edge and
+                    // shows this connection-line preview following the cursor.
+                    // Match the custom-edge style so it stays visible/cursor-tracked.
+                    connectionLineStyle={{
+                        strokeWidth: 3,
+                        stroke: "#94a3b8",
+                        strokeLinecap: "round",
+                    }}
+                    onSelectionChange={onSelectionChange}
+                    onNodeDoubleClick={handleNodeDoubleClick}
+                    onPaneClick={handlePaneClick}
+                    onNodeDragStart={handleDragStart}
+                    onSelectionDragStart={handleDragStart}
+                    nodeDragThreshold={1}
+                    nodeOrigin={[0.5, 0.5]}
+                    selectNodesOnDrag={false}
+                    fitView
+                    minZoom={0.001} // Minimum zoom limit
+                    maxZoom={1000} // Maximum zoom limit
+                    proOptions={{ hideAttribution: true }}
+                    colorMode={colorMode}
+                >
+                    <Background />
+                    <Controls />
+                    <Panel position="bottom-center" className="!mb-5 z-10">
+                        <SmartIsland />
+                    </Panel>
+                </ReactFlow>
+            </div>
+
+            {isAppMode && (
+                <div className="absolute inset-0 z-5 overflow-y-auto bg-background">
+                    <AppView />
+                </div>
+            )}
 
             <div className="absolute left-5 top-5 z-10 flex items-center gap-3">
                 <WorkflowTitleMenu />
