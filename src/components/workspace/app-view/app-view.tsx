@@ -121,16 +121,23 @@ export function AppView() {
                 ]);
             }
             // Keep addTextNode's own manual value in sync (the exporter's
-            // manual-mode path and the canvas textarea both read it).
+            // manual-mode path and the canvas textarea both read it). This is
+            // a mirror of the write above, so it must not commit history —
+            // alternating sources would defeat coalescing and turn every
+            // keystroke into an undo entry.
             if (patch.texts && field.expandType === "textNode") {
                 const current = useFlow.getState();
                 const addNode = current.nodes.find(
                     (n) => n.id === field.nodeId,
                 );
-                current.updates(field.nodeId, {
-                    ...(addNode?.data as Record<string, unknown>),
-                    manualValue: patch.texts[0] ?? "",
-                });
+                current.updates(
+                    field.nodeId,
+                    {
+                        ...(addNode?.data as Record<string, unknown>),
+                        manualValue: patch.texts[0] ?? "",
+                    },
+                    { history: false },
+                );
             }
         },
         [],

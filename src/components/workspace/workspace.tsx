@@ -50,6 +50,7 @@ import { ModeSwitch } from "./mode-switch";
 import { OnboardingGate } from "./onboarding/onboarding-gate";
 import SmartIsland from "./smart-island";
 import { EDGE_TYPES, NODE_TYPES } from "./types";
+import { UndoRedoButtons } from "./undo-redo-buttons";
 import { WorkflowTitleMenu } from "./workflow-title-menu";
 import { WorkspaceLeftNav } from "./workspace-left-nav";
 import { WorkspaceNav } from "./workspace-nav";
@@ -117,7 +118,8 @@ function WorkspaceInner({
 
     const onReconnect = useCallback<OnReconnect<Edge>>(
         (oldEdge, newConnection) => {
-            const { edges, setEdges } = useFlow.getState();
+            const { edges, setEdges, commitHistory } = useFlow.getState();
+            commitHistory();
             setEdges(reconnectEdge(oldEdge, newConnection, edges));
         },
         [],
@@ -141,7 +143,8 @@ function WorkspaceInner({
 
     const confirmDeleteEdge = useCallback(() => {
         if (!pendingDeleteEdgeId) return;
-        const { edges, setEdges } = useFlow.getState();
+        const { edges, setEdges, commitHistory } = useFlow.getState();
+        commitHistory();
         setEdges(edges.filter((e) => e.id !== pendingDeleteEdgeId));
         setPendingDeleteEdgeId(null);
     }, [pendingDeleteEdgeId]);
@@ -193,7 +196,10 @@ function WorkspaceInner({
                 if (data.texts && data.texts.length > 0) {
                     newData.texts = data.texts;
                 }
-                useFlow.getState().updates(nodeId, newData);
+                // Programmatic task-result write — not an undoable user action
+                useFlow.getState().updates(nodeId, newData, {
+                    history: false,
+                });
             }
         },
         [],
@@ -235,6 +241,12 @@ function WorkspaceInner({
             minZoom: 0.1,
         });
     };
+
+    // Snapshot once at drag start so a whole drag is a single undo entry
+    // (position changes then stream through onNodesChange without committing)
+    const handleDragStart = useCallback(() => {
+        useFlow.getState().commitHistory();
+    }, []);
 
     // Click on empty canvas to exit Combo Mode
     const handlePaneClick = useCallback(() => {
@@ -397,6 +409,9 @@ function WorkspaceInner({
                     onSelectionChange={onSelectionChange}
                     onNodeDoubleClick={handleNodeDoubleClick}
                     onPaneClick={handlePaneClick}
+                    onNodeDragStart={handleDragStart}
+                    onSelectionDragStart={handleDragStart}
+                    nodeDragThreshold={1}
                     nodeOrigin={[0.5, 0.5]}
                     selectNodesOnDrag={false}
                     fitView
@@ -422,6 +437,7 @@ function WorkspaceInner({
             <div className="absolute left-5 top-5 z-10 flex items-center gap-3">
                 <WorkflowTitleMenu />
                 <WorkspaceLeftNav />
+                <UndoRedoButtons />
             </div>
 
             <div className="absolute right-5 top-5 z-10">
