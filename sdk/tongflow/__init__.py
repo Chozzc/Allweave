@@ -17,7 +17,7 @@ from .serve import (
     serve_stream_from_spec,
 )
 
-__version__ = "0.2.19"
+__version__ = "0.2.20"
 
 __all__ = [
     "deploy",

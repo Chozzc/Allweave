@@ -116,7 +116,12 @@ def _sse(event: dict[str, Any]) -> str:
 
 
 def serve_stream(
-    payload: dict[str, Any], *, invoke: InvokeFn, task_id: str = ""
+    payload: dict[str, Any],
+    *,
+    invoke: InvokeFn,
+    task_id: str = "",
+    callback_url: str = "",
+    callback_token: str = "",
 ) -> Iterator[str]:
     """Run one ABI slot in this container and stream progress + result as SSE.
 
@@ -129,6 +134,11 @@ def serve_stream(
 
     Each event carries ``id: task_id`` so the browser can attribute it and
     persist the terminal state (its /api/task/update-status backup).
+
+    When ``callback_url``/``callback_token`` are given, the terminal state is
+    ALSO reported server-side (``type:"completed"``/``"failed"``, mirroring
+    the executor) — so a closed tab can no longer strand the task row in
+    ``processing``. The SSE stream is then a pure live-view optimization.
 
     The payload must NOT carry `_tongflow` (that installs an HTTP sink); here
     the sink is the in-process queue below.
@@ -149,6 +159,10 @@ def serve_stream(
 
     threading.Thread(target=_run, daemon=True).start()
 
+    def _report(body: dict[str, Any]) -> None:
+        if callback_url and callback_token:
+            _post(callback_url, {"token": callback_token, **body})
+
     while True:
         try:
             kind, data = q.get(timeout=10)
@@ -160,9 +174,23 @@ def serve_stream(
         if kind == "progress":
             yield _sse({"id": task_id, "status": "RUNNING", "data": data})
         elif kind == "done":
-            yield _sse({"id": task_id, "status": "COMPLETED", "data": data})
+            if isinstance(data, dict) and data.get("success") is False:
+                # A slot-reported failure is FAILED (executor semantics) —
+                # coded fields (errorCode/errorParams) ride along for the
+                # client's guided-fix dialogs and localized history.
+                msg = str(data.get("error") or "Task failed")
+                yield _sse({"id": task_id, "status": "FAILED", "data": {**data, "message": msg}})
+                fail: dict[str, Any] = {"type": "failed", "error": msg}
+                if isinstance(data.get("errorCode"), str):
+                    fail["errorCode"] = data["errorCode"]
+                    fail["errorParams"] = data.get("errorParams") or {}
+                _report(fail)
+            else:
+                yield _sse({"id": task_id, "status": "COMPLETED", "data": data})
+                _report({"type": "completed", "result": data})
         elif kind == "error":
             yield _sse({"id": task_id, "status": "FAILED", "data": {"message": "Task execution failed", "error": data}})
+            _report({"type": "failed", "error": str(data)})
 
 
 def _resolve_method(deploy_file: str, node_slot: str) -> str:
@@ -218,7 +246,16 @@ def serve_stream_from_spec(
             "assetEndpoint": spec["assetEndpoint"],
             "assetToken": spec["assetToken"],
         }
+        # Router-style plugins pick their backing model per request.
+        if spec.get("model"):
+            payload["model"] = spec["model"]
     except Exception as e:  # noqa: BLE001
         yield _sse({"id": task_id, "status": "FAILED", "data": {"message": "Spec fetch failed", "error": str(e)}})
         return
-    yield from serve_stream(payload, invoke=invoke, task_id=task_id)
+    yield from serve_stream(
+        payload,
+        invoke=invoke,
+        task_id=task_id,
+        callback_url=str(spec.get("callbackUrl") or ""),
+        callback_token=str(spec.get("callbackToken") or ""),
+    )
