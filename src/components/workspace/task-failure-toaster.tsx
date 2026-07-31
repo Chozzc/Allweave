@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { showErrorToast } from "@/components/ui/error-toast";
 import { CommunitySupportRow } from "@/components/workspace/community-support-row";
+import {
+    MissingKeyDialog,
+    type MissingKeyRequest,
+} from "@/components/workspace/missing-key-dialog";
 import { TaskStatus, WorkflowStatus } from "@/constants/task-status";
 import { getClientTranslator } from "@/i18n/client";
 import type { SerializedWorkflowFailure } from "@/lib/task/error-envelope";
@@ -23,6 +27,9 @@ import type { SSEMessage } from "@/types/sse";
  */
 export function TaskFailureToaster() {
     const toastedRef = useRef<Set<string>>(new Set());
+    const [missingKey, setMissingKey] = useState<MissingKeyRequest | null>(
+        null,
+    );
 
     useEffect(() => {
         const t = getClientTranslator("Workspace.toast");
@@ -58,6 +65,23 @@ export function TaskFailureToaster() {
                 errorCode: data?.errorCode,
                 errorParams: data?.errorParams,
             };
+
+            // A missing provider key gets a guided fix dialog (link to the
+            // provider console + paste-and-save) instead of a dead-end toast.
+            const params = data?.errorParams as
+                | Record<string, unknown>
+                | undefined;
+            if (
+                data?.errorCode === "missing_api_key" &&
+                typeof params?.key === "string"
+            ) {
+                setMissingKey({
+                    key: params.key,
+                    url:
+                        typeof params.url === "string" ? params.url : undefined,
+                });
+                return;
+            }
             const errorText = localizeTaskError(tErr, coded) || rawText;
             const detail = buildTaskErrorDetail({
                 message: errorText,
@@ -93,5 +117,10 @@ export function TaskFailureToaster() {
         };
     }, []);
 
-    return null;
+    return (
+        <MissingKeyDialog
+            request={missingKey}
+            onClose={() => setMissingKey(null)}
+        />
+    );
 }

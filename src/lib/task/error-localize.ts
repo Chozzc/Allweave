@@ -15,6 +15,7 @@ const KNOWN_TASK_ERROR_CODES = new Set([
     "task_not_found",
     "workflow_invalid",
     "task_failed_to_start",
+    "missing_api_key",
 ]);
 
 /** Minimal translator shape satisfied by both useTranslations and getClientTranslator. */
