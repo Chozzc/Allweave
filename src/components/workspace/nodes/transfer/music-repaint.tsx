@@ -42,7 +42,8 @@ const MusicRepaintNode = ({
     // Persist the default so the workflow exporter / runtime sees the same
     // value the user sees in the UI.
     useEffect(() => {
-        if (form.state.strength == null) form.set("strength", DEFAULT_STRENGTH);
+        if (form.state.strength == null)
+            form.set("strength", DEFAULT_STRENGTH, { history: false });
     }, [form.state.strength, form.set]);
 
     return (

@@ -18,7 +18,8 @@ const SplitVideoNode = ({
 
     // Default threshold once.
     useEffect(() => {
-        if (form.state.threshold == null) form.set("threshold", 20.0);
+        if (form.state.threshold == null)
+            form.set("threshold", 20.0, { history: false });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
