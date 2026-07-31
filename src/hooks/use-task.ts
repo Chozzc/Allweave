@@ -63,7 +63,7 @@ export interface Task {
 export type NodeTaskHandler = (task: Task) => void;
 
 // Workspace mode type
-export type WorkspaceMode = "create" | "execute";
+export type WorkspaceMode = "create" | "execute" | "app";
 
 // Workflow execution status
 export type WorkflowExecutionStatus =

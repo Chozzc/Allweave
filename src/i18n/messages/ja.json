@@ -226,7 +226,34 @@
         "modeSwitch": {
             "createMode": "作成モード",
             "executeMode": "実行モード",
+            "appMode": "アプリモード",
             "upgradeRequired": "実行モードを解除するにはアップグレードが必要です"
+        },
+        "appView": {
+            "inputsTitle": "入力",
+            "outputsTitle": "結果",
+            "run": "実行",
+            "cancel": "停止",
+            "stepProgress": "ステップ {current}/{total}",
+            "completed": "完了",
+            "failed": "実行に失敗しました",
+            "emptyWorkflow": "キャンバスが空です。まずワークフローを作成してください",
+            "invalidWorkflow": "ワークフローに循環があるため実行できません",
+            "nothingToRun": "このワークフローには実行できるステップがありません",
+            "noOutputsYet": "実行すると結果がここに表示されます",
+            "dropFilesHere": "ここにファイルをドロップ、またはクリックしてアップロード",
+            "copyText": "コピー",
+            "download": "ダウンロード",
+            "goToCreateMode": "作成モードへ",
+            "textPlaceholder": "ここに入力…",
+            "fieldType": {
+                "text": "テキスト",
+                "image": "画像",
+                "audio": "音声",
+                "video": "動画",
+                "model": "3Dモデル",
+                "file": "ファイル"
+            }
         },
         "smartIsland": {
             "category": {
