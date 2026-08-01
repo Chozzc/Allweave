@@ -21,7 +21,10 @@ desktop
 # Repo meta the build doesn't need
 .git
 .github
+# docs/ stays out except the agent manual, which is bundled into the server
+# at build time (imported as a raw string by src/lib/agent/prompt.server.ts).
 docs
+!docs/agent-workflow-manual.md
 
 # Python local artifacts
 .venv
