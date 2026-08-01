@@ -1269,5 +1269,39 @@
         "retry": "Retry",
         "operationFailed": "Operation failed, please try again",
         "fetchFailed": "Failed to load portfolio, please retry"
+    },
+    "Agent": {
+        "title": "Agent",
+        "close": "Close",
+        "clear": "Clear conversation",
+        "stop": "Stop",
+        "send": "Send",
+        "attach": "Attach files",
+        "placeholder": "Describe the workflow you want…",
+        "emptyHint": "I can build and edit workflows on the canvas, and answer questions about TongFlow.",
+        "example1": "Generate a cat picture, then turn it into a video",
+        "example2": "Merge my two photos into one image",
+        "example3": "What's the difference between Create and Execute mode?",
+        "selectPlugin": "Plugin",
+        "selectModel": "Model",
+        "noLlmPlugin": "No LLM plugin installed",
+        "missingKeyTitle": "Provider key required",
+        "missingKeyBody": "Add {envKey} in Settings → Connect, then try again.",
+        "noProviderBody": "Select an LLM plugin above, or install one (e.g. OpenRouter) in Settings → Plugins.",
+        "turnLimit": "Stopped: too many steps in one request. Send a follow-up to continue.",
+        "tools": {
+            "patch": "Editing canvas",
+            "addNodes": "Adding {count} node(s)",
+            "addEdges": "Connecting {count} edge(s)",
+            "updateNodes": "Updating {count} node(s)",
+            "removeNodes": "Removing {count} node(s)",
+            "readCanvas": "Reading canvas",
+            "validate": "Validating workflow",
+            "describe": "Inspecting {type}",
+            "searchDocs": "Searching docs: {query}",
+            "listWorkflows": "Listing workflows",
+            "loadWorkflow": "Loading workflow",
+            "saveWorkflow": "Saving workflow"
+        }
     }
 }
