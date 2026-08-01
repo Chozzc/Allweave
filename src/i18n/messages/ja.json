@@ -1183,5 +1183,39 @@
         "retry": "再試行",
         "operationFailed": "操作に失敗しました。もう一度お試しください",
         "fetchFailed": "ポートフォリオの取得に失敗しました。再試行してください"
+    },
+    "Agent": {
+        "title": "エージェント",
+        "close": "閉じる",
+        "clear": "会話をクリア",
+        "stop": "停止",
+        "send": "送信",
+        "attach": "ファイルを添付",
+        "placeholder": "作りたいワークフローを説明してください…",
+        "emptyHint": "キャンバス上でワークフローの構築・編集ができ、TongFlow の使い方にもお答えします。",
+        "example1": "猫の画像を生成して、動画に変換して",
+        "example2": "2枚の写真を1枚に融合して",
+        "example3": "作成モードと実行モードの違いは？",
+        "selectPlugin": "プラグイン",
+        "selectModel": "モデル",
+        "noLlmPlugin": "LLM プラグイン未インストール",
+        "missingKeyTitle": "プロバイダーキーが必要です",
+        "missingKeyBody": "設定 → 接続 で {envKey} を追加してから再試行してください。",
+        "noProviderBody": "上で LLM プラグインを選択するか、設定 → プラグイン でインストールしてください（例:OpenRouter）。",
+        "turnLimit": "停止しました:1回のリクエストでステップが多すぎます。続けるにはメッセージを送ってください。",
+        "tools": {
+            "patch": "キャンバスを編集中",
+            "addNodes": "ノードを {count} 個追加",
+            "addEdges": "エッジを {count} 本接続",
+            "updateNodes": "ノードを {count} 個更新",
+            "removeNodes": "ノードを {count} 個削除",
+            "readCanvas": "キャンバスを読み取り",
+            "validate": "ワークフローを検証",
+            "describe": "{type} を確認",
+            "searchDocs": "ドキュメント検索:{query}",
+            "listWorkflows": "ワークフロー一覧",
+            "loadWorkflow": "ワークフローを読み込み",
+            "saveWorkflow": "ワークフローを保存"
+        }
     }
 }

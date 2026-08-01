@@ -1269,5 +1269,39 @@
         "retry": "重试",
         "operationFailed": "操作失败，请重试",
         "fetchFailed": "获取作品集失败，请重试"
+    },
+    "Agent": {
+        "title": "智能体",
+        "close": "关闭",
+        "clear": "清空对话",
+        "stop": "停止",
+        "send": "发送",
+        "attach": "添加附件",
+        "placeholder": "描述你想要的工作流…",
+        "emptyHint": "我可以在画布上搭建和修改工作流，也能回答 TongFlow 使用问题。",
+        "example1": "生成一张猫的图片，再转成视频",
+        "example2": "把我的两张照片融合成一张",
+        "example3": "创建模式和执行模式有什么区别？",
+        "selectPlugin": "插件",
+        "selectModel": "模型",
+        "noLlmPlugin": "未安装 LLM 插件",
+        "missingKeyTitle": "需要配置密钥",
+        "missingKeyBody": "请在 设置 → 连接 中填入 {envKey} 后重试。",
+        "noProviderBody": "请在上方选择 LLM 插件，或先在 设置 → 插件 中安装一个（如 OpenRouter）。",
+        "turnLimit": "已停止：单次请求步骤过多，发送后续消息可继续。",
+        "tools": {
+            "patch": "正在编辑画布",
+            "addNodes": "添加 {count} 个节点",
+            "addEdges": "连接 {count} 条边",
+            "updateNodes": "更新 {count} 个节点",
+            "removeNodes": "删除 {count} 个节点",
+            "readCanvas": "读取画布",
+            "validate": "体检工作流",
+            "describe": "查看 {type}",
+            "searchDocs": "检索文档：{query}",
+            "listWorkflows": "列出工作流",
+            "loadWorkflow": "载入工作流",
+            "saveWorkflow": "保存工作流"
+        }
     }
 }

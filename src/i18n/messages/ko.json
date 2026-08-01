@@ -1269,5 +1269,39 @@
         "retry": "다시 시도",
         "operationFailed": "작업에 실패했습니다. 다시 시도해 주세요",
         "fetchFailed": "포트폴리오를 불러오지 못했습니다. 다시 시도해 주세요"
+    },
+    "Agent": {
+        "title": "에이전트",
+        "close": "닫기",
+        "clear": "대화 지우기",
+        "stop": "중지",
+        "send": "보내기",
+        "attach": "파일 첨부",
+        "placeholder": "원하는 워크플로를 설명해 주세요…",
+        "emptyHint": "캔버스에서 워크플로를 만들고 수정할 수 있으며, TongFlow 사용법 질문에도 답합니다.",
+        "example1": "고양이 그림을 생성한 뒤 영상으로 만들어 줘",
+        "example2": "사진 두 장을 한 장으로 합성해 줘",
+        "example3": "생성 모드와 실행 모드의 차이는?",
+        "selectPlugin": "플러그인",
+        "selectModel": "모델",
+        "noLlmPlugin": "설치된 LLM 플러그인 없음",
+        "missingKeyTitle": "프로바이더 키 필요",
+        "missingKeyBody": "설정 → 연결에서 {envKey} 를 추가한 뒤 다시 시도하세요.",
+        "noProviderBody": "위에서 LLM 플러그인을 선택하거나 설정 → 플러그인에서 설치하세요 (예: OpenRouter).",
+        "turnLimit": "중지됨: 한 요청에 단계가 너무 많습니다. 이어서 하려면 메시지를 보내세요.",
+        "tools": {
+            "patch": "캔버스 편집 중",
+            "addNodes": "노드 {count}개 추가",
+            "addEdges": "엣지 {count}개 연결",
+            "updateNodes": "노드 {count}개 업데이트",
+            "removeNodes": "노드 {count}개 삭제",
+            "readCanvas": "캔버스 읽는 중",
+            "validate": "워크플로 검증",
+            "describe": "{type} 확인",
+            "searchDocs": "문서 검색: {query}",
+            "listWorkflows": "워크플로 목록",
+            "loadWorkflow": "워크플로 불러오기",
+            "saveWorkflow": "워크플로 저장"
+        }
     }
 }
