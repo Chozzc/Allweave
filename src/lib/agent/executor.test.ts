@@ -30,8 +30,8 @@ vi.mock("@/lib/api/task", () => ({
 }));
 
 import useFlow from "@/hooks/use-flow";
-import type { AgentAttachment } from "./types";
 import { applyGraphPatch } from "./executor";
+import type { AgentAttachment } from "./types";
 
 const ATTACHMENTS: AgentAttachment[] = [
     {
@@ -64,27 +64,31 @@ describe("applyGraphPatch", () => {
             "t1",
         );
         expect(result.ok).toBe(false);
-        const steps = (result as { steps: { hint?: string }[] }).steps;
+        const steps = (result as unknown as { steps: { hint?: string }[] })
+            .steps;
         expect(steps[0].hint).toContain("textGenImageNode");
         expect(useFlow.getState().nodes).toHaveLength(0);
     });
 
-    it("builds a chain with ABI handles via expands", async () => {
+    it("builds a fully alternating chain with ABI handles via expands", async () => {
+        // add → data → executable → data → executable → data
         const result = await applyGraphPatch(
             {
                 add_nodes: [
+                    { alias: "add1", type: "addImageNode", fromAttachment: 1 },
+                    { alias: "src", type: "imageNode", fromAttachment: 1 },
                     {
-                        alias: "src",
-                        type: "imageNode",
-                        fromAttachment: 1,
-                    },
-                    {
-                        alias: "vid",
+                        alias: "genVid",
                         type: "imageGenVideoNode",
                         data: { text: "walking", duration: 5 },
                     },
+                    { alias: "vid", type: "videoNode" },
                 ],
-                add_edges: [{ from: "src", to: "vid" }],
+                add_edges: [
+                    { from: "add1", to: "src" },
+                    { from: "src", to: "genVid" },
+                    { from: "genVid", to: "vid" },
+                ],
             },
             ATTACHMENTS,
             "t2",
@@ -92,10 +96,42 @@ describe("applyGraphPatch", () => {
         expect(result.ok).toBe(true);
 
         const { nodes, edges } = useFlow.getState();
-        expect(nodes).toHaveLength(2);
-        expect(edges).toHaveLength(1);
-        expect(edges[0].sourceHandle).toBe("out:imageNode");
-        expect(edges[0].targetHandle).toBe("in:image");
+        expect(nodes).toHaveLength(4);
+        expect(edges).toHaveLength(3);
+        const intoExec = edges.find((e) => e.targetHandle === "in:image");
+        expect(intoExec?.sourceHandle).toBe("out:imageNode");
+        // Executable output flows into the pre-created empty result node.
+        const outOfExec = edges.find((e) => e.targetHandle === "in:videoNode");
+        expect(outOfExec?.sourceHandle).toBe("out:video");
+    });
+
+    it("rejects executable→executable edges with a repair hint", async () => {
+        const result = await applyGraphPatch(
+            {
+                add_nodes: [
+                    { alias: "genImg", type: "textGenImageNode" },
+                    {
+                        alias: "genVid",
+                        type: "imageGenVideoNode",
+                        data: { text: "walking" },
+                    },
+                ],
+                add_edges: [{ from: "genImg", to: "genVid" }],
+            },
+            [],
+            "t2c",
+        );
+        expect(result.ok).toBe(false);
+        const steps = (
+            result as unknown as {
+                steps: { op: string; ok: boolean; error?: string }[];
+            }
+        ).steps;
+        const edgeStep = steps.find((s) => s.op === "add_edge");
+        expect(edgeStep?.ok).toBe(false);
+        expect(edgeStep?.error).toContain("insert an empty imageNode");
+        // The invalid edge must not be created.
+        expect(useFlow.getState().edges).toHaveLength(0);
     });
 
     it("wires sourceSpec-only handles pending the post-mount heal", async () => {
@@ -144,9 +180,7 @@ describe("applyGraphPatch", () => {
         expect(result.ok).toBe(true);
 
         const { edges } = useFlow.getState();
-        const fuseEdges = edges.filter(
-            (e) => e.targetHandle === "in:images",
-        );
+        const fuseEdges = edges.filter((e) => e.targetHandle === "in:images");
         expect(fuseEdges).toHaveLength(2);
     });
 

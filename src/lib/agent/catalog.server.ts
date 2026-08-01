@@ -139,10 +139,11 @@ function renderExecutableLine(
 }
 
 const MODALITY_SECTION = `## Data (modality) nodes — carry assets, never execute
+The graph strictly alternates: add node → data node → executable → data node → executable → … → data node. Executables never wire directly to executables — every executable output gets an empty downstream data node of the output's modality, created at build time and filled at run time.
 textNode — data:{texts:[string,…]}. Multiple texts on one node = one batch (fans out downstream).
-imageNode / videoNode / audioNode / modelNode / fileNode — data:{fileKeys:[…]}. Never write fileKeys yourself; reference chat uploads via fromAttachment.
+imageNode / videoNode / audioNode / modelNode / fileNode — data:{fileKeys:[…]}. Never write fileKeys yourself; reference chat uploads via fromAttachment. Result data nodes are created with empty data.
 linkNode — data:{texts:[url,…]}.
-Add nodes (addTextNode, addImageNode, addVideoNode, addAudioNode, addFileNode, addModelNode, addLinkNode) — user-facing input widgets. Create one (with fromAttachment for uploads) feeding its modality node when the asset is user-supplied input; the pair makes the workflow reusable in App Mode. For prompt text you author yourself, a bare textNode is enough.`;
+Add nodes (addTextNode {manualValue}, addImageNode, addVideoNode, addAudioNode, addFileNode, addModelNode, addLinkNode) — user-facing input widgets that start every chain, feeding their data node (use fromAttachment for uploads). The add-node pair is what makes an input replaceable in App Mode.`;
 
 let cachedCatalog: { generatedAt: string; text: string } | null = null;
 

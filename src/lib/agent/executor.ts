@@ -104,6 +104,53 @@ function mergeNodeData(nodeId: string, patch: Record<string, unknown>): void {
     flow.updates(nodeId, { ...node.data, ...patch }, { history: false });
 }
 
+type NodeKind = "add" | "data" | "executable";
+
+function nodeKind(type: string | undefined): NodeKind | undefined {
+    if (!type) return undefined;
+    if (ADD_NODE_TYPES.has(type)) return "add";
+    if ((MODALITY_NODE_TYPES as readonly string[]).includes(type)) {
+        return "data";
+    }
+    if (type in NODE_TYPE_TO_ABI_FEATURE) return "executable";
+    return undefined;
+}
+
+/**
+ * Enforce the canonical alternation `add → data → executable → data → …`.
+ * Executables must never wire directly to each other: at run time a consumer
+ * reads its input from the upstream node's data, and an executable's results
+ * land on its downstream data node — a direct edge would read nothing.
+ */
+function edgeShapeError(
+    sourceType: string | undefined,
+    targetType: string | undefined,
+): string | undefined {
+    const s = nodeKind(sourceType);
+    const t = nodeKind(targetType);
+    if (!s || !t) return undefined;
+
+    if (s === "executable" && t === "executable") {
+        const feature = NODE_TYPE_TO_ABI_FEATURE[sourceType ?? ""];
+        const outType = feature
+            ? getAbiTopology(feature).outputs[0]?.nodeType
+            : undefined;
+        return `executables never connect directly — insert an empty ${
+            outType ?? "data"
+        } node between ${sourceType} and ${targetType} (results land on the data node; the next executable reads from it)`;
+    }
+    if (s === "data" && t === "data") {
+        return "data nodes never connect to each other";
+    }
+    if (s === "add" && t !== "data") {
+        return `an add node feeds its data node first (${sourceType} → data node → ${targetType})`;
+    }
+    if (t === "add") {
+        return "add nodes are workflow inputs and take no incoming edges";
+    }
+    return undefined;
+}
+
 function attachmentData(
     node: GraphPatchAddNode,
     attachments: AgentAttachment[],
@@ -157,7 +204,34 @@ export async function applyGraphPatch(
     flow.commitHistory(`agent:${turnId}`);
 
     const pendingNodes = [...(patch.add_nodes ?? [])];
-    const pendingEdges = [...(patch.add_edges ?? [])];
+    let pendingEdges = [...(patch.add_edges ?? [])];
+
+    /* ---- structural pre-pass: reject shape-invalid edges ------------ */
+
+    // Node types are known before anything materializes (aliases from this
+    // patch, existing nodes from the canvas), so alternation violations fail
+    // fast with a repair hint instead of half-applying.
+    const typeByAlias = new Map(pendingNodes.map((n) => [n.alias, n.type]));
+    const refType = (ref: string): string | undefined => {
+        const aliased = typeByAlias.get(ref);
+        if (aliased) return aliased;
+        const resolved = resolveNodeRef(ref, useFlow.getState().nodes);
+        return resolved.id
+            ? useFlow.getState().nodes.find((n) => n.id === resolved.id)?.type
+            : undefined;
+    };
+    pendingEdges = pendingEdges.filter((e) => {
+        const error = edgeShapeError(refType(e.from), refType(e.to));
+        if (!error) return true;
+        results.push({
+            op: "add_edge",
+            ref: `${e.from}→${e.to}`,
+            ok: false,
+            error,
+            hint: "the graph must alternate: add node → data node → executable → data node → …",
+        });
+        return false;
+    });
 
     /* ---- add_nodes + their first incoming edge (via expands) -------- */
 
@@ -446,6 +520,22 @@ function validateWorkflow(): ToolResult {
     if (nodes.length === 0) return { ok: true, problems: ["canvas is empty"] };
     if (!isWorkflowValid({ nodes, edges })) {
         problems.push("the graph contains a cycle");
+    }
+
+    // Alternation invariant: an executable's results land on its downstream
+    // data node, so a direct executable→executable edge reads nothing at
+    // run time.
+    const typeById = new Map(nodes.map((n) => [n.id, n.type]));
+    for (const e of edges) {
+        const error = edgeShapeError(
+            typeById.get(e.source),
+            typeById.get(e.target),
+        );
+        if (error) {
+            problems.push(
+                `edge #${e.source.slice(0, 8)}→#${e.target.slice(0, 8)}: ${error}`,
+            );
+        }
     }
 
     for (const node of nodes) {

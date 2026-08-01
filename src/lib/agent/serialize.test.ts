@@ -75,9 +75,7 @@ describe("resolveNodeRef", () => {
         expect(resolveNodeRef("aaaa1111-2222-3333", nodes).id).toBe(
             "aaaa1111-2222-3333",
         );
-        expect(resolveNodeRef("bbbb0000", nodes).id).toBe(
-            "bbbb0000-1111-2222",
-        );
+        expect(resolveNodeRef("bbbb0000", nodes).id).toBe("bbbb0000-1111-2222");
     });
 
     it("flags ambiguous short ids instead of guessing", () => {
