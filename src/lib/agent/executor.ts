@@ -463,6 +463,20 @@ export async function applyGraphPatch(
         await sleep(STEP_PACING_MS);
     }
 
+    // Tidy the components this patch touched. No separate history entry —
+    // the turn-level `agent:<turnId>` snapshot already covers it, so one
+    // Cmd+Z still reverts the whole agent turn including the layout.
+    const touchedIds = results
+        .filter((r) => r.ok && r.nodeId)
+        .map((r) => r.nodeId as string);
+    for (const spec of patch.update_nodes ?? []) {
+        const ref = resolveNodeRef(spec.id, useFlow.getState().nodes, aliases);
+        if (ref.id) touchedIds.push(ref.id);
+    }
+    if (touchedIds.length > 0) {
+        useFlow.getState().autoLayout(touchedIds, { history: false });
+    }
+
     const failed = results.filter((r) => !r.ok);
     return {
         ok: failed.length === 0,

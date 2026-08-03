@@ -129,6 +129,18 @@ export function useWorkflowExecution(
         }
     }, []);
 
+    // Nodes whose outputs materialized during the current run — used to tidy
+    // exactly the affected components once, when the run reaches a terminal
+    // state (never mid-run, so results appearing don't fight the user).
+    const runTouchedRef = useRef<Set<string>>(new Set());
+    const tidyRunComponents = useCallback(() => {
+        const touched = [...runTouchedRef.current];
+        runTouchedRef.current = new Set();
+        if (touched.length > 0) {
+            useFlow.getState().autoLayout(touched, { history: false });
+        }
+    }, []);
+
     // Same canvas-side projection used by edit mode: look up the node's
     // ABI output routes and let `expands` merge each channel into the
     // existing downstream data node (or spawn one if absent).
@@ -150,6 +162,7 @@ export function useWorkflowExecution(
             const routes = resolveAbiOutputMappings(abiNode);
             if (routes.length === 0) return;
             applyResolvedOutputRoutes(sourceNodeId, output, routes, expands);
+            runTouchedRef.current.add(sourceNodeId);
         },
         [expands],
     );
@@ -162,6 +175,7 @@ export function useWorkflowExecution(
 
             clearNodeExecutionStatus();
             setWorkflowExecutionStatus("running");
+            runTouchedRef.current = new Set();
 
             try {
                 const response = await fetch("/api/workflow/execute", {
@@ -272,6 +286,7 @@ export function useWorkflowExecution(
                                     "[workflow-exec] Workflow completed",
                                 );
                                 setWorkflowExecutionStatus("completed");
+                                tidyRunComponents();
                                 saveFromTask({
                                     taskId,
                                     status: message.status,
@@ -311,6 +326,7 @@ export function useWorkflowExecution(
                                 clearCancelTimeout();
                                 clearNodeExecutionStatus();
                                 setWorkflowExecutionStatus("idle");
+                                tidyRunComponents();
                                 closeEventSource();
                                 currentTaskIdRef.current = null;
                                 if (executorRef.current) {
@@ -336,6 +352,7 @@ export function useWorkflowExecution(
                                     );
                                 });
                                 setWorkflowExecutionStatus("failed");
+                                tidyRunComponents();
                                 closeEventSource();
                                 currentTaskIdRef.current = null;
                                 break;
@@ -383,6 +400,7 @@ export function useWorkflowExecution(
             closeEventSource,
             setNodeExecutionStatus,
             setWorkflowExecutionStatus,
+            tidyRunComponents,
             tToast,
         ],
     );

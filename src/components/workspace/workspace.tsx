@@ -51,6 +51,7 @@ import { AppView } from "./app-view/app-view";
 import { ModeSwitch } from "./mode-switch";
 import { OnboardingGate } from "./onboarding/onboarding-gate";
 import SmartIsland from "./smart-island";
+import { TidyLayoutButton } from "./tidy-layout-button";
 import { EDGE_TYPES, NODE_TYPES } from "./types";
 import { UndoRedoButtons } from "./undo-redo-buttons";
 import { WorkflowTitleMenu } from "./workflow-title-menu";
@@ -441,6 +442,7 @@ function WorkspaceInner({
                     <WorkflowTitleMenu />
                     <WorkspaceLeftNav />
                     <UndoRedoButtons />
+                    <TidyLayoutButton />
                 </div>
 
                 <div className="absolute right-5 top-5 z-10 flex items-center gap-3">

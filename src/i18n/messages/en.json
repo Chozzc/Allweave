@@ -196,7 +196,8 @@
             "pending": "Pending"
         },
         "wechatGroup": "WeChat community group",
-        "wechatGroupHint": "Scan the QR code with WeChat to join the community group"
+        "wechatGroupHint": "Scan the QR code with WeChat to join the community group",
+        "tidyLayout": "Tidy layout"
     },
     "Workspace": {
         "edges": {
