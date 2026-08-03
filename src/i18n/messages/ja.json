@@ -196,7 +196,8 @@
             "pending": "待機中"
         },
         "wechatGroup": "WeChatグループ",
-        "wechatGroupHint": "WeChatでQRコードをスキャンして参加"
+        "wechatGroupHint": "WeChatでQRコードをスキャンして参加",
+        "tidyLayout": "レイアウト整理"
     },
     "Workspace": {
         "edges": {

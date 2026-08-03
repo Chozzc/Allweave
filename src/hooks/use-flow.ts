@@ -27,6 +27,15 @@ import {
     pushSnapshot,
     snapshotFlow,
 } from "@/lib/workflow/flow-history";
+import {
+    componentsContaining,
+    computeAutoLayout,
+} from "@/lib/workflow/layout/auto-layout";
+import {
+    estimateNodeSize,
+    H_GAP,
+    V_GAP,
+} from "@/lib/workflow/layout/node-dims";
 
 // True when React Flow reports a persisted data/input node type
 function isDataNode(nodeType: string): boolean {
@@ -70,6 +79,22 @@ function resetCommitTracker() {
     lastCommit.source = "";
     lastCommit.focusGen = -1;
 }
+
+// Settle watcher: after an auto-layout, media nodes may still re-measure
+// asynchronously (image/video loads change their width). For a short window
+// we re-run the same scoped layout on dimension changes so the tidy result
+// doesn't go stale — but any user drag cancels the watch immediately so a
+// layout can never fight a manual arrangement.
+const LAYOUT_SETTLE_WINDOW_MS = 1500;
+const layoutSettleWatch: { scope: Set<string> | null; until: number } = {
+    scope: null,
+    until: 0,
+};
+const cancelLayoutSettleWatch = () => {
+    layoutSettleWatch.scope = null;
+    layoutSettleWatch.until = 0;
+};
+const debouncedSettleRelayout = createDebounce((run: () => void) => run(), 300);
 
 // Persist workflow meta (title, ids, notes)
 const debouncedSaveWorkflowMeta = createDebounce(
@@ -125,6 +150,13 @@ export interface FlowState {
         opts?: { history?: boolean },
     ) => void;
 
+    /**
+     * Tidy the canvas (or just the weakly-connected components containing
+     * `seedIds`) into a layered layout. Returns true when anything moved.
+     * `history: false` folds the move into the caller's own snapshot.
+     */
+    autoLayout: (seedIds?: string[], opts?: { history?: boolean }) => boolean;
+
     // Undo/redo history (snapshots of { nodes, edges })
     historyPast: FlowSnapshot[];
     historyFuture: FlowSnapshot[];
@@ -160,6 +192,36 @@ export const useFlow = create<FlowState>((set, get) => ({
     comboMode: false,
     comboSelectedIds: new Set<string>(),
     reconnectingEdgeId: null,
+
+    autoLayout: (seedIds, opts) => {
+        const { nodes, edges } = get();
+        const scope =
+            seedIds && seedIds.length > 0
+                ? componentsContaining(seedIds, nodes, edges)
+                : undefined;
+        const moved = computeAutoLayout(nodes, edges, { scope });
+        if (moved.size === 0) return false;
+
+        if (opts?.history !== false) {
+            get().commitHistory("layout");
+            // Break coalescing so the next tidy gets its own undo entry
+            // (same pattern as the remove path).
+            queueMicrotask(resetCommitTracker);
+        }
+
+        const newNodes = get().nodes.map((n) => {
+            const pos = moved.get(n.id);
+            return pos ? { ...n, position: pos } : n;
+        });
+        set({ nodes: newNodes });
+        debouncedSaveNodes(newNodes);
+
+        // Watch for late media re-measures within this scope and re-tidy
+        // without a new history entry; user drags cancel the watch.
+        layoutSettleWatch.scope = scope ?? new Set(newNodes.map((n) => n.id));
+        layoutSettleWatch.until = Date.now() + LAYOUT_SETTLE_WINDOW_MS;
+        return true;
+    },
 
     historyPast: [],
     historyFuture: [],
@@ -253,6 +315,42 @@ export const useFlow = create<FlowState>((set, get) => ({
             get().commitHistory("remove");
             queueMicrotask(resetCommitTracker);
         }
+
+        // Settle watcher: a user drag cancels any pending re-tidy; a late
+        // dimension change inside a just-tidied scope re-runs that layout
+        // (no extra history — it folds into the original layout snapshot).
+        if (layoutSettleWatch.scope) {
+            if (
+                changes.some(
+                    (c) => c.type === "position" && c.dragging === true,
+                )
+            ) {
+                cancelLayoutSettleWatch();
+            } else if (Date.now() < layoutSettleWatch.until) {
+                const watched = layoutSettleWatch.scope;
+                if (
+                    changes.some(
+                        (c) => c.type === "dimensions" && watched.has(c.id),
+                    )
+                ) {
+                    debouncedSettleRelayout(() => {
+                        if (
+                            layoutSettleWatch.scope === watched &&
+                            Date.now() <
+                                layoutSettleWatch.until +
+                                    LAYOUT_SETTLE_WINDOW_MS
+                        ) {
+                            get().autoLayout([...watched], {
+                                history: false,
+                            });
+                        }
+                    });
+                }
+            } else {
+                cancelLayoutSettleWatch();
+            }
+        }
+
         const nodes = applyNodeChanges(changes, get().nodes);
         let edges = get().edges;
         const removedIds: string[] = [];
@@ -334,19 +432,19 @@ export const useFlow = create<FlowState>((set, get) => ({
             defaultX = position.x;
             defaultY = position.y;
         } else if (nodes.length > 0) {
-            // Spawn to the far right when the canvas already has nodes
-            const rightmostNode = nodes.reduce((rightmost, current) => {
-                const currentRight =
-                    current.position.x + (current.measured?.width ?? 150);
-                const rightmostRight =
-                    rightmost.position.x + (rightmost.measured?.width ?? 150);
-                return currentRight > rightmostRight ? current : rightmost;
-            });
+            // Spawn to the far right when the canvas already has nodes.
+            // position.x is the node CENTER (origin [0.5, 0.5]), so the
+            // right edge is x + width/2; the gap accounts for both widths.
+            const rightEdge = (n: Node) =>
+                n.position.x + estimateNodeSize(n).w / 2;
+            const rightmostNode = nodes.reduce((rightmost, current) =>
+                rightEdge(current) > rightEdge(rightmost) ? current : rightmost,
+            );
 
             defaultX =
-                rightmostNode.position.x +
-                (rightmostNode.measured?.width ?? 150) +
-                200;
+                rightEdge(rightmostNode) +
+                H_GAP +
+                estimateNodeSize({ type: node.type }).w / 2;
             defaultY = rightmostNode.position.y;
         }
 
@@ -419,7 +517,7 @@ export const useFlow = create<FlowState>((set, get) => ({
         // Cursor per type tracking how many same-type siblings we've consumed.
         const reuseCursorByType = new Map<string, number>();
 
-        const { measured, position } = currNode;
+        const { position } = currNode;
         const ids: string[] = [];
         const newNodes: Node[] = [];
         const newlyCreatedIds: string[] = [];
@@ -440,15 +538,28 @@ export const useFlow = create<FlowState>((set, get) => ({
         // consumed them to compute how many fresh nodes we'll spawn.
         reuseCursorByType.clear();
 
-        const X_OFFSET = 250; // Horizontal gap from parent
-        const Y_SPACING = 150; // Vertical spacing between spawned nodes
+        // All nodes are center-anchored (origin [0.5, 0.5]): a constant
+        // edge-to-edge gap needs both the parent's and each child's width.
+        const parentHalfW = estimateNodeSize(currNode).w / 2;
+        const freshSizes = nodesToCreate.map((n) => estimateNodeSize(n));
+        const totalH =
+            freshSizes.reduce((sum, s) => sum + s.h, 0) +
+            V_GAP * Math.max(0, freshSizes.length - 1);
 
-        // Child center.x = parent's right edge + offset (origin at [0.5, 0.5])
-        const newX = position.x + (measured?.width ?? 150) / 2 + X_OFFSET;
-
-        // Vertically distribute new nodes around the parent's center.y
-        const centerY = position.y;
-        const startY = centerY - (Y_SPACING * (nodesToCreate.length - 1)) / 2;
+        // Vertical cursor: stack fresh children below the lowest existing
+        // child (repeated expands on one parent must not pile up on the same
+        // point), otherwise center the stack on the parent.
+        let yCursor: number;
+        if (existingChildNodes.length > 0) {
+            const lowestBottom = Math.max(
+                ...existingChildNodes.map(
+                    (child) => child.position.y + estimateNodeSize(child).h / 2,
+                ),
+            );
+            yCursor = lowestBottom + V_GAP;
+        } else {
+            yCursor = position.y - totalH / 2;
+        }
 
         let newNodeIndex = 0;
         for (const { type, data = {} } of possibleNodes) {
@@ -477,16 +588,18 @@ export const useFlow = create<FlowState>((set, get) => ({
                 newlyCreatedIds.push(newNodeId);
                 const edgeId = v4();
 
+                const size = freshSizes[newNodeIndex];
                 newNodes.push({
                     id: newNodeId,
                     type: type,
                     position: {
-                        x: newX,
-                        y: startY + Y_SPACING * newNodeIndex,
+                        x: position.x + parentHalfW + H_GAP + size.w / 2,
+                        y: yCursor + size.h / 2,
                     },
                     origin: [0.5, 0.5],
                     data,
                 });
+                yCursor += size.h + V_GAP;
 
                 const { sourceHandle, targetHandle } = resolveEdgeHandles({
                     sourceType: currNode.type,
@@ -533,11 +646,12 @@ export const useFlow = create<FlowState>((set, get) => ({
             .map((id) => {
                 const node = nodes.find((n) => n.id === id);
                 if (!node) return null;
+                const size = estimateNodeSize(node);
                 return {
                     x: node.position.x,
                     y: node.position.y,
-                    width: node.measured?.width ?? 150,
-                    height: node.measured?.height ?? 100,
+                    width: size.w,
+                    height: size.h,
                 };
             })
             .filter(
@@ -565,13 +679,13 @@ export const useFlow = create<FlowState>((set, get) => ({
         );
         const centerY = (minY + maxY) / 2;
 
-        // Place composed node to the right, vertically centered on selection
-        const X_OFFSET = 250;
+        // Place composed node to the right, vertically centered on selection;
+        // account for the new node's own width (center-anchored).
         const newNode: Node = {
             id: nodeId,
             type: type,
             position: {
-                x: rightmostX + X_OFFSET,
+                x: rightmostX + H_GAP + estimateNodeSize({ type }).w / 2,
                 y: centerY, // Already node-center coordinates
             },
             origin: [0.5, 0.5],

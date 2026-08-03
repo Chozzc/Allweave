@@ -196,7 +196,8 @@
             "pending": "대기 중"
         },
         "wechatGroup": "WeChat 커뮤니티 그룹",
-        "wechatGroupHint": "WeChat으로 QR 코드를 스캔하여 참여하세요"
+        "wechatGroupHint": "WeChat으로 QR 코드를 스캔하여 참여하세요",
+        "tidyLayout": "레이아웃 정리"
     },
     "Workspace": {
         "edges": {

@@ -339,6 +339,12 @@ export function useAbiExecution<F extends NodeSlot>(
                 const routes = abiNode ? resolveAbiOutputMappings(abiNode) : [];
                 if (routes.length > 0) {
                     applyResolvedOutputRoutes(nodeId, payload, routes, expands);
+                    // Tidy the affected component once the run's results have
+                    // materialized. No history entry (result spawning has no
+                    // undo of its own); a user drag cancels the settle watch.
+                    useFlow.getState().autoLayout([nodeId], {
+                        history: false,
+                    });
                 }
                 return;
             }
