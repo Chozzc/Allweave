@@ -23,6 +23,7 @@ class NodeSlots:
     COMBINE_TEXT: Final[str] = 'combine-text'
     IMAGE_FUSION: Final[str] = 'image-fusion'
     IMAGES_GEN_VIDEO: Final[str] = 'images-gen-video'
+    REFS_GEN_VIDEO: Final[str] = 'refs-gen-video'
     IMAGE_GEN_TEXT: Final[str] = 'image-gen-text'
     VIDEO_GEN_TEXT: Final[str] = 'video-gen-text'
     TRANSCRIBE: Final[str] = 'transcribe'
@@ -87,6 +88,7 @@ ALL_NODE_SLOTS: Final[tuple[str, ...]] = (
     'combine-text',
     'image-fusion',
     'images-gen-video',
+    'refs-gen-video',
     'image-gen-text',
     'video-gen-text',
     'transcribe',
@@ -114,6 +116,7 @@ ALL_NODE_SLOTS: Final[tuple[str, ...]] = (
     'music-repaint',
     'music-cover',
     'music-extract',
+    'separate-sound',
     'music-lego',
     'music-complete',
     'music-brief',

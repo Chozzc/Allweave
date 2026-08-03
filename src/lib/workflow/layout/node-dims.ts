@@ -54,6 +54,7 @@ const NODE_SIZE_TABLE: Record<string, NodeSize> = {
     addFileNode: { w: 360, h: 320 },
     // Executable nodes that differ notably from the 480×400 default
     imageFusionNode: { w: 480, h: 780 },
+    refsGenVideoNode: { w: 480, h: 780 },
     textGenMusicNode: { w: 520, h: 480 },
     musicExtractNode: { w: 420, h: 400 },
 };

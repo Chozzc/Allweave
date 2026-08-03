@@ -31,6 +31,7 @@ import ImageImageGenVideoNode from "./nodes/compose/image-image-gen-video";
 import ImagesGenVideoNode from "./nodes/compose/images-gen-video";
 import MergeVideoAudioNode from "./nodes/compose/merge-video-audio";
 import MusicCoverNode from "./nodes/compose/music-cover";
+import RefsGenVideoNode from "./nodes/compose/refs-gen-video";
 import SpeechImageGenVideoNode from "./nodes/compose/speech-image-gen-video";
 import SpeechTextGenVideoNode from "./nodes/compose/speech-text-gen-video";
 import speechVideoGenVideoNode from "./nodes/compose/speech-video-gen-video";
@@ -171,6 +172,7 @@ export const NODE_TYPES: NodeTypes = {
     audioVideoLipSyncNode: AudioVideoLipSyncNode,
     imageFusionNode: ImageFusionNode,
     imagesGenVideoNode: ImagesGenVideoNode,
+    refsGenVideoNode: RefsGenVideoNode,
     speechImageGenVideoNode: SpeechImageGenVideoNode,
     speechTextGenVideoNode: SpeechTextGenVideoNode,
     speechVideoGenVideoNode: speechVideoGenVideoNode,
@@ -271,6 +273,7 @@ export const NODE_CATEGORIES = {
         "audioVideoLipSyncNode",
         "imageFusionNode",
         "imagesGenVideoNode",
+        "refsGenVideoNode",
         "speechImageGenVideoNode",
         "speechTextGenVideoNode",
         "speechVideoGenVideoNode",

@@ -83,6 +83,7 @@ export const NODE_TYPE_TO_ABI_FEATURE: Readonly<Record<string, NodeSlot>> = {
     audioVideoLipSyncNode: "audio-video-lip-sync",
     imageFusionNode: "image-fusion",
     imagesGenVideoNode: "images-gen-video",
+    refsGenVideoNode: "refs-gen-video",
     speechImageGenVideoNode: "audio-image-gen-video",
     speechTextGenVideoNode: "speech-text-gen-video",
     speechVideoGenVideoNode: "speech-video-gen-video",
@@ -166,6 +167,15 @@ export const NODE_TYPE_SOURCE_SPEC: Partial<
     },
     imagesGenVideoNode: {
         images: collectAll(),
+        text: handle({ nodeType: "textNode", path: "texts[0]", manual: true }),
+        duration: configField(),
+    },
+    // Omni-reference video generation: three parallel collect arrays, one per
+    // media kind (nodeType is inferred from the field names).
+    refsGenVideoNode: {
+        images: collectAll(),
+        videos: collectAll(),
+        audios: collectAll(),
         text: handle({ nodeType: "textNode", path: "texts[0]", manual: true }),
         duration: configField(),
     },

@@ -337,6 +337,7 @@
             "mergeGroup": "그룹 병합",
             "imageFusion": "이미지 융합",
             "imagesGenVideo": "참조 이미지로 비디오 생성",
+            "refsGenVideo": "옴니 참조 비디오",
             "rewriteText": "텍스트 재작성",
             "textToSpeech": "텍스트 음성 변환",
             "textToSpeechClone": "음성 생성(복제)",
@@ -630,6 +631,7 @@
                 "speechVideoGenVideo": "비디오 립 더빙",
                 "imageImageGenVideo": "첫/마지막 프레임 비디오",
                 "imagesGenVideo": "이미지-비디오",
+                "refsGenVideo": "옴니 참조 비디오",
                 "textAudioGenSpeech": "텍스트+오디오-음성",
                 "videoImageMix": "비디오+이미지 믹스",
                 "videoImageMove": "비디오+이미지 무브",
@@ -797,6 +799,14 @@
                 "fusionPrompt": "융합 프롬프트",
                 "fusionPromptPlaceholder": "융합 지시 사항을 입력하세요. 예: 이미지 1의 스타일 유지, 모든 이미지의 특징 융합, 이미지 2의 색상 강조, 이미지 3의 구도 결합...",
                 "imageLabel": "이미지"
+            },
+            "refsGenVideo": {
+                "videoReference": "비디오 참조",
+                "videoLabel": "비디오",
+                "audioReference": "오디오 참조",
+                "audioLabel": "오디오",
+                "referenceHint": "이미지 최대 9장, 비디오 3개, 오디오 3개(총 12개 파일). 오디오는 이미지나 비디오와 함께 사용해야 합니다. 썸네일을 클릭하면 프롬프트에 참조가 삽입됩니다.",
+                "promptPlaceholder": "생성할 비디오를 설명하세요. 예: 이미지 1의 캐릭터가 오디오 1의 목소리로 말하며 비디오 1의 장면을 이어갑니다..."
             },
             "video": {
                 "fileCount": "처리할 파일:"
