@@ -337,6 +337,7 @@
             "mergeGroup": "Merge Group",
             "imageFusion": "Image Fusion",
             "imagesGenVideo": "Reference to Video",
+            "refsGenVideo": "Omni Reference Video",
             "rewriteText": "Rewrite Text",
             "textToSpeech": "Text to Speech",
             "textToSpeechClone": "Generate Speech (Clone)",
@@ -630,6 +631,7 @@
                 "speechVideoGenVideo": "Video Lip Dub",
                 "imageImageGenVideo": "First/Last Frame Video",
                 "imagesGenVideo": "Images to Video",
+                "refsGenVideo": "Omni Reference to Video",
                 "textAudioGenSpeech": "Text+Audio to Speech",
                 "videoImageMix": "Video+Image Mix",
                 "videoImageMove": "Video+Image Move",
@@ -797,6 +799,14 @@
                 "fusionPrompt": "Fusion Prompt",
                 "fusionPromptPlaceholder": "Enter fusion instructions, e.g., keep style of Image 1, fuse features of all images, highlight colors of Image 2, combine composition of Image 3...",
                 "imageLabel": "Image"
+            },
+            "refsGenVideo": {
+                "videoReference": "Video Reference",
+                "videoLabel": "Video",
+                "audioReference": "Audio Reference",
+                "audioLabel": "Audio",
+                "referenceHint": "Up to 9 images, 3 videos and 3 audio clips (12 files total); audio must come with an image or video. Click a thumbnail to insert its reference in the prompt.",
+                "promptPlaceholder": "Describe the video, e.g., the character from Image 1 speaks with the voice of Audio 1, continuing the scene of Video 1..."
             },
             "video": {
                 "fileCount": "Files to process:"

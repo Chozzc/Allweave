@@ -284,6 +284,124 @@ export type ImagesGenVideoOutput = FromSchema<
     typeof _slot_images_gen_video_outputs
 >;
 
+const _slot_refs_gen_video_inputs = {
+    type: "object",
+    required: ["text"],
+    properties: {
+        text: {
+            type: "string",
+            minLength: 1,
+        },
+        images: {
+            type: "array",
+            items: {
+                type: "object",
+                required: ["bytesBase64"],
+                properties: {
+                    bytesBase64: {
+                        type: "string",
+                        minLength: 1,
+                    },
+                    filename: {
+                        type: "string",
+                    },
+                    mime: {
+                        type: "string",
+                    },
+                },
+                additionalProperties: false,
+            },
+        },
+        videos: {
+            type: "array",
+            items: {
+                type: "object",
+                required: ["bytesBase64"],
+                properties: {
+                    bytesBase64: {
+                        type: "string",
+                        minLength: 1,
+                    },
+                    filename: {
+                        type: "string",
+                    },
+                    mime: {
+                        type: "string",
+                    },
+                },
+                additionalProperties: false,
+            },
+        },
+        audios: {
+            type: "array",
+            items: {
+                type: "object",
+                required: ["bytesBase64"],
+                properties: {
+                    bytesBase64: {
+                        type: "string",
+                        minLength: 1,
+                    },
+                    filename: {
+                        type: "string",
+                    },
+                    mime: {
+                        type: "string",
+                    },
+                },
+                additionalProperties: false,
+            },
+        },
+        duration: {
+            type: "number",
+        },
+        seed: {
+            type: "integer",
+        },
+        width: {
+            type: "integer",
+        },
+        height: {
+            type: "integer",
+        },
+    },
+    additionalProperties: false,
+} as const;
+export type RefsGenVideoInput = FromSchema<typeof _slot_refs_gen_video_inputs>;
+const _slot_refs_gen_video_outputs = {
+    type: "object",
+    required: ["success"],
+    properties: {
+        success: {
+            type: "boolean",
+        },
+        error: {
+            type: "string",
+        },
+        video: {
+            type: "object",
+            required: ["file_key"],
+            properties: {
+                file_key: {
+                    type: "string",
+                    minLength: 1,
+                },
+                mime: {
+                    type: "string",
+                },
+                filename: {
+                    type: "string",
+                },
+            },
+            additionalProperties: false,
+        },
+    },
+    additionalProperties: false,
+} as const;
+export type RefsGenVideoOutput = FromSchema<
+    typeof _slot_refs_gen_video_outputs
+>;
+
 const _slot_image_gen_text_inputs = {
     type: "object",
     required: ["text"],
@@ -4149,6 +4267,7 @@ export type NodeSlot =
     | "combine-text"
     | "image-fusion"
     | "images-gen-video"
+    | "refs-gen-video"
     | "image-gen-text"
     | "video-gen-text"
     | "transcribe"
@@ -4213,6 +4332,7 @@ export type SlotInputsMap = {
     "combine-text": CombineTextInput;
     "image-fusion": ImageFusionInput;
     "images-gen-video": ImagesGenVideoInput;
+    "refs-gen-video": RefsGenVideoInput;
     "image-gen-text": ImageGenTextInput;
     "video-gen-text": VideoGenTextInput;
     transcribe: TranscribeInput;
@@ -4277,6 +4397,7 @@ export type SlotOutputsMap = {
     "combine-text": CombineTextOutput;
     "image-fusion": ImageFusionOutput;
     "images-gen-video": ImagesGenVideoOutput;
+    "refs-gen-video": RefsGenVideoOutput;
     "image-gen-text": ImageGenTextOutput;
     "video-gen-text": VideoGenTextOutput;
     transcribe: TranscribeOutput;
@@ -4608,6 +4729,65 @@ export const ABI_NODES = {
                     minLength: 1,
                 },
                 images: {
+                    type: "array",
+                    items: {
+                        $ref: "#/$defs/Asset",
+                    },
+                },
+                duration: {
+                    type: "number",
+                },
+                seed: {
+                    type: "integer",
+                },
+                width: {
+                    type: "integer",
+                },
+                height: {
+                    type: "integer",
+                },
+            },
+            additionalProperties: false,
+        },
+        outputs: {
+            type: "object",
+            required: ["success"],
+            properties: {
+                success: {
+                    type: "boolean",
+                },
+                error: {
+                    type: "string",
+                },
+                video: {
+                    $ref: "#/$defs/VideoRef",
+                },
+            },
+            additionalProperties: false,
+        },
+    },
+    "refs-gen-video": {
+        inputs: {
+            type: "object",
+            required: ["text"],
+            properties: {
+                text: {
+                    type: "string",
+                    minLength: 1,
+                },
+                images: {
+                    type: "array",
+                    items: {
+                        $ref: "#/$defs/Asset",
+                    },
+                },
+                videos: {
+                    type: "array",
+                    items: {
+                        $ref: "#/$defs/Asset",
+                    },
+                },
+                audios: {
                     type: "array",
                     items: {
                         $ref: "#/$defs/Asset",

@@ -21,6 +21,14 @@ import type { BaseNodeData } from "@/types/nodes";
 // Seedance multimodal reference (images → video) accepts up to 9 images.
 const MAX_IMAGES_GEN_VIDEO = 9;
 
+// Omni-reference (refs-gen-video) caps, matching MiniMax-H3 Ref2VA: up to 9
+// images, 3 video clips, 3 audio clips, 12 reference files total. Audio cannot
+// be the sole reference — it must accompany an image or video.
+const MAX_REFS_IMAGES = 9;
+const MAX_REFS_VIDEOS = 3;
+const MAX_REFS_AUDIOS = 3;
+const MAX_REFS_TOTAL = 12;
+
 interface ButtonConfig {
     text: string;
     onClick: () => void;
@@ -327,6 +335,15 @@ export function useNodeActions(args: UseNodeActionsArgs): UseNodeActionsResult {
                                     data: { ids },
                                 }),
                         },
+                        {
+                            text: t("refsGenVideo"),
+                            id: "refs-gen-video",
+                            onClick: () =>
+                                compose({
+                                    type: "refsGenVideoNode",
+                                    data: { ids },
+                                }),
+                        },
                     ]}
                 />
             );
@@ -354,6 +371,15 @@ export function useNodeActions(args: UseNodeActionsArgs): UseNodeActionsResult {
                                     data: { ids },
                                 }),
                         },
+                        {
+                            text: t("refsGenVideo"),
+                            id: "refs-gen-video",
+                            onClick: () =>
+                                compose({
+                                    type: "refsGenVideoNode",
+                                    data: { ids },
+                                }),
+                        },
                     ]}
                 />
             );
@@ -372,9 +398,57 @@ export function useNodeActions(args: UseNodeActionsArgs): UseNodeActionsResult {
                                     data: { ids },
                                 }),
                         },
+                        {
+                            text: t("refsGenVideo"),
+                            id: "refs-gen-video",
+                            onClick: () =>
+                                compose({
+                                    type: "refsGenVideoNode",
+                                    data: { ids },
+                                }),
+                        },
                     ]}
                 />
             );
+        }
+        // Mixed media references (image/video/audio, optional single text) that
+        // no dedicated pairing above matched → omni-reference video generation.
+        {
+            const imageCount = counts.imageNode ?? 0;
+            const videoCount = counts.videoNode ?? 0;
+            const audioCount = counts.audioNode ?? 0;
+            const mediaCount = imageCount + videoCount + audioCount;
+            const otherCount =
+                types.length - mediaCount - (counts.textNode ?? 0);
+            if (
+                otherCount === 0 &&
+                (counts.textNode ?? 0) <= 1 &&
+                // Pure-image selections keep their dedicated branches below
+                // (image fusion / images-gen-video).
+                videoCount + audioCount > 0 &&
+                mediaCount >= 2 &&
+                mediaCount <= MAX_REFS_TOTAL &&
+                imageCount <= MAX_REFS_IMAGES &&
+                videoCount <= MAX_REFS_VIDEOS &&
+                audioCount <= MAX_REFS_AUDIOS &&
+                audioCount < mediaCount
+            ) {
+                return (
+                    <ActionItem
+                        buttons={[
+                            {
+                                text: t("refsGenVideo"),
+                                id: "refs-gen-video",
+                                onClick: () =>
+                                    compose({
+                                        type: "refsGenVideoNode",
+                                        data: { ids },
+                                    }),
+                            },
+                        ]}
+                    />
+                );
+            }
         }
         // Multiple images + one text (2-14 image fusion w/ prompt)
         if (

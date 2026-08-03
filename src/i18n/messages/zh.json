@@ -337,6 +337,7 @@
             "mergeGroup": "合为一组",
             "imageFusion": "图片融合",
             "imagesGenVideo": "参考生视频",
+            "refsGenVideo": "全参考生视频",
             "rewriteText": "文本改写",
             "textToSpeech": "转换为语音",
             "textToSpeechClone": "生成语音(克隆音色)",
@@ -630,6 +631,7 @@
                 "speechVideoGenVideo": "视频配音对口型",
                 "imageImageGenVideo": "首尾帧生成视频",
                 "imagesGenVideo": "多图参考生视频",
+                "refsGenVideo": "全模态参考生视频",
                 "textAudioGenSpeech": "文本音频生成语音",
                 "videoImageMix": "视频图片混合",
                 "videoImageMove": "视频图片迁移",
@@ -797,6 +799,14 @@
                 "fusionPrompt": "融合提示词",
                 "fusionPromptPlaceholder": "输入融合指令，例如：保持图1的风格、融合所有图片的特征、突出图2的色彩、结合图3的构图等",
                 "imageLabel": "图"
+            },
+            "refsGenVideo": {
+                "videoReference": "视频引用",
+                "videoLabel": "视频",
+                "audioReference": "音频引用",
+                "audioLabel": "音频",
+                "referenceHint": "最多 9 张图、3 段视频、3 段音频（共 12 个文件）；音频需搭配图片或视频。点击缩略图可在提示词中插入引用。",
+                "promptPlaceholder": "描述想要的视频，例如：图1的角色用音频1的声音说话，场景延续视频1……"
             },
             "video": {
                 "fileCount": "处理文件数:"
