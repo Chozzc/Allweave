@@ -125,35 +125,52 @@ export function useNodeActions(args: UseNodeActionsArgs): UseNodeActionsResult {
                 return asBaseData(node?.data).texts ?? [];
             });
 
-        // Multiple video nodes
-        if (!types.some((type) => type !== "videoNode") && types.length > 1) {
-            return (
-                <ActionItem
-                    buttons={[
-                        {
-                            text: t("mergeGroup"),
-                            id: "merge-group",
-                            onClick: () =>
-                                compose({
-                                    type: "videoNode",
-                                    data: { fileKeys: collectFileKeys() },
-                                }),
-                        },
-                        {
-                            text: t("concat"),
-                            id: "concat-video",
-                            onClick: () =>
-                                compose({
-                                    type: "concatVideoComposeNode",
-                                    data: { ids },
-                                }),
-                        },
-                    ]}
-                />
-            );
+        // Multiple video nodes (with optional single text)
+        if (
+            !types.some((type) => type !== "videoNode" && type !== "textNode") &&
+            (counts.videoNode ?? 0) > 1
+        ) {
+            const videoButtons: ButtonConfig[] = [
+                {
+                    text: t("mergeGroup"),
+                    id: "merge-group",
+                    onClick: () =>
+                        compose({
+                            type: "videoNode",
+                            data: { fileKeys: collectFileKeys() },
+                        }),
+                },
+                {
+                    text: t("concat"),
+                    id: "concat-video",
+                    onClick: () =>
+                        compose({
+                            type: "concatVideoComposeNode",
+                            data: { ids: ids.filter((id) => nodes.find((n) => n.id === id)?.type === "videoNode") },
+                        }),
+                },
+            ];
+
+            // Refs-gen-video supports up to 3 videos + optional text
+            if ((counts.videoNode ?? 0) <= MAX_REFS_VIDEOS && (counts.textNode ?? 0) <= 1) {
+                videoButtons.push({
+                    text: t("refsGenVideo"),
+                    id: "refs-gen-video",
+                    onClick: () =>
+                        compose({
+                            type: "refsGenVideoNode",
+                            data: { ids },
+                        }),
+                });
+            }
+
+            return <ActionItem buttons={videoButtons} />;
         }
-        // Multiple image nodes
-        if (!types.some((type) => type !== "imageNode") && types.length > 1) {
+        // Multiple image nodes (with optional single text)
+        if (
+            !types.some((type) => type !== "imageNode" && type !== "textNode") &&
+            (counts.imageNode ?? 0) > 1
+        ) {
             const buttons: ButtonConfig[] = [
                 {
                     text: t("mergeGroup"),
@@ -166,37 +183,52 @@ export function useNodeActions(args: UseNodeActionsArgs): UseNodeActionsResult {
                 },
             ];
 
+            const imageCount = counts.imageNode ?? 0;
+
             // Gemini 3 Pro supports up to 14 reference images
-            if (types.length >= 2 && types.length <= 14) {
+            if (imageCount >= 2 && imageCount <= 14) {
                 buttons.push({
                     text: t("imageFusion"),
                     id: "image-fusion",
                     onClick: () =>
                         compose({
                             type: "imageFusionNode",
-                            data: { ids },
+                            data: { ids: ids.filter((id) => nodes.find((n) => n.id === id)?.type === "imageNode") },
                         }),
                 });
 
-                if (types.length <= MAX_IMAGES_GEN_VIDEO) {
+                if (imageCount <= MAX_IMAGES_GEN_VIDEO) {
                     buttons.push({
                         text: t("imagesGenVideo"),
                         id: "images-gen-video",
                         onClick: () =>
                             compose({
                                 type: "imagesGenVideoNode",
-                                data: { ids },
+                                data: { ids: ids.filter((id) => nodes.find((n) => n.id === id)?.type === "imageNode") },
                             }),
                     });
                 }
 
-                if (types.length === 2) {
+                if (imageCount === 2 && (counts.textNode ?? 0) === 0) {
                     buttons.push({
                         text: t("firstLastFrameVideo"),
                         id: "first-last-frame-video",
                         onClick: () =>
                             compose({
                                 type: "imageImageGenVideoNode",
+                                data: { ids: ids.filter((id) => nodes.find((n) => n.id === id)?.type === "imageNode") },
+                            }),
+                    });
+                }
+
+                // Refs-gen-video supports up to 9 images + optional text
+                if (imageCount <= MAX_REFS_IMAGES && (counts.textNode ?? 0) <= 1) {
+                    buttons.push({
+                        text: t("refsGenVideo"),
+                        id: "refs-gen-video",
+                        onClick: () =>
+                            compose({
+                                type: "refsGenVideoNode",
                                 data: { ids },
                             }),
                     });
@@ -410,6 +442,60 @@ export function useNodeActions(args: UseNodeActionsArgs): UseNodeActionsResult {
                     ]}
                 />
             );
+        }
+        // Text + single media (image / video / audio)
+        if (counts.textNode === 1 && types.length === 2) {
+            if (counts.imageNode === 1) {
+                return (
+                    <ActionItem
+                        buttons={[
+                            {
+                                text: t("refsGenVideo"),
+                                id: "refs-gen-video",
+                                onClick: () =>
+                                    compose({
+                                        type: "refsGenVideoNode",
+                                        data: { ids },
+                                    }),
+                            },
+                        ]}
+                    />
+                );
+            }
+            if (counts.videoNode === 1) {
+                return (
+                    <ActionItem
+                        buttons={[
+                            {
+                                text: t("refsGenVideo"),
+                                id: "refs-gen-video",
+                                onClick: () =>
+                                    compose({
+                                        type: "refsGenVideoNode",
+                                        data: { ids },
+                                    }),
+                            },
+                        ]}
+                    />
+                );
+            }
+            if (counts.audioNode === 1) {
+                return (
+                    <ActionItem
+                        buttons={[
+                            {
+                                text: t("refsGenVideo"),
+                                id: "refs-gen-video",
+                                onClick: () =>
+                                    compose({
+                                        type: "refsGenVideoNode",
+                                        data: { ids },
+                                    }),
+                            },
+                        ]}
+                    />
+                );
+            }
         }
         // Mixed media references (image/video/audio, optional single text) that
         // no dedicated pairing above matched → omni-reference video generation.
