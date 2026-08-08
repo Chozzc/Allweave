@@ -9,7 +9,7 @@
         "upToDate": "Up to date",
         "checkUpdates": "Check for updates",
         "emptyOfficial": "No official plugins available",
-        "customHint": "The repository name must follow the tongflow-modal-* or tongflow-api-* convention, otherwise it cannot be detected.",
+        "customHint": "The repository name must follow the tongflow-modal-*, tongflow-api-*, tongflow-router-* or tongflow-package-* convention, otherwise it cannot be detected.",
         "cloneButton": "Clone & install",
         "installSuccess": "Installed {id}",
         "updateSuccess": "Updated {id}",
@@ -200,6 +200,18 @@
         "tidyLayout": "Tidy layout"
     },
     "Workspace": {
+        "skills": {
+            "select": "Skill",
+            "empty": "No skill packages installed. Install a tongflow-package-* content package from the plugins panel.",
+            "missing": "Skill unavailable — its package was uninstalled or the skill was removed.",
+            "clear": "Remove skill",
+            "categories": {
+                "text": "Text",
+                "imagePrompt": "Image prompts",
+                "videoPrompt": "Video prompts",
+                "other": "Other"
+            }
+        },
         "edges": {
             "deleteConfirmTitle": "Delete connection?",
             "deleteConfirmDescription": "This connection isn't attached to any node. Delete it?",

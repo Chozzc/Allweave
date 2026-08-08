@@ -43,6 +43,7 @@
         "tongflow-modal-paddle",
         "tongflow-modal-unlimited-ocr",
         "tongflow-modal-crawl4ai",
-        "tongflow-modal-scrapling"
+        "tongflow-modal-scrapling",
+        "tongflow-package-skills"
     ]
 }

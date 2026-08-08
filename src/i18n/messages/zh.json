@@ -9,7 +9,7 @@
         "upToDate": "已是最新",
         "checkUpdates": "检查更新",
         "emptyOfficial": "暂无官方插件",
-        "customHint": "仓库名需符合 tongflow-modal-* 或 tongflow-api-* 约定，否则无法被识别。",
+        "customHint": "仓库名需符合 tongflow-modal-*、tongflow-api-*、tongflow-router-* 或 tongflow-package-* 约定，否则无法被识别。",
         "cloneButton": "克隆并安装",
         "installSuccess": "已安装 {id}",
         "updateSuccess": "已更新 {id}",
@@ -200,6 +200,18 @@
         "tidyLayout": "一键整理"
     },
     "Workspace": {
+        "skills": {
+            "select": "技能",
+            "empty": "尚未安装技能包——请在插件面板安装 tongflow-package-* 内容包。",
+            "missing": "技能不可用——所属技能包已卸载或该技能已被移除。",
+            "clear": "移除技能",
+            "categories": {
+                "text": "文本",
+                "imagePrompt": "图像提示词",
+                "videoPrompt": "视频提示词",
+                "other": "其他"
+            }
+        },
         "edges": {
             "deleteConfirmTitle": "删除连线？",
             "deleteConfirmDescription": "这条连线没有连接到任何节点，是否删除它？",

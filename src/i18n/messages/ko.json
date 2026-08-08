@@ -9,7 +9,7 @@
         "upToDate": "최신 상태",
         "checkUpdates": "업데이트 확인",
         "emptyOfficial": "사용 가능한 공식 플러그인이 없습니다",
-        "customHint": "저장소 이름은 tongflow-modal-* 또는 tongflow-api-* 규칙을 따라야 하며, 그렇지 않으면 감지할 수 없습니다.",
+        "customHint": "저장소 이름은 tongflow-modal-*, tongflow-api-*, tongflow-router-* 또는 tongflow-package-* 규칙을 따라야 하며, 그렇지 않으면 감지할 수 없습니다.",
         "cloneButton": "복제 및 설치",
         "installSuccess": "{id} 설치 완료",
         "updateSuccess": "{id} 업데이트 완료",
@@ -200,6 +200,18 @@
         "tidyLayout": "레이아웃 정리"
     },
     "Workspace": {
+        "skills": {
+            "select": "스킬",
+            "empty": "설치된 스킬 패키지가 없습니다. 플러그인 패널에서 tongflow-package-* 패키지를 설치하세요.",
+            "missing": "스킬을 사용할 수 없습니다 — 패키지가 제거되었거나 스킬이 삭제되었습니다.",
+            "clear": "스킬 해제",
+            "categories": {
+                "text": "텍스트",
+                "imagePrompt": "이미지 프롬프트",
+                "videoPrompt": "비디오 프롬프트",
+                "other": "기타"
+            }
+        },
         "edges": {
             "deleteConfirmTitle": "연결을 삭제하시겠습니까?",
             "deleteConfirmDescription": "이 연결은 어떤 노드에도 연결되어 있지 않습니다. 삭제하시겠습니까?",
