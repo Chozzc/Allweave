@@ -9,7 +9,7 @@
         "upToDate": "最新です",
         "checkUpdates": "更新を確認",
         "emptyOfficial": "利用可能な公式プラグインがありません",
-        "customHint": "リポジトリ名は tongflow-modal-* または tongflow-api-* の規約に従う必要があります。従わない場合は検出できません。",
+        "customHint": "リポジトリ名は tongflow-modal-*、tongflow-api-*、tongflow-router-* または tongflow-package-* の規約に従う必要があります。従わない場合は検出できません。",
         "cloneButton": "クローンしてインストール",
         "installSuccess": "{id} をインストールしました",
         "updateSuccess": "{id} を更新しました",
@@ -200,6 +200,18 @@
         "tidyLayout": "レイアウト整理"
     },
     "Workspace": {
+        "skills": {
+            "select": "スキル",
+            "empty": "スキルパッケージが未インストールです。プラグインパネルから tongflow-package-* パッケージをインストールしてください。",
+            "missing": "スキルを利用できません — パッケージがアンインストールされたか、スキルが削除されました。",
+            "clear": "スキルを解除",
+            "categories": {
+                "text": "テキスト",
+                "imagePrompt": "画像プロンプト",
+                "videoPrompt": "動画プロンプト",
+                "other": "その他"
+            }
+        },
         "edges": {
             "deleteConfirmTitle": "接続を削除しますか？",
             "deleteConfirmDescription": "この接続はどのノードにも接続されていません。削除しますか？",
