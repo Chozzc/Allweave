@@ -61,6 +61,7 @@ def _detect_runner(plugin_dir: Path) -> tuple[str | None, str | None]:
         lowered.startswith("tongflow-modal-")
         or lowered.startswith("tongflow-api-")
         or lowered.startswith("tongflow-router-")
+        or lowered.startswith("tongflow-local-")
     ):
         return None, (
             f"{plugin_dir}:1: pluginId must be all lowercase; "
@@ -91,10 +92,15 @@ def _detect_runner(plugin_dir: Path) -> tuple[str | None, str | None]:
         # Aggregator/router plugins (one key routing to many third-party models)
         # are entry.py-based local runners — identical execution to "api".
         prefix_runner = "api"
+    elif plugin_id.startswith("tongflow-local-"):
+        # On-device engine plugins (e.g. a native Metal binary) — entry.py-based
+        # local runners like "api", named honestly: no key, no remote calls.
+        prefix_runner = "api"
     else:
         return None, (
             f"{plugin_dir}:1: unknown pluginId prefix; "
-            "fix: use tongflow-modal-<name>, tongflow-api-<name>, or tongflow-router-<name>"
+            "fix: use tongflow-modal-<name>, tongflow-api-<name>, "
+            "tongflow-router-<name>, or tongflow-local-<name>"
         )
 
     if not has_deploy and not has_entry:

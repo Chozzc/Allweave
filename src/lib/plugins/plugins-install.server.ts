@@ -26,7 +26,8 @@ const PLUGIN_GIT_AUTHOR = { name: "tongflow", email: "tongflow@local" };
 // up front so a custom git URL either yields a usable plugin or a clear error.
 // tongflow-package-* are content packages (skill packs, no executable code)
 // discovered by the skills registry instead of the plugin scanner.
-const PLUGIN_ID_RE = /^tongflow-(modal|api|router|package)-[a-z0-9][a-z0-9-]*$/;
+const PLUGIN_ID_RE =
+    /^tongflow-(modal|api|router|local|package)-[a-z0-9][a-z0-9-]*$/;
 
 function isContentPackageId(id: string): boolean {
     return id.startsWith("tongflow-package-");
@@ -77,7 +78,7 @@ function assertSafeGitUrl(gitUrl: string): void {
 function assertValidPluginId(id: string): void {
     if (!PLUGIN_ID_RE.test(id)) {
         throw new PluginInstallError(
-            `Plugin directory "${id}" must match the tongflow-modal-*, tongflow-api-*, tongflow-router-* or tongflow-package-* convention, otherwise the scanner cannot detect it.`,
+            `Plugin directory "${id}" must match the tongflow-modal-*, tongflow-api-*, tongflow-router-*, tongflow-local-* or tongflow-package-* convention, otherwise the scanner cannot detect it.`,
         );
     }
 }
