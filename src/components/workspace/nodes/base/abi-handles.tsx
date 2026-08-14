@@ -96,9 +96,6 @@ export function AbiHandles<F extends NodeSlot>({
                         h.role === "target" ? targetPosition : sourcePosition
                     }
                     id={h.id}
-                    isConnectable={true}
-                    // Disallow starting a new connection by hand; reconnect only.
-                    isConnectableStart={false}
                     className={handleClassName}
                     style={{ top: `${(h.offset * 100).toFixed(2)}%` }}
                 />

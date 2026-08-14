@@ -113,13 +113,11 @@ const TextNode = ({ selected, data }: TextNodeRfProps) => {
                     type="target"
                     position={Position.Left}
                     id="in:textNode"
-                    isConnectableStart={false}
                 />
                 <Handle
                     type="source"
                     position={Position.Right}
                     id="out:textNode"
-                    isConnectableStart={false}
                 />
                 <NodeHeader>
                     <NodeHeaderIcon>

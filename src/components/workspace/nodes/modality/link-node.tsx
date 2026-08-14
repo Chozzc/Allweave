@@ -47,18 +47,8 @@ const LinkNode = ({ selected, data }: LinkNodeRfProps) => {
 
     return (
         <BaseNodeShell selected={selected} count={count}>
-            <Handle
-                type="target"
-                position={Position.Left}
-                id="in:linkNode"
-                isConnectableStart={false}
-            />
-            <Handle
-                type="source"
-                position={Position.Right}
-                id="out:linkNode"
-                isConnectableStart={false}
-            />
+            <Handle type="target" position={Position.Left} id="in:linkNode" />
+            <Handle type="source" position={Position.Right} id="out:linkNode" />
             <NodeHeader>
                 <NodeHeaderIcon>
                     <LinkIcon />

@@ -2,9 +2,8 @@
  * React Flow connection validation: logical output types, ABI schema checks,
  * and duplicate-edge rules for single-value (non-array) target handles.
  *
- * Manual edge creation is disabled in the UI (handles set `isConnectableStart`
- * to false); this validator runs when users *reconnect* an existing edge's
- * endpoint, so it must enforce the full ABI contract on the new endpoint.
+ * This validator runs while users drag a new connection or reconnect an
+ * existing edge's endpoint, so it must enforce the full ABI contract.
  */
 
 import type { Connection, Edge, Node } from "@xyflow/react";

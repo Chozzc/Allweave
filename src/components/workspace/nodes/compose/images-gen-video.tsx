@@ -9,6 +9,7 @@ import {
     VIDEO_DURATIONS,
 } from "@/constants/media-options";
 import { useAbiForm } from "@/hooks/use-abi-form";
+import { useUpstreamNodeIds } from "@/hooks/use-upstream-ids";
 import { NODE_TYPE_SOURCE_SPEC } from "@/lib/abi/node-feature-registry";
 import type { SourceSpec } from "@/lib/abi/sources";
 import { coerceBaseNodeData } from "@/lib/workflow/flow-node-data";
@@ -37,7 +38,7 @@ const ImagesGenVideoNode = ({
     const t = useTranslations("Workspace.nodes");
     const form = useAbiForm("images-gen-video", sourceSpec);
 
-    const ids = data.ids ?? [];
+    const ids = useUpstreamNodeIds(data.ids);
     const fromNodes = useNodesData(ids);
 
     const allImages = fromNodes

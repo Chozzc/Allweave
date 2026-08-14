@@ -386,7 +386,7 @@ export const useFlow = create<FlowState>((set, get) => ({
     onConnect: (connection) => {
         get().commitHistory();
         const edges = addEdge(
-            { ...connection, type: "custom-edge" },
+            { ...connection, id: v4(), type: "custom-edge" },
             get().edges,
         );
         set({
