@@ -21,6 +21,7 @@ import {
     useSkillsRegistry,
     useSkillsRegistryStore,
 } from "@/hooks/use-skills";
+import { useUpstreamNodeIds } from "@/hooks/use-upstream-ids";
 import { batchOn } from "@/lib/abi/sources";
 import { composeSkillPrompt } from "@/lib/skills/compose";
 import type { SkillRef } from "@/lib/skills/types";
@@ -42,7 +43,8 @@ const GenTextNode = ({
     const tBase = useTranslations("Workspace.nodes.base");
     const form = useAbiForm("gen-text");
 
-    const { ids = [], texts: localTexts = [] } = data;
+    const { texts: localTexts = [] } = data;
+    const ids = useUpstreamNodeIds(data.ids);
 
     // Composition mode: pull texts from associated nodes.
     const fromNodes = useNodesData(ids);

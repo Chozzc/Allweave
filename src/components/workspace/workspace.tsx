@@ -112,9 +112,8 @@ function WorkspaceInner({
         string | null
     >(null);
 
-    // Manual edge creation is disabled (handles set isConnectableStart=false).
-    // Users may only reconnect an existing edge's endpoint to another handle;
-    // isValidConnection above enforces the ABI contract on the new endpoint.
+    // Users may drag new connections between handles or reconnect an existing
+    // edge's endpoint; isValidConnection above enforces the ABI contract.
     const onReconnectStart = useCallback((_event: unknown, edge: Edge) => {
         useFlow.getState().setReconnectingEdgeId(edge.id);
     }, []);
@@ -389,9 +388,6 @@ function WorkspaceInner({
                         onEdgesChange={onEdgesChange}
                         onConnect={onConnect}
                         isValidConnection={isValidConnection}
-                        // Manual new connections are disabled at the handle level
-                        // (isConnectableStart={false}); users may only reconnect an
-                        // existing edge's endpoint, validated by isValidConnection.
                         onReconnect={onReconnect}
                         onReconnectStart={onReconnectStart}
                         onReconnectEnd={onReconnectEnd}

@@ -11,6 +11,7 @@ import {
     IMAGE_ASPECT_RATIOS,
 } from "@/constants/media-options";
 import { useAbiForm } from "@/hooks/use-abi-form";
+import { useUpstreamNodeIds } from "@/hooks/use-upstream-ids";
 import { NODE_TYPE_SOURCE_SPEC } from "@/lib/abi/node-feature-registry";
 import type { SourceSpec } from "@/lib/abi/sources";
 import { cn } from "@/lib/utils";
@@ -43,7 +44,7 @@ const ImageFusionNode = ({
     const t = useTranslations("Workspace.nodes");
     const form = useAbiForm("image-fusion", sourceSpec);
 
-    const ids = data.ids ?? [];
+    const ids = useUpstreamNodeIds(data.ids);
     const fromNodes = useNodesData(ids);
 
     const allImages = fromNodes

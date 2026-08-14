@@ -14,6 +14,7 @@ import {
     VIDEO_DURATION_DEFAULT,
 } from "@/constants/media-options";
 import { useAbiForm } from "@/hooks/use-abi-form";
+import { useUpstreamNodeIds } from "@/hooks/use-upstream-ids";
 import { NODE_TYPE_SOURCE_SPEC } from "@/lib/abi/node-feature-registry";
 import { collectHandleValues, resolveSpec } from "@/lib/abi/resolve";
 import type { SourceSpec } from "@/lib/abi/sources";
@@ -38,7 +39,7 @@ const TextGenVideoNode = ({
     const nodeId = useNodeId();
     const nodeLookup = useStore((state) => state.nodeLookup);
     const edges = useStore((state) => state.edges as Edge[]);
-    const { ids = [] } = data;
+    const ids = useUpstreamNodeIds(data.ids);
 
     const resolvedSpec = useMemo(
         () => resolveSpec("text-gen-video", TEXT_GEN_VIDEO_SOURCE_SPEC),

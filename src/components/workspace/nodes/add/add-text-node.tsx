@@ -151,12 +151,7 @@ const AddTextNode: React.FC<NodeProps> = ({ selected, data }) => {
             isInputNode
             showPluginSelect={false}
         >
-            <Handle
-                type="source"
-                position={Position.Right}
-                id="out:textNode"
-                isConnectableStart={false}
-            />
+            <Handle type="source" position={Position.Right} id="out:textNode" />
             <div className="p-4 space-y-2">
                 <Tabs
                     value={activeTab}

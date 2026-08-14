@@ -255,7 +255,6 @@ export const AddVideoNode: React.FC<NodeProps> = ({ selected, data }) => {
                 type="source"
                 position={Position.Right}
                 id="out:videoNode"
-                isConnectableStart={false}
             />
             <div className="p-4 space-y-2">
                 <Tabs

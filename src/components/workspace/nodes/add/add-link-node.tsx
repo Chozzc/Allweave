@@ -70,12 +70,7 @@ const AddLinkNode = ({ selected, data }: RfDataNodeProps<"addLinkNode">) => {
             isInputNode
             showPluginSelect={false}
         >
-            <Handle
-                type="source"
-                position={Position.Right}
-                id="out:linkNode"
-                isConnectableStart={false}
-            />
+            <Handle type="source" position={Position.Right} id="out:linkNode" />
             <div className="p-4 space-y-2">
                 {urls.length > 0 && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

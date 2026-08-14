@@ -6,6 +6,7 @@ import { memo, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useAbiForm } from "@/hooks/use-abi-form";
+import { useUpstreamNodeIds } from "@/hooks/use-upstream-ids";
 import { handle } from "@/lib/abi/sources";
 import { coerceBaseNodeData } from "@/lib/workflow/flow-node-data";
 import type { TongflowPluginNodeProps } from "@/types/tongflow-flow";
@@ -20,7 +21,7 @@ const SpeechGenVideoNode = ({
 }: TongflowPluginNodeProps<"speech-text-gen-video", "speechGenVideoNode">) => {
     const t = useTranslations("Workspace.nodes");
     const form = useAbiForm("speech-text-gen-video");
-    const ids = data.ids ?? [];
+    const ids = useUpstreamNodeIds(data.ids);
     const localFileKeys = data.fileKeys ?? [];
 
     const fromNodes = useNodesData(ids);
