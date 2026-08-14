@@ -35,6 +35,7 @@
         "tongflow-modal-gemma4",
         "tongflow-modal-qwen3asr",
         "tongflow-modal-qwen3tts",
+        "tongflow-modal-indextts2",
         "tongflow-modal-whisper",
         "tongflow-modal-ace-step",
         "tongflow-modal-levo",
