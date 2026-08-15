@@ -213,6 +213,7 @@ TongFlow **桌面版**是一个轻量（约 10 MB）的壳应用，直接加载�
 - [tongflow-modal-whisper](https://github.com/tong-io/tongflow-modal-whisper) — Whisper 语音识别（带时间戳，备选）
 - [tongflow-modal-ace-step](https://github.com/tong-io/tongflow-modal-ace-step) — ACE-Step 1.5 音乐全家桶：文本生音乐（sft / base / turbo 可选）、重绘、翻唱、分轨提取、加轨、补全编曲、音乐企划与音乐理解
 - [tongflow-modal-levo](https://github.com/tong-io/tongflow-modal-levo) — LeVo 2 / SongGeneration 文本生音乐（多语言、商用级）
+- [tongflow-modal-minimax-music3](https://github.com/tong-io/tongflow-modal-minimax-music3) — MiniMax-Music3 11B 歌曲生成：歌词 + 描述 → 带人声完整歌曲（最长约 5 分钟，32 kHz 立体声）
 - [tongflow-modal-sam-audio](https://github.com/tong-io/tongflow-modal-sam-audio) — SAM-Audio 文本提示声音分离：降噪、人声分离、按自由描述提取任意声音（“背景里的钢琴”）
 - [tongflow-modal-docling](https://github.com/tong-io/tongflow-modal-docling) — Docling 文档 → 文本
 - [tongflow-modal-paddle](https://github.com/tong-io/tongflow-modal-paddle) — PaddleOCR 文档 → 文本
