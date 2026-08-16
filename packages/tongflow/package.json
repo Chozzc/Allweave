@@ -53,7 +53,8 @@
         "zod": "4.1.8"
     },
     "peerDependencies": {
-        "@xyflow/react": "^12"
+        "@xyflow/react": "^12",
+        "zustand": "^5"
     },
     "peerDependenciesMeta": {
         "@xyflow/react": {
@@ -66,6 +67,7 @@
         "tsdown": "0.22.14",
         "tsx": "4.20.5",
         "typescript": "5",
-        "vitest": "4.1.5"
+        "vitest": "4.1.5",
+        "zustand": "5.0.8"
     }
 }
