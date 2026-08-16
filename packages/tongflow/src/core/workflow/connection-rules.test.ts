@@ -1,12 +1,17 @@
 import type { Connection, Edge, Node } from "@xyflow/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { registerAbiNode, unregisterAbiNode } from "../abi/node-registry";
 import { isValidFlowConnection } from "./connection-rules";
 
-/** Non-data RF type; the ABI slot is read from the registry, not node.data. */
-function abiNode(id: string): Node {
-    return { id, type: "abiNode", position: { x: 0, y: 0 }, data: {} };
+/**
+ * ABI node by RF type; the ABI slot is read from the static node-type
+ * registry, not node.data. Types used below: imageGenVideoNode
+ * (image-gen-video → out:video), textGenImageNode (image-gen → out:image),
+ * imageGenImageNode (image-edit → in:image, scalar), imageFusionNode
+ * (image-fusion → in:images, array).
+ */
+function abiNode(id: string, type: string): Node {
+    return { id, type, position: { x: 0, y: 0 }, data: {} };
 }
 
 function conn(
@@ -28,61 +33,64 @@ function edge(
     return { id, source, sourceHandle, target, targetHandle };
 }
 
-const registered: string[] = [];
-function register(nodeId: string, feature: string) {
-    registerAbiNode({ nodeId, feature: feature as never, sourceSpec: {} });
-    registered.push(nodeId);
-}
-afterEach(() => {
-    for (const id of registered.splice(0)) unregisterAbiNode(id);
-});
-
 describe("isValidFlowConnection — modality gate", () => {
     it("rejects a video output into an image input handle", () => {
-        register("vid", "image-gen-video"); // out:video (VideoRef)
-        register("img", "image-edit"); // in:image (Asset, scalar)
         const c = conn("vid", "out:video", "img", "in:image");
         expect(
-            isValidFlowConnection(c, [abiNode("vid"), abiNode("img")], []),
+            isValidFlowConnection(
+                c,
+                [
+                    abiNode("vid", "imageGenVideoNode"),
+                    abiNode("img", "imageGenImageNode"),
+                ],
+                [],
+            ),
         ).toBe(false);
     });
 
     it("allows an image output into an image input handle", () => {
-        register("src", "image-gen"); // out:image (ImageRef)
-        register("dst", "image-edit"); // in:image
         const c = conn("src", "out:image", "dst", "in:image");
         expect(
-            isValidFlowConnection(c, [abiNode("src"), abiNode("dst")], []),
+            isValidFlowConnection(
+                c,
+                [
+                    abiNode("src", "textGenImageNode"),
+                    abiNode("dst", "imageGenImageNode"),
+                ],
+                [],
+            ),
         ).toBe(true);
     });
 });
 
 describe("isValidFlowConnection — single-edge (non-array) handles", () => {
     it("rejects a second edge into an already-occupied scalar handle", () => {
-        register("s1", "image-gen");
-        register("s2", "image-gen");
-        register("t", "image-edit"); // in:image is scalar → single edge
         const existing = edge("e1", "s1", "out:image", "t", "in:image");
         const c = conn("s2", "out:image", "t", "in:image");
         expect(
             isValidFlowConnection(
                 c,
-                [abiNode("s1"), abiNode("s2"), abiNode("t")],
+                [
+                    abiNode("s1", "textGenImageNode"),
+                    abiNode("s2", "textGenImageNode"),
+                    abiNode("t", "imageGenImageNode"),
+                ],
                 [existing],
             ),
         ).toBe(false);
     });
 
     it("allows multiple edges into an array handle", () => {
-        register("s1", "image-gen");
-        register("s2", "image-gen");
-        register("t", "image-fusion"); // in:images is array → multi-connect
         const existing = edge("e1", "s1", "out:image", "t", "in:images");
         const c = conn("s2", "out:image", "t", "in:images");
         expect(
             isValidFlowConnection(
                 c,
-                [abiNode("s1"), abiNode("s2"), abiNode("t")],
+                [
+                    abiNode("s1", "textGenImageNode"),
+                    abiNode("s2", "textGenImageNode"),
+                    abiNode("t", "imageFusionNode"),
+                ],
                 [existing],
             ),
         ).toBe(true);
@@ -122,13 +130,14 @@ describe("isValidFlowConnection — add node out handle is single-edge", () => {
 
 describe("isValidFlowConnection — reconnect excludes the dragged edge", () => {
     it("does not flag the edge being reconnected as a duplicate", () => {
-        register("s1", "image-gen");
-        register("s2", "image-gen");
-        register("t", "image-edit");
         // Reconnecting e1's source from s1 to s2; target handle unchanged.
         const e1 = edge("e1", "s1", "out:image", "t", "in:image");
         const c = conn("s2", "out:image", "t", "in:image");
-        const nodes = [abiNode("s1"), abiNode("s2"), abiNode("t")];
+        const nodes = [
+            abiNode("s1", "textGenImageNode"),
+            abiNode("s2", "textGenImageNode"),
+            abiNode("t", "imageGenImageNode"),
+        ];
         // Without ignoreEdgeId, e1 itself collides → rejected.
         expect(isValidFlowConnection(c, nodes, [e1])).toBe(false);
         // Excluding the dragged edge → allowed.

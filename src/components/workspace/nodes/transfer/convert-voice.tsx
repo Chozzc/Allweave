@@ -3,7 +3,7 @@ import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { memo, useState } from "react";
 import type { RfDataNodeProps } from "tongflow";
-import { batchOn, logger } from "tongflow";
+import { logger } from "tongflow";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -49,7 +49,6 @@ const ConvertVoiceNode = ({ selected, data }: ConvertVoiceRfProps) => {
     return (
         <AbiNodeShell
             feature="convert_voice"
-            sourceSpec={{ sourceKey: batchOn({ nodeType: "audioNode" }) }}
             form={form}
             selected={selected}
             data={data}

@@ -3,9 +3,7 @@
  * `connection-validator.ts`).
  */
 
-import { getAbiNodeRegistration } from "../abi/node-registry";
-import { resolveSpec } from "../abi/resolve";
-import type { FieldSourceOverride } from "../abi/sources";
+import { resolvedSpecForNodeType } from "../abi/node-feature-registry";
 import { DATA_NODE_TYPES } from "./executable-workflow";
 
 /** Add node type → logical output type (consistent with workflow-exporter). */
@@ -29,20 +27,14 @@ export const ADD_NODE_OUTPUT_TYPE: Record<string, string> = {
  * - add node → fixed mapping
  */
 export function getEffectiveOutputType(
-    nodeId: string,
     nodeType: string | undefined,
     sourceHandle?: string | null,
 ): string | undefined {
     if (!nodeType) return undefined;
     if (nodeType in DATA_NODE_TYPES) return nodeType;
 
-    const reg = getAbiNodeRegistration(nodeId);
-    if (reg) {
-        const spec = resolveSpec(
-            reg.feature,
-            reg.sourceSpec as Record<string, FieldSourceOverride> | undefined,
-        );
-
+    const spec = resolvedSpecForNodeType(nodeType);
+    if (spec) {
         if (sourceHandle?.startsWith("out:")) {
             const field = sourceHandle.slice("out:".length);
             const match = spec.topology.outputs.find((o) => o.field === field);

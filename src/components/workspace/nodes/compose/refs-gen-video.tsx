@@ -2,11 +2,10 @@ import { useNodesData } from "@xyflow/react";
 import { Clapperboard, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useCallback, useMemo, useRef } from "react";
-import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
+import type { TongflowPluginNodeProps } from "tongflow";
 import {
     type AspectRatio,
     coerceBaseNodeData,
-    NODE_TYPE_SOURCE_SPEC,
     VIDEO_ASPECT_RATIOS,
     VIDEO_DURATIONS,
 } from "tongflow";
@@ -24,21 +23,12 @@ const MAX_IMAGES = 9;
 const MAX_VIDEOS = 3;
 const MAX_AUDIOS = 3;
 
-// `images` / `videos` / `audios` each collect every connected edge of their
-// media kind. `text` may come from an upstream textNode (via the auto-rendered
-// `in:text` handle) or be typed manually — the upstream edge wins, the textarea
-// value is the fallback (`manual: true`). Defined centrally in
-// NODE_TYPE_SOURCE_SPEC so compose-time edge creation assigns the correct
-// targetHandle (matching sibling compose nodes).
-const sourceSpec =
-    NODE_TYPE_SOURCE_SPEC.refsGenVideoNode as SourceSpec<"refs-gen-video">;
-
 const RefsGenVideoNode = ({
     selected,
     data,
 }: TongflowPluginNodeProps<"refs-gen-video", "refsGenVideoNode">) => {
     const t = useTranslations("Workspace.nodes");
-    const form = useAbiForm("refs-gen-video", sourceSpec);
+    const form = useAbiForm("refs-gen-video");
 
     const ids = useUpstreamNodeIds(data.ids);
     const fromNodes = useNodesData(ids);
@@ -125,7 +115,6 @@ const RefsGenVideoNode = ({
     return (
         <AbiNodeShell
             feature="refs-gen-video"
-            sourceSpec={sourceSpec}
             form={form}
             selected={selected}
             className="min-w-[480px]"

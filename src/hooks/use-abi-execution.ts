@@ -2,16 +2,16 @@
  * ABI-driven node execution hook.
  *
  * Responsibilities:
- *  - Register the node into the ABI registry on mount
+ *  - Resolve the node's ABI spec from the static node-type registry
  *  - Sync `feature` into `node.data` (so persisted workflows know the ABI slot)
  *  - Build prompts via `resolve.ts` (handle-driven upstream collection)
  *  - ajv pre-flight validation before submitting tasks
  *  - Wire SSE task updates to ABI output routing (resolveAbiOutputMappings)
  */
 
-import { useNodeId, useReactFlow, useStore, useStoreApi } from "@xyflow/react";
+import { useNodeId, useReactFlow, useStoreApi } from "@xyflow/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { FieldSourceOverride, NodeSlot, SourceSpec } from "tongflow";
+import type { NodeSlot } from "tongflow";
 import {
     buildPrompts,
     collectHandleValues,
@@ -19,11 +19,8 @@ import {
     logger,
     parseTargetHandleId,
     promptMissingRequired,
-    registerAbiNode,
     resolveAbiOutputMappings,
     resolveEdgeHandles,
-    resolveSpec,
-    unregisterAbiNode,
 } from "tongflow";
 import useFlow from "@/hooks/use-flow";
 import { usePluginsRegistry } from "@/hooks/use-plugins-registry";
@@ -40,6 +37,7 @@ import {
 import type { SSEMessageData } from "@/types/sse";
 
 import type { UseAbiFormReturn } from "./use-abi-form";
+import { useNodeAbiSpec, useNodeType } from "./use-node-abi-spec";
 import { useNodePluginResolver } from "./use-node-plugin-resolver";
 
 /* ------------------------------------------------------------------ */
@@ -48,7 +46,6 @@ import { useNodePluginResolver } from "./use-node-plugin-resolver";
 
 export interface UseAbiExecutionOptions<F extends NodeSlot> {
     feature: F;
-    sourceSpec?: SourceSpec<F>;
     /** Optional pairing with useAbiForm to read config values. */
     form?: UseAbiFormReturn<F>;
     /** Force-disable execution from the calling node. */
@@ -102,63 +99,31 @@ export interface UseAbiExecutionReturn {
 export function useAbiExecution<F extends NodeSlot>(
     opts: UseAbiExecutionOptions<F>,
 ): UseAbiExecutionReturn {
-    const {
-        feature,
-        sourceSpec,
-        form,
-        disabled,
-        onTaskUpdate,
-        transformPrompts,
-    } = opts;
+    const { feature, form, disabled, onTaskUpdate, transformPrompts } = opts;
 
     const nodeId = useNodeId();
     const { updateNodeData } = useReactFlow();
     const storeApi = useStoreApi();
     const flowUpdates = useFlow((s) => s.updates);
 
-    const nodeType = useStore((state) => {
-        const node = state.nodeLookup.get(nodeId ?? "");
-        return node?.type;
-    });
+    const nodeType = useNodeType();
 
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
     const [progressLabel, setProgressLabel] = useState<string | null>(null);
     const [thinkingText, setThinkingText] = useState<string | null>(null);
     const [missingPluginOpen, setMissingPluginOpen] = useState(false);
 
-    /* ---------- spec resolution (memo via feature/sourceSpec ref) ---- */
+    /* ---------- spec resolution (static node-type registry) ---------- */
 
-    const specRef = useRef(
-        resolveSpec(
-            feature,
-            sourceSpec as Record<string, FieldSourceOverride> | undefined,
-        ),
-    );
-    useEffect(() => {
-        specRef.current = resolveSpec(
-            feature,
-            sourceSpec as Record<string, FieldSourceOverride> | undefined,
-        );
-    }, [feature, sourceSpec]);
+    // The spec comes from `NODE_TYPE_SOURCE_SPEC` keyed by the RF node type,
+    // the same table the exporter / connection validator read headlessly.
+    const spec = useNodeAbiSpec(feature);
+    const specRef = useRef(spec);
+    specRef.current = spec;
 
-    /* ---------- registry + node.data sync ---------------------------- */
+    /* ---------- node.data sync --------------------------------------- */
 
     const hasSyncedRef = useRef(false);
-
-    useEffect(() => {
-        if (!nodeId) return;
-        registerAbiNode({
-            nodeId,
-            feature,
-            sourceSpec:
-                (sourceSpec as
-                    | Record<string, FieldSourceOverride>
-                    | undefined) ?? {},
-        });
-        return () => {
-            unregisterAbiNode(nodeId);
-        };
-    }, [nodeId, feature, sourceSpec]);
 
     // Mirror just `feature` into node.data — required so persisted workflows
     // can be restored knowing which ABI slot a node is. `outputType` /

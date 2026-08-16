@@ -2,11 +2,10 @@ import { useNodesData } from "@xyflow/react";
 import { Film, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useCallback, useMemo, useRef } from "react";
-import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
+import type { TongflowPluginNodeProps } from "tongflow";
 import {
     type AspectRatio,
     coerceBaseNodeData,
-    NODE_TYPE_SOURCE_SPEC,
     VIDEO_ASPECT_RATIOS,
     VIDEO_DURATIONS,
 } from "tongflow";
@@ -21,20 +20,12 @@ import { NodeTextarea } from "../base/node-textarea";
 // Seedance multimodal reference accepts up to 9 reference images.
 const MAX_IMAGES = 9;
 
-// `images` collects every connected image edge. `text` may come from an upstream
-// textNode (via the auto-rendered `in:text` handle) or be typed manually — the
-// upstream edge wins, the textarea value is the fallback (`manual: true`).
-// Defined centrally in NODE_TYPE_SOURCE_SPEC so compose-time edge creation
-// assigns the correct `in:text` targetHandle (matching sibling compose nodes).
-const sourceSpec =
-    NODE_TYPE_SOURCE_SPEC.imagesGenVideoNode as SourceSpec<"images-gen-video">;
-
 const ImagesGenVideoNode = ({
     selected,
     data,
 }: TongflowPluginNodeProps<"images-gen-video", "imagesGenVideoNode">) => {
     const t = useTranslations("Workspace.nodes");
-    const form = useAbiForm("images-gen-video", sourceSpec);
+    const form = useAbiForm("images-gen-video");
 
     const ids = useUpstreamNodeIds(data.ids);
     const fromNodes = useNodesData(ids);
@@ -85,7 +76,6 @@ const ImagesGenVideoNode = ({
     return (
         <AbiNodeShell
             feature="images-gen-video"
-            sourceSpec={sourceSpec}
             form={form}
             selected={selected}
             className="min-w-[480px]"

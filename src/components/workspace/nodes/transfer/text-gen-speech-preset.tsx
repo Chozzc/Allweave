@@ -2,7 +2,6 @@ import { Atom } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useEffect } from "react";
 import type { TongflowPluginNodeProps } from "tongflow";
-import { batchOn } from "tongflow";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -57,9 +56,6 @@ const TextGenSpeechPresetNode = ({
     return (
         <AbiNodeShell
             feature="text-gen-speech-preset"
-            sourceSpec={{
-                text: batchOn({ nodeType: "textNode", path: "texts" }),
-            }}
             form={form}
             selected={selected}
             className="min-w-[480px]"

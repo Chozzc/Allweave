@@ -2,7 +2,6 @@ import { Atom } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useCallback } from "react";
 import type { RfDataNodeProps } from "tongflow";
-import { batchOn } from "tongflow";
 import { useAbiForm } from "@/hooks/use-abi-form";
 import useFlow from "@/hooks/use-flow";
 import type { Task } from "@/hooks/use-task";
@@ -47,7 +46,6 @@ const SeparateAudioTrackNode = ({
     return (
         <AbiNodeShell
             feature="separate_audio_track"
-            sourceSpec={{ audio: batchOn() }}
             form={form}
             selected={selected}
             data={data}

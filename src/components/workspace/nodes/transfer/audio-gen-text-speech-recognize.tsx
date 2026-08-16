@@ -2,7 +2,6 @@ import { Music as AudioIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo } from "react";
 import type { TongflowPluginNodeProps } from "tongflow";
-import { batchOn } from "tongflow";
 import { useAbiForm } from "@/hooks/use-abi-form";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
@@ -21,7 +20,6 @@ const AudioGenTextSpeechRecognizeNode = ({
     return (
         <AbiNodeShell
             feature="transcribe"
-            sourceSpec={{ audio: batchOn() }}
             form={form}
             selected={selected}
             className="min-w-[480px]"

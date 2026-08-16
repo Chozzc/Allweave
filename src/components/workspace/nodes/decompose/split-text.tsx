@@ -2,7 +2,6 @@ import { Scissors } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo } from "react";
 import type { TongflowPluginNodeProps } from "tongflow";
-import { handle } from "tongflow";
 import { useAbiForm } from "@/hooks/use-abi-form";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
@@ -14,16 +13,11 @@ const SplitTextNode = ({
 }: TongflowPluginNodeProps<"split-text", "splitTextNode">) => {
     const t = useTranslations("Workspace.nodes");
     const tBase = useTranslations("Workspace.nodes.base");
-    const form = useAbiForm("split-text", {
-        text: handle({ nodeType: "textNode", path: "texts[0]" }),
-    });
+    const form = useAbiForm("split-text");
 
     return (
         <AbiNodeShell
             feature="split-text"
-            sourceSpec={{
-                text: handle({ nodeType: "textNode", path: "texts[0]" }),
-            }}
             form={form}
             selected={selected}
             data={data}

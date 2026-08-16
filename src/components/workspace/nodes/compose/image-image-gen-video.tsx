@@ -7,13 +7,13 @@ import type { TongflowPluginNodeProps } from "tongflow";
 import {
     type AspectRatio,
     collectHandleValues,
-    resolveSpec,
     VIDEO_ASPECT_RATIOS,
     VIDEO_DURATIONS,
 } from "tongflow";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useAbiForm } from "@/hooks/use-abi-form";
+import { useNodeAbiSpec } from "@/hooks/use-node-abi-spec";
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { AspectRatioPicker } from "../base/aspect-ratio-picker";
 import { DurationPicker } from "../base/duration-picker";
@@ -49,10 +49,7 @@ const ImageImageGenVideoNode = ({
     const nodeLookup = useStore((state) => state.nodeLookup);
     const edges = useStore((state) => state.edges as Edge[]);
 
-    const resolvedSpec = useMemo(
-        () => resolveSpec("image-image-gen-video", undefined),
-        [],
-    );
+    const resolvedSpec = useNodeAbiSpec("image-image-gen-video");
 
     // First frame (`image`) and last frame (`end_image`) come from upstream
     // image nodes; re-resolve whenever edges or upstream data change.

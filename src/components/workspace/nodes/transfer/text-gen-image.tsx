@@ -4,7 +4,6 @@ import { memo, useCallback, useEffect, useMemo } from "react";
 import type { TongflowPluginNodeProps } from "tongflow";
 import {
     type AspectRatio,
-    batchOn,
     IMAGE_ASPECT_RATIOS,
     IMAGE_RESOLUTION_TIERS,
     type ResolutionTier,
@@ -84,9 +83,6 @@ const TextGenImageNode = ({ selected, data }: TextGenImageNodeProps) => {
     return (
         <AbiNodeShell
             feature="image-gen"
-            sourceSpec={{
-                text: batchOn({ nodeType: "textNode", path: "texts" }),
-            }}
             form={form}
             selected={selected}
             className="min-w-[480px]"

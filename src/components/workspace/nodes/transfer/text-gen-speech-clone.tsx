@@ -2,7 +2,7 @@ import { Atom, Ear, Mic, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useCallback, useRef } from "react";
 import type { TongflowPluginNodeProps } from "tongflow";
-import { batchOn, configField, logger, type SourceSpec } from "tongflow";
+import { logger } from "tongflow";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -17,10 +17,6 @@ import { LanguageSelect } from "../base/language-select";
 // `ref_audio` is an Asset $ref in the ABI (default = upstream handle). This
 // transfer node owns reference audio via local upload/record → config override.
 // Wired text+audio uses `textGenSpeechCloneComposeNode` (default handles).
-const CLONE_TRANSFER_SOURCE_SPEC: SourceSpec<"text-gen-speech-clone"> = {
-    text: batchOn({ nodeType: "textNode", path: "texts" }),
-    ref_audio: configField(),
-};
 
 const TextGenSpeechCloneNode = ({
     selected,
@@ -30,10 +26,7 @@ const TextGenSpeechCloneNode = ({
     "textGenSpeechCloneNode"
 >) => {
     const t = useTranslations("Workspace.nodes");
-    const form = useAbiForm(
-        "text-gen-speech-clone",
-        CLONE_TRANSFER_SOURCE_SPEC,
-    );
+    const form = useAbiForm("text-gen-speech-clone");
     const texts = data.texts ?? [];
 
     const refAudio = data.ref_audio as string | undefined;
@@ -72,7 +65,6 @@ const TextGenSpeechCloneNode = ({
     return (
         <AbiNodeShell
             feature="text-gen-speech-clone"
-            sourceSpec={CLONE_TRANSFER_SOURCE_SPEC}
             form={form}
             selected={selected}
             className="min-w-[480px]"

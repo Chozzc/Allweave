@@ -6,12 +6,10 @@
 import type { Edge, Node } from "@xyflow/react";
 import { parseSourceHandleId, targetHandleId } from "../abi/handle-introspect";
 import {
-    type AbiNodeRegistration,
-    getAbiNodeRegistration,
-} from "../abi/node-registry";
+    type AbiNodeSpec,
+    abiSpecForNodeType,
+} from "../abi/node-feature-registry";
 import { type ResolvedSpec, resolveSpec } from "../abi/resolve";
-import type { FieldSourceOverride } from "../abi/sources";
-import type { NodeSlot } from "../generated/abi/index";
 import { logger } from "../logger";
 import { getAbiOutputRoutesBySlot } from "../schema/tongflow-abi";
 import {
@@ -27,19 +25,16 @@ import {
 import { WorkflowParser } from "./parser";
 
 /**
- * Resolve a node's ABI spec from the mount registry. Returns the registration +
- * resolved spec, or undefined if the node isn't ABI-registered.
+ * Resolve a node's ABI spec from the static node-type registry. Returns the
+ * feature/sourceSpec + resolved spec, or undefined if the node type isn't
+ * ABI-driven.
  */
 function getNodeSpec(
-    nodeId: string,
-): { reg: AbiNodeRegistration; spec: ResolvedSpec } | undefined {
-    const reg = getAbiNodeRegistration(nodeId);
-    if (!reg) return undefined;
-    const spec = resolveSpec(
-        reg.feature as NodeSlot,
-        reg.sourceSpec as Record<string, FieldSourceOverride> | undefined,
-    );
-    return { reg, spec };
+    node: Pick<Node, "type">,
+): { abi: AbiNodeSpec; spec: ResolvedSpec } | undefined {
+    const abi = abiSpecForNodeType(node.type);
+    if (!abi) return undefined;
+    return { abi, spec: resolveSpec(abi.feature, abi.sourceSpec) };
 }
 
 /* ========================================================================== */
@@ -234,9 +229,9 @@ export class WorkflowExporter {
                 });
             } else {
                 // Output of executable nodes — pick the primary ABI route.
-                const ns = getNodeSpec(nodeId);
+                const ns = getNodeSpec(node);
                 if (ns) {
-                    const routes = getAbiOutputRoutesBySlot(ns.reg.feature);
+                    const routes = getAbiOutputRoutesBySlot(ns.abi.feature);
                     const primary =
                         routes.find((r) => !r.expandEach) ?? routes[0];
                     if (primary) {
@@ -471,7 +466,7 @@ export class WorkflowExporter {
         }
 
         // AI generation mode; treat as an executable node
-        const ns = getNodeSpec(node.id);
+        const ns = getNodeSpec(node);
         if (!ns) {
             logger.warn(
                 `[WorkflowExporter] Unknown add node type: ${nodeType}`,
@@ -566,7 +561,7 @@ export class WorkflowExporter {
         node: Node,
         level: number,
     ): ExecutableNode | null {
-        const ns = getNodeSpec(node.id);
+        const ns = getNodeSpec(node);
         if (!ns) {
             logger.warn(
                 `[WorkflowExporter] Unknown node type: ${node.type}, skipping...`,
@@ -582,7 +577,7 @@ export class WorkflowExporter {
      */
     private buildExecutableNode(
         node: Node,
-        ns: { reg: AbiNodeRegistration; spec: ResolvedSpec },
+        ns: { abi: AbiNodeSpec; spec: ResolvedSpec },
         level: number,
         nodeData: Record<string, unknown>,
     ): ExecutableNode {
@@ -599,11 +594,11 @@ export class WorkflowExporter {
             new Set(upstreamNodes.map((u) => u.node.id)),
         );
 
-        const label = ns.reg.label ?? (nodeData.label as string | undefined);
+        const label = nodeData.label as string | undefined;
         const comment = nodeData.comment as string | undefined;
         const locked = nodeData.locked as boolean | undefined;
 
-        const baseRoutes = getAbiOutputRoutesBySlot(ns.reg.feature);
+        const baseRoutes = getAbiOutputRoutesBySlot(ns.abi.feature);
         const downstreamMap = this.findDownstreamDataNodes(node.id, baseRoutes);
         const outputRoutes: OutputRoute[] = baseRoutes.map((r) => ({
             sourceField: r.sourceField,
@@ -635,7 +630,7 @@ export class WorkflowExporter {
         return {
             id: node.id,
             type: nodeType,
-            feature: ns.reg.feature,
+            feature: ns.abi.feature,
             pluginId,
             ...(model ? { model } : {}),
             label,
@@ -791,8 +786,8 @@ export class WorkflowExporter {
         }
 
         if (isAddNode(upstreamType)) {
-            const reg = getAbiNodeRegistration(upstream.id);
-            if (!reg) {
+            const abi = abiSpecForNodeType(upstreamType);
+            if (!abi) {
                 // Add node acting as a data node (upload / manual input mode).
                 const outNodeType = this.getAddNodeOutputType(upstreamType);
                 const info = DATA_NODE_TYPES[outNodeType];
@@ -804,17 +799,17 @@ export class WorkflowExporter {
             // Add node acting as an executable (AI mode): use ABI route.
             return this.pickExecutableSourceField(
                 upstream.id,
-                reg.feature,
+                abi.feature,
                 edgeSourceHandle,
                 consumerNodeType,
             );
         }
 
-        const reg = getAbiNodeRegistration(upstream.id);
-        if (reg) {
+        const abi = abiSpecForNodeType(upstreamType);
+        if (abi) {
             return this.pickExecutableSourceField(
                 upstream.id,
-                reg.feature,
+                abi.feature,
                 edgeSourceHandle,
                 consumerNodeType,
             );
@@ -839,11 +834,12 @@ export class WorkflowExporter {
     } | null {
         for (const edge of this.edges) {
             if (edge.target !== dataNodeId) continue;
-            const reg = getAbiNodeRegistration(edge.source);
-            if (reg) {
+            const source = this.nodes.find((n) => n.id === edge.source);
+            const abi = abiSpecForNodeType(source?.type);
+            if (abi) {
                 return {
                     nodeId: edge.source,
-                    feature: reg.feature,
+                    feature: abi.feature,
                     edgeSourceHandle: edge.sourceHandle ?? undefined,
                 };
             }

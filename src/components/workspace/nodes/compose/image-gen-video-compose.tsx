@@ -3,26 +3,23 @@ import { useNodeId, useStore } from "@xyflow/react";
 import { Atom, Image as ImageIcon, Type } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useEffect, useMemo } from "react";
-import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
+import type { TongflowPluginNodeProps } from "tongflow";
 import {
     type AspectRatio,
     collectHandleValues,
-    NODE_TYPE_SOURCE_SPEC,
-    resolveSpec,
     VIDEO_ASPECT_RATIOS,
     VIDEO_DURATION_DEFAULT,
 } from "tongflow";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useAbiForm } from "@/hooks/use-abi-form";
+import { useNodeAbiSpec } from "@/hooks/use-node-abi-spec";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { AspectRatioPicker } from "../base/aspect-ratio-picker";
 import { VideoDurationSlider } from "../base/video-duration-slider";
 
 /** Same ABI slot as transfer image-gen-video; both inputs from upstream handles. */
-const IMAGE_GEN_VIDEO_COMPOSE_SOURCE_SPEC =
-    NODE_TYPE_SOURCE_SPEC.imageGenVideoComposeNode as SourceSpec<"image-gen-video">;
 
 const ImageGenVideoComposeNode = ({
     selected,
@@ -30,20 +27,13 @@ const ImageGenVideoComposeNode = ({
 }: TongflowPluginNodeProps<"image-gen-video", "imageGenVideoComposeNode">) => {
     const t = useTranslations("Workspace.nodes");
     const tActions = useTranslations("Workspace.nodes.actions");
-    const form = useAbiForm(
-        "image-gen-video",
-        IMAGE_GEN_VIDEO_COMPOSE_SOURCE_SPEC,
-    );
+    const form = useAbiForm("image-gen-video");
 
     const nodeId = useNodeId();
     const nodeLookup = useStore((state) => state.nodeLookup);
     const edges = useStore((state) => state.edges as Edge[]);
 
-    const resolvedSpec = useMemo(
-        () =>
-            resolveSpec("image-gen-video", IMAGE_GEN_VIDEO_COMPOSE_SOURCE_SPEC),
-        [],
-    );
+    const resolvedSpec = useNodeAbiSpec("image-gen-video");
 
     const { hasText, hasImage, promptText } = useMemo(() => {
         if (!nodeId) {
@@ -82,7 +72,6 @@ const ImageGenVideoComposeNode = ({
     return (
         <AbiNodeShell
             feature="image-gen-video"
-            sourceSpec={IMAGE_GEN_VIDEO_COMPOSE_SOURCE_SPEC}
             form={form}
             selected={selected}
             className="min-w-[480px]"

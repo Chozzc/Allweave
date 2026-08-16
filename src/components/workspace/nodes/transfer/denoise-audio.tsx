@@ -2,7 +2,6 @@ import { Atom } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo } from "react";
 import type { RfDataNodeProps } from "tongflow";
-import { batchOn } from "tongflow";
 import { useAbiForm } from "@/hooks/use-abi-form";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
@@ -17,7 +16,6 @@ const DenoiseAudioNode = ({ selected, data }: DenoiseAudioRfProps) => {
     return (
         <AbiNodeShell
             feature="denoise_audio"
-            sourceSpec={{ fileKey: batchOn({ nodeType: "audioNode" }) }}
             form={form}
             selected={selected}
             data={data}

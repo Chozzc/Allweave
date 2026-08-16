@@ -2,12 +2,11 @@ import { useNodesData } from "@xyflow/react";
 import { Combine, Maximize2, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
-import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
+import type { TongflowPluginNodeProps } from "tongflow";
 import {
     type AspectRatio,
     coerceBaseNodeData,
     IMAGE_ASPECT_RATIOS,
-    NODE_TYPE_SOURCE_SPEC,
 } from "tongflow";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -27,20 +26,12 @@ const resolutions = [
     { value: "4K", key: "res4K", label: "4K" },
 ];
 
-// `images` collects every connected image edge. `text` may come from an upstream
-// textNode (via the auto-rendered `in:text` handle) or be typed manually — the
-// upstream edge wins, the textarea value is the fallback (`manual: true`).
-// Defined centrally in NODE_TYPE_SOURCE_SPEC so compose-time edge creation
-// assigns the correct `in:text` targetHandle (matching sibling compose nodes).
-const sourceSpec =
-    NODE_TYPE_SOURCE_SPEC.imageFusionNode as SourceSpec<"image-fusion">;
-
 const ImageFusionNode = ({
     selected,
     data,
 }: TongflowPluginNodeProps<"image-fusion", "imageFusionNode">) => {
     const t = useTranslations("Workspace.nodes");
-    const form = useAbiForm("image-fusion", sourceSpec);
+    const form = useAbiForm("image-fusion");
 
     const ids = useUpstreamNodeIds(data.ids);
     const fromNodes = useNodesData(ids);
@@ -97,7 +88,6 @@ const ImageFusionNode = ({
     return (
         <AbiNodeShell
             feature="image-fusion"
-            sourceSpec={sourceSpec}
             form={form}
             selected={selected}
             className="min-w-[480px]"

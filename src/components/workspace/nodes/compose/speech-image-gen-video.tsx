@@ -3,25 +3,21 @@ import { useNodeId, useStore } from "@xyflow/react";
 import { Image as ImageIcon, Music, Sparkles, Video } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useEffect, useMemo } from "react";
-import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
+import type { TongflowPluginNodeProps } from "tongflow";
 import {
     type AspectRatio,
     collectHandleValues,
-    NODE_TYPE_SOURCE_SPEC,
-    resolveSpec,
     VIDEO_ASPECT_RATIOS,
 } from "tongflow";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useAbiForm } from "@/hooks/use-abi-form";
+import { useNodeAbiSpec } from "@/hooks/use-node-abi-spec";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { AspectRatioPicker } from "../base/aspect-ratio-picker";
 import { MediaThumbnail } from "../base/media-thumbnail";
 import { NodeTextarea } from "../base/node-textarea";
-
-const AUDIO_IMAGE_GEN_VIDEO_SOURCE_SPEC =
-    NODE_TYPE_SOURCE_SPEC.speechImageGenVideoNode as SourceSpec<"audio-image-gen-video">;
 
 const SpeechImageGenVideoNode = ({
     selected,
@@ -32,23 +28,13 @@ const SpeechImageGenVideoNode = ({
 >) => {
     const t = useTranslations("Workspace.nodes");
     const tActions = useTranslations("Workspace.nodes.actions");
-    const form = useAbiForm(
-        "audio-image-gen-video",
-        AUDIO_IMAGE_GEN_VIDEO_SOURCE_SPEC,
-    );
+    const form = useAbiForm("audio-image-gen-video");
 
     const nodeId = useNodeId();
     const nodeLookup = useStore((state) => state.nodeLookup);
     const edges = useStore((state) => state.edges as Edge[]);
 
-    const resolvedSpec = useMemo(
-        () =>
-            resolveSpec(
-                "audio-image-gen-video",
-                AUDIO_IMAGE_GEN_VIDEO_SOURCE_SPEC,
-            ),
-        [],
-    );
+    const resolvedSpec = useNodeAbiSpec("audio-image-gen-video");
 
     const { hasImage, hasAudio, imageFileKey, audioFileKey } = useMemo(() => {
         if (!nodeId) {
@@ -94,7 +80,6 @@ const SpeechImageGenVideoNode = ({
     return (
         <AbiNodeShell
             feature="audio-image-gen-video"
-            sourceSpec={AUDIO_IMAGE_GEN_VIDEO_SOURCE_SPEC}
             form={form}
             selected={selected}
             className="min-w-[480px]"

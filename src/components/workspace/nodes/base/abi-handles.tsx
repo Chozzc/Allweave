@@ -11,19 +11,12 @@
 
 import { Handle, Position } from "@xyflow/react";
 import { useMemo } from "react";
-import type { FieldSourceOverride, NodeSlot, SourceSpec } from "tongflow";
-import {
-    type AbiTopology,
-    getAbiTopology,
-    resolveSpec,
-    sourceHandleId,
-    targetHandleId,
-} from "tongflow";
+import type { NodeSlot, ResolvedSpec } from "tongflow";
+import { sourceHandleId, targetHandleId } from "tongflow";
+import { useNodeAbiSpec } from "@/hooks/use-node-abi-spec";
 
 export interface AbiHandlesProps<F extends NodeSlot> {
     feature: F;
-    /** Same sourceSpec as passed to `useAbiForm` / `useAbiExecution`. */
-    sourceSpec?: SourceSpec<F>;
     /** Override the standard left/right positioning. */
     targetPosition?: Position;
     sourcePosition?: Position;
@@ -47,15 +40,11 @@ function distributeHandles(targets: string[], sources: string[]): HandleSpec[] {
     return out;
 }
 
-function getHandleIds<F extends NodeSlot>(
-    feature: F,
-    sourceSpec: SourceSpec<F> | undefined,
-    topology: AbiTopology,
-): { targets: string[]; sources: string[] } {
-    const spec = resolveSpec(
-        feature,
-        sourceSpec as Record<string, FieldSourceOverride> | undefined,
-    );
+function getHandleIds(spec: ResolvedSpec): {
+    targets: string[];
+    sources: string[];
+} {
+    const { topology } = spec;
     const targets: string[] = [];
     for (const field of topology.inputOrder) {
         const f = spec.fields[field];
@@ -69,20 +58,15 @@ function getHandleIds<F extends NodeSlot>(
 
 export function AbiHandles<F extends NodeSlot>({
     feature,
-    sourceSpec,
     targetPosition = Position.Left,
     sourcePosition = Position.Right,
     handleClassName,
 }: AbiHandlesProps<F>) {
+    const spec = useNodeAbiSpec(feature);
     const handles = useMemo(() => {
-        const topology = getAbiTopology(feature);
-        const { targets, sources } = getHandleIds(
-            feature,
-            sourceSpec,
-            topology,
-        );
+        const { targets, sources } = getHandleIds(spec);
         return distributeHandles(targets, sources);
-    }, [feature, sourceSpec]);
+    }, [spec]);
 
     return (
         <>

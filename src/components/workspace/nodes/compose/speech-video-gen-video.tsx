@@ -3,22 +3,16 @@ import { useNodeId, useStore } from "@xyflow/react";
 import { Sparkles, Type, Video } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useMemo } from "react";
-import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
-import {
-    collectHandleValues,
-    NODE_TYPE_SOURCE_SPEC,
-    resolveSpec,
-} from "tongflow";
+import type { TongflowPluginNodeProps } from "tongflow";
+import { collectHandleValues } from "tongflow";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useAbiForm } from "@/hooks/use-abi-form";
+import { useNodeAbiSpec } from "@/hooks/use-node-abi-spec";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { MediaThumbnail } from "../base/media-thumbnail";
 import { NodeTextarea } from "../base/node-textarea";
-
-const SPEECH_VIDEO_GEN_VIDEO_SOURCE_SPEC =
-    NODE_TYPE_SOURCE_SPEC.speechVideoGenVideoNode as SourceSpec<"speech-video-gen-video">;
 
 const SpeechVideoGenVideoNode = ({
     selected,
@@ -29,23 +23,13 @@ const SpeechVideoGenVideoNode = ({
 >) => {
     const t = useTranslations("Workspace.nodes");
     const tActions = useTranslations("Workspace.nodes.actions");
-    const form = useAbiForm(
-        "speech-video-gen-video",
-        SPEECH_VIDEO_GEN_VIDEO_SOURCE_SPEC,
-    );
+    const form = useAbiForm("speech-video-gen-video");
 
     const nodeId = useNodeId();
     const nodeLookup = useStore((state) => state.nodeLookup);
     const edges = useStore((state) => state.edges as Edge[]);
 
-    const resolvedSpec = useMemo(
-        () =>
-            resolveSpec(
-                "speech-video-gen-video",
-                SPEECH_VIDEO_GEN_VIDEO_SOURCE_SPEC,
-            ),
-        [],
-    );
+    const resolvedSpec = useNodeAbiSpec("speech-video-gen-video");
 
     const { hasVideo, hasText, videoFileKey, promptText } = useMemo(() => {
         if (!nodeId) {
@@ -79,7 +63,6 @@ const SpeechVideoGenVideoNode = ({
     return (
         <AbiNodeShell
             feature="speech-video-gen-video"
-            sourceSpec={SPEECH_VIDEO_GEN_VIDEO_SOURCE_SPEC}
             form={form}
             selected={selected}
             className="min-w-[480px]"

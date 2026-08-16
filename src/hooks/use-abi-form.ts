@@ -2,8 +2,8 @@
  * ABI-driven form hook.
  *
  * Replaces hand-written `useNodeState` for executable nodes. Reads which
- * fields are "config" vs "handle" from the ABI topology (after sourceSpec
- * overrides) and syncs the config subset back to React Flow `node.data`.
+ * fields are "config" vs "handle" from the node type's resolved ABI spec
+ * (static registry) and syncs the config subset back to React Flow `node.data`.
  *
  * Two binding flavors:
  *  - `bind(field)`  — for controls taking `{ value, onChange: (v) => void }`
@@ -16,19 +16,13 @@ import {
     type ChangeEvent,
     useCallback,
     useEffect,
-    useMemo,
     useRef,
     useState,
 } from "react";
-import type {
-    FieldSourceOverride,
-    NodeSlot,
-    SlotInput,
-    SourceSpec,
-} from "tongflow";
-
-import { type ResolvedSpec, resolveSpec } from "tongflow";
+import type { NodeSlot, ResolvedSpec, SlotInput } from "tongflow";
 import useFlow from "@/hooks/use-flow";
+
+import { useNodeAbiSpec } from "./use-node-abi-spec";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -76,16 +70,8 @@ export interface UseAbiFormReturn<F extends NodeSlot> {
 
 export function useAbiForm<F extends NodeSlot>(
     feature: F,
-    sourceSpec?: SourceSpec<F>,
 ): UseAbiFormReturn<F> {
-    const spec = useMemo(
-        () =>
-            resolveSpec(
-                feature,
-                sourceSpec as Record<string, FieldSourceOverride> | undefined,
-            ),
-        [feature, sourceSpec],
-    );
+    const spec = useNodeAbiSpec(feature);
 
     const nodeId = useNodeId();
     const flowUpdates = useFlow((s) => s.updates);

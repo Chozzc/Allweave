@@ -1,13 +1,17 @@
 /**
- * Static map from React Flow node type to ABI feature slot.
+ * Static ABI registry keyed by React Flow node type — the single source of
+ * truth for "which ABI slot does this node type implement, and how are its
+ * inputs sourced".
  *
- * Used at graph-mutation time (`expands` / `compose` in `use-flow.ts`) to
- * compute the correct `targetHandle` / `sourceHandle` for a newly-created edge
- * *before* the spawned node mounts and self-registers via `useAbiExecution`.
+ * `NODE_TYPE_TO_ABI_FEATURE` maps a node type to its ABI feature slot;
+ * `NODE_TYPE_SOURCE_SPEC` carries the per-type `sourceSpec` overrides. Both
+ * are consumed headlessly (exporter, connection validation, agent tools) and
+ * by the canvas components (`useAbiForm` / `useAbiExecution` / `AbiHandles`),
+ * so a workflow exports identically whether or not any component is mounted.
  *
- * Keep this in sync with the `feature="..."` strings hard-coded in each ABI
- * node component under `src/components/workspace/nodes/{transfer,compose,batch,decompose}/`.
- * Modality / add / data nodes are intentionally omitted — they're not ABI-driven.
+ * Every ABI node component (`nodes/{transfer,compose,batch,decompose}/`) must
+ * have an entry here; modality / add / data nodes are intentionally omitted —
+ * they're not ABI-driven.
  */
 
 import { isModalityNode } from "../constants/modality-nodes";
@@ -110,9 +114,8 @@ export function featureForNodeType(
 }
 
 /**
- * Per-node `sourceSpec` overrides used at graph-mutation time so new edges get
- * the correct `targetHandle` before the target mounts. Keep in sync with each
- * ABI node component's `sourceSpec` prop.
+ * Per-node-type `sourceSpec` overrides. Types absent here use the bare ABI
+ * topology (`resolveSpec(feature, {})`).
  */
 export const NODE_TYPE_SOURCE_SPEC: Partial<
     Record<string, Record<string, FieldSourceOverride>>
@@ -179,6 +182,66 @@ export const NODE_TYPE_SOURCE_SPEC: Partial<
         text: handle({ nodeType: "textNode", path: "texts[0]", manual: true }),
         duration: configField(),
     },
+    arrangeNode: { fileKeys: collectAll({ nodeType: "videoNode" }) },
+    audioDescribeNode: { audio: batchOn() },
+    audioGenTextSpeechRecognizeNode: { audio: batchOn() },
+    concatVideoComposeNode: { videos: collectAll() },
+    concatVideoNode: { videos: collectAll() },
+    convertVoiceNode: { sourceKey: batchOn({ nodeType: "audioNode" }) },
+    denoiseAudioSubtitleNode: { fileKey: batchOn({ nodeType: "audioNode" }) },
+    dropVideoNode: { videos: collectAll() },
+    extractAudioNode: { video: batchOn() },
+    fileGenTextNode: { document: batchOn({ nodeType: "fileNode" }) },
+    genTextNode: {
+        text: batchOn({ nodeType: "textNode", path: "texts" }),
+    },
+    getFirstFrameNode: { video: batchOn() },
+    getLastFrameNode: { video: batchOn() },
+    imageBodySegNode: { image: batchOn() },
+    imageGenImageUpscaleNode: { image: batchOn() },
+    imageGenModelNode: { image: batchOn() },
+    imageGenTextNode: { image: batchOn() },
+    imageMattingNode: { image: batchOn() },
+    imageNormalNode: { image: batchOn() },
+    imagePoseNode: { image: batchOn() },
+    mergeVideoAudioNode: { video: batchOn() },
+    removeVideoAudioNode: { video: batchOn() },
+    removeVideoSubtitleNode: { fileKey: batchOn({ nodeType: "videoNode" }) },
+    removeWatermarkNode: { fileKey: batchOn({ nodeType: "videoNode" }) },
+    separateAudioTrackNode: { audio: batchOn() },
+    separateSpeakerNode: { audio: batchOn() },
+    speechGenVideoNode: { audio: handle({ nodeType: "audioNode" }) },
+    splitTextNode: {
+        text: handle({ nodeType: "textNode", path: "texts[0]" }),
+    },
+    splitVideoNode: { video: batchOn() },
+    textAudioGenSpeechNode: {
+        text: batchOn({ nodeType: "textNode", path: "texts" }),
+    },
+    textGenImageNode: {
+        text: batchOn({ nodeType: "textNode", path: "texts" }),
+    },
+    textGenMusicNode: {
+        tags: handle({ nodeType: "textNode", path: "texts[0]" }),
+        lyrics: handle({ nodeType: "textNode", path: "texts[0]" }),
+    },
+    textGenSpeechCloneNode: {
+        text: batchOn({ nodeType: "textNode", path: "texts" }),
+        ref_audio: configField(),
+    },
+    textGenSpeechInstructNode: {
+        text: batchOn({ nodeType: "textNode", path: "texts" }),
+    },
+    textGenSpeechPresetNode: {
+        text: batchOn({ nodeType: "textNode", path: "texts" }),
+    },
+    textsGenTextNode: { texts: collectAll() },
+    videoGenModelNode: { video: batchOn() },
+    videoGenTextNode: { video: batchOn() },
+    videoGenTextSpeechRecognizeNode: {
+        audio: batchOn({ nodeType: "videoNode" }),
+    },
+    videoUpscaleNode: { video: batchOn() },
     // `url` is a plain string (not a $ref), so force it to a linkNode-sourced
     // handle instead of the default config/text classification. batchOn fans
     // out one extraction per URL stored in the linkNode's `texts`.
@@ -198,13 +261,53 @@ export const NODE_TYPE_SOURCE_SPEC: Partial<
     },
 };
 
+/** True when `nodeType` implements an ABI slot (i.e. is an executable node). */
+export function isAbiNodeType(nodeType: string | undefined): boolean {
+    return !!nodeType && nodeType in NODE_TYPE_TO_ABI_FEATURE;
+}
+
+/** ABI feature + sourceSpec overrides for a node type. */
+export interface AbiNodeSpec {
+    feature: NodeSlot;
+    sourceSpec: Record<string, FieldSourceOverride>;
+}
+
+/**
+ * Feature + sourceSpec overrides for `nodeType`, or `undefined` when the type
+ * is not ABI-driven (data / add / modality nodes).
+ */
+export function abiSpecForNodeType(
+    nodeType: string | undefined,
+): AbiNodeSpec | undefined {
+    const feature = featureForNodeType(nodeType);
+    if (!feature || !nodeType) return undefined;
+    return { feature, sourceSpec: NODE_TYPE_SOURCE_SPEC[nodeType] ?? {} };
+}
+
+/** sourceSpec overrides for `nodeType` (empty when it has none). */
+export function sourceSpecForNodeType(
+    nodeType: string | undefined,
+): Record<string, FieldSourceOverride> {
+    return (nodeType && NODE_TYPE_SOURCE_SPEC[nodeType]) || {};
+}
+
+const resolvedSpecCache = new Map<string, ResolvedSpec>();
+
+/**
+ * Fully resolved (default-merged) spec for `nodeType`, or `undefined` when the
+ * type is not ABI-driven. Memoized per type — the tables are static.
+ */
 export function resolvedSpecForNodeType(
     nodeType: string | undefined,
 ): ResolvedSpec | undefined {
-    const feature = featureForNodeType(nodeType);
-    const overrides = nodeType ? NODE_TYPE_SOURCE_SPEC[nodeType] : undefined;
-    if (!feature || !overrides) return undefined;
-    return resolveSpec(feature, overrides);
+    if (!nodeType) return undefined;
+    const cached = resolvedSpecCache.get(nodeType);
+    if (cached) return cached;
+    const abi = abiSpecForNodeType(nodeType);
+    if (!abi) return undefined;
+    const spec = resolveSpec(abi.feature, abi.sourceSpec);
+    resolvedSpecCache.set(nodeType, spec);
+    return spec;
 }
 
 /**

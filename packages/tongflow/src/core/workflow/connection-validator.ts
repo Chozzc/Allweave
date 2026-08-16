@@ -6,7 +6,7 @@
 import type { Connection, Node as FlowNode } from "@xyflow/react";
 import type { JSONSchema7, JSONSchema7Definition } from "json-schema";
 import { parseSourceHandleId } from "../abi/handle-introspect";
-import { getAbiNodeRegistration } from "../abi/node-registry";
+import { featureForNodeType } from "../abi/node-feature-registry";
 import {
     ABI_DEFINITIONS,
     ABI_NODES,
@@ -16,12 +16,6 @@ import { DATA_NODE_TYPES } from "./executable-workflow";
 import { getEffectiveOutputType } from "./flow-connection-shared";
 
 type AtomicResult = "compatible" | "disjoint" | "unknown";
-
-const ABI_SLOT_SET = new Set<string>(Object.keys(ABI_NODES));
-
-function isAbiNodeSlot(slot: string): slot is NodeSlot {
-    return ABI_SLOT_SET.has(slot);
-}
 
 function resolveRefs(schema: JSONSchema7 | undefined, depth = 0): JSONSchema7 {
     if (depth > 48 || typeof schema !== "object" || schema === null) {
@@ -277,24 +271,12 @@ export function tryAbiCompatibility(
     const tgtRf = targetNode.type ?? "";
     if (srcRf in DATA_NODE_TYPES || tgtRf in DATA_NODE_TYPES) return undefined;
 
-    // Feature comes from the ABI registry (single source of truth), not node.data.
-    const srcReg = getAbiNodeRegistration(sourceNode.id);
-    const tgtReg = getAbiNodeRegistration(targetNode.id);
-    const sourceSlot =
-        srcReg && isAbiNodeSlot(srcReg.feature)
-            ? (srcReg.feature as NodeSlot)
-            : undefined;
-    const targetSlot =
-        tgtReg && isAbiNodeSlot(tgtReg.feature)
-            ? (tgtReg.feature as NodeSlot)
-            : undefined;
+    // Feature comes from the static ABI registry (single source of truth), not node.data.
+    const sourceSlot = featureForNodeType(srcRf);
+    const targetSlot = featureForNodeType(tgtRf);
     if (!sourceSlot || !targetSlot) return undefined;
 
-    const sourceOutEff = getEffectiveOutputType(
-        sourceNode.id,
-        srcRf,
-        connection.sourceHandle,
-    );
+    const sourceOutEff = getEffectiveOutputType(srcRf, connection.sourceHandle);
     if (!sourceOutEff) return undefined;
 
     // Consumer field comes directly from the AbiHandles-rendered targetHandle `in:<field>`.

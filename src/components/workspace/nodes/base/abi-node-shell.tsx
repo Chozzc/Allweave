@@ -1,13 +1,13 @@
 /**
  * ABI-driven node shell. Wires `useAbiExecution` to `BaseNodeShell` and
  * auto-renders `<AbiHandles>`. Node components only declare:
- *   - `feature` + (optional) `sourceSpec`
+ *   - `feature` (the sourceSpec comes from the static node-type registry)
  *   - the form (passed from `useAbiForm` so the same instance feeds execution)
  *   - presentation: title / icon / executeLabel / children
  */
 
 import type { ReactNode } from "react";
-import type { BaseNodeData, NodeSlot, SourceSpec } from "tongflow";
+import type { BaseNodeData, NodeSlot } from "tongflow";
 import { useAbiExecution } from "@/hooks/use-abi-execution";
 import type { UseAbiFormReturn } from "@/hooks/use-abi-form";
 import type { Task } from "@/hooks/use-task";
@@ -17,7 +17,6 @@ import { BaseNodeShell } from "./base-node-shell";
 
 export interface AbiNodeShellProps<F extends NodeSlot> {
     feature: F;
-    sourceSpec?: SourceSpec<F>;
     form: UseAbiFormReturn<F>;
 
     // ---- Chrome ----
@@ -57,7 +56,6 @@ export interface AbiNodeShellProps<F extends NodeSlot> {
 
 export function AbiNodeShell<F extends NodeSlot>({
     feature,
-    sourceSpec,
     form,
     title,
     icon,
@@ -79,7 +77,6 @@ export function AbiNodeShell<F extends NodeSlot>({
 }: AbiNodeShellProps<F>) {
     const exec = useAbiExecution({
         feature,
-        sourceSpec,
         form,
         disabled: executeDisabled,
         onTaskUpdate,
@@ -113,9 +110,7 @@ export function AbiNodeShell<F extends NodeSlot>({
             setMissingPluginOpen={exec.setMissingPluginOpen}
         >
             {children}
-            {autoHandles && (
-                <AbiHandles feature={feature} sourceSpec={sourceSpec} />
-            )}
+            {autoHandles && <AbiHandles feature={feature} />}
         </BaseNodeShell>
     );
 }

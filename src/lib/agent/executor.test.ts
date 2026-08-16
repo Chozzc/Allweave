@@ -134,11 +134,10 @@ describe("applyGraphPatch", () => {
         expect(useFlow.getState().edges).toHaveLength(0);
     });
 
-    it("wires sourceSpec-only handles pending the post-mount heal", async () => {
-        // textGenImageNode's `text: batchOn` lives only in the component's
-        // sourceSpec (not NODE_TYPE_SOURCE_SPEC), so before the node mounts
-        // the target handle cannot be derived — useAbiExecution's heal fills
-        // it in on mount. The edge itself must still be created.
+    it("wires promoted (sourceSpec) handles without any component mounted", async () => {
+        // textGenImageNode's `text: batchOn` is a sourceSpec promotion of a
+        // plain-string ABI input. It lives in the static NODE_TYPE_SOURCE_SPEC
+        // registry, so the target handle resolves headlessly — no mount heal.
         const result = await applyGraphPatch(
             {
                 add_nodes: [
@@ -159,6 +158,7 @@ describe("applyGraphPatch", () => {
         const { edges } = useFlow.getState();
         expect(edges).toHaveLength(1);
         expect(edges[0].sourceHandle).toBe("out:textNode");
+        expect(edges[0].targetHandle).toBe("in:text");
     });
 
     it("routes several sources onto a collect-many handle", async () => {

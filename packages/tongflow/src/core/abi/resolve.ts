@@ -22,7 +22,6 @@ import {
     parseTargetHandleId,
     targetHandleId,
 } from "./handle-introspect";
-import { getAbiNodeRegistration } from "./node-registry";
 import type { FieldSourceOverride, HandleOverride } from "./sources";
 
 /* ------------------------------------------------------------------ */
@@ -345,14 +344,4 @@ export function promptMissingRequired(
         if (Array.isArray(v) && v.length === 0) return field;
     }
     return undefined;
-}
-
-/* ------------------------------------------------------------------ */
-/* Convenience: resolve from registry by nodeId                         */
-/* ------------------------------------------------------------------ */
-
-export function resolveSpecForNode(nodeId: string): ResolvedSpec | undefined {
-    const reg = getAbiNodeRegistration(nodeId);
-    if (!reg) return undefined;
-    return resolveSpec(reg.feature, reg.sourceSpec);
 }

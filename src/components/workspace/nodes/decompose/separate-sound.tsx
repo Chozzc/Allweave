@@ -3,8 +3,7 @@ import { useNodeId, useStore } from "@xyflow/react";
 import { AudioLines } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useMemo } from "react";
-import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
-import { NODE_TYPE_SOURCE_SPEC } from "tongflow";
+import type { TongflowPluginNodeProps } from "tongflow";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useAbiForm } from "@/hooks/use-abi-form";
@@ -12,20 +11,12 @@ import { useAbiForm } from "@/hooks/use-abi-form";
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { NodeTextarea } from "../base/node-textarea";
 
-// `audio` comes from an upstream audioNode; `text` may come from an upstream
-// textNode (via the auto-rendered `in:text` handle) or be typed manually — the
-// upstream edge wins, the textarea value is the fallback (`manual: true`).
-// Defined centrally in NODE_TYPE_SOURCE_SPEC so compose-time edge creation
-// assigns the correct `in:text` targetHandle.
-const sourceSpec =
-    NODE_TYPE_SOURCE_SPEC.separateSoundNode as SourceSpec<"separate-sound">;
-
 const SeparateSoundNode = ({
     selected,
     data,
 }: TongflowPluginNodeProps<"separate-sound", "separateSoundNode">) => {
     const t = useTranslations("Workspace.nodes");
-    const form = useAbiForm("separate-sound", sourceSpec);
+    const form = useAbiForm("separate-sound");
 
     const nodeId = useNodeId();
     const edges = useStore((state) => state.edges as Edge[]);
@@ -50,7 +41,6 @@ const SeparateSoundNode = ({
     return (
         <AbiNodeShell
             feature="separate-sound"
-            sourceSpec={sourceSpec}
             form={form}
             selected={selected}
             className="min-w-[420px]"

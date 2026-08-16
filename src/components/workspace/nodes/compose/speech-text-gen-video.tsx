@@ -3,21 +3,15 @@ import { useNodeId, useStore } from "@xyflow/react";
 import { Music, Type, Video } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useMemo } from "react";
-import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
-import {
-    collectHandleValues,
-    NODE_TYPE_SOURCE_SPEC,
-    resolveSpec,
-} from "tongflow";
+import type { TongflowPluginNodeProps } from "tongflow";
+import { collectHandleValues } from "tongflow";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useAbiForm } from "@/hooks/use-abi-form";
+import { useNodeAbiSpec } from "@/hooks/use-node-abi-spec";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { MediaThumbnail } from "../base/media-thumbnail";
-
-const SPEECH_TEXT_GEN_VIDEO_SOURCE_SPEC =
-    NODE_TYPE_SOURCE_SPEC.speechTextGenVideoNode as SourceSpec<"speech-text-gen-video">;
 
 const SpeechTextGenVideoNode = ({
     selected,
@@ -28,23 +22,13 @@ const SpeechTextGenVideoNode = ({
 >) => {
     const t = useTranslations("Workspace.nodes");
     const tActions = useTranslations("Workspace.nodes.actions");
-    const form = useAbiForm(
-        "speech-text-gen-video",
-        SPEECH_TEXT_GEN_VIDEO_SOURCE_SPEC,
-    );
+    const form = useAbiForm("speech-text-gen-video");
 
     const nodeId = useNodeId();
     const nodeLookup = useStore((state) => state.nodeLookup);
     const edges = useStore((state) => state.edges as Edge[]);
 
-    const resolvedSpec = useMemo(
-        () =>
-            resolveSpec(
-                "speech-text-gen-video",
-                SPEECH_TEXT_GEN_VIDEO_SOURCE_SPEC,
-            ),
-        [],
-    );
+    const resolvedSpec = useNodeAbiSpec("speech-text-gen-video");
 
     const { hasText, hasAudio, promptText, audioFileKey } = useMemo(() => {
         if (!nodeId) {
@@ -75,7 +59,6 @@ const SpeechTextGenVideoNode = ({
     return (
         <AbiNodeShell
             feature="speech-text-gen-video"
-            sourceSpec={SPEECH_TEXT_GEN_VIDEO_SOURCE_SPEC}
             form={form}
             selected={selected}
             className="min-w-[480px]"

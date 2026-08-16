@@ -2,7 +2,6 @@ import { Link as LinkIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo } from "react";
 import type { TongflowPluginNodeProps } from "tongflow";
-import { batchOn } from "tongflow";
 import { useAbiForm } from "@/hooks/use-abi-form";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
@@ -20,9 +19,6 @@ const LinkGenTextNode = ({
     return (
         <AbiNodeShell
             feature="link"
-            sourceSpec={{
-                url: batchOn({ nodeType: "linkNode", path: "texts" }),
-            }}
             form={form}
             selected={selected}
             className="min-w-[480px]"

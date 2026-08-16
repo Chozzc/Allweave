@@ -2,7 +2,6 @@ import { Atom } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useEffect } from "react";
 import type { TongflowPluginNodeProps } from "tongflow";
-import { batchOn } from "tongflow";
 import { useAbiForm } from "@/hooks/use-abi-form";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
@@ -25,7 +24,6 @@ const SplitVideoNode = ({
     return (
         <AbiNodeShell
             feature="split-video"
-            sourceSpec={{ video: batchOn() }}
             form={form}
             selected={selected}
             data={data}

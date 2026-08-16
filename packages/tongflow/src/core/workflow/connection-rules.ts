@@ -8,9 +8,7 @@
 
 import type { Connection, Edge, Node } from "@xyflow/react";
 import { parseTargetHandleId, targetHandleId } from "../abi/handle-introspect";
-import { getAbiNodeRegistration } from "../abi/node-registry";
-import { resolveSpec } from "../abi/resolve";
-import type { FieldSourceOverride } from "../abi/sources";
+import { resolvedSpecForNodeType } from "../abi/node-feature-registry";
 import { tryAbiCompatibility } from "./connection-validator";
 import { DATA_NODE_TYPES } from "./executable-workflow";
 import {
@@ -23,13 +21,8 @@ export {
     getEffectiveOutputType,
 } from "./flow-connection-shared";
 
-function resolveSpecForNode(targetNodeId: string) {
-    const reg = getAbiNodeRegistration(targetNodeId);
-    if (!reg) return undefined;
-    return resolveSpec(
-        reg.feature,
-        reg.sourceSpec as Record<string, FieldSourceOverride> | undefined,
-    );
+function resolveSpecForNode(targetNodeType: string | undefined) {
+    return resolvedSpecForNodeType(targetNodeType);
 }
 
 /**
@@ -37,8 +30,10 @@ function resolveSpecForNode(targetNodeId: string) {
  * plugin shape is a scalar (`!array`) and that isn't a batch/collect fan-in
  * (those legitimately receive multiple upstream values).
  */
-function singleEdgeHandlesForTarget(targetNodeId: string): ReadonlySet<string> {
-    const spec = resolveSpecForNode(targetNodeId);
+function singleEdgeHandlesForTarget(
+    targetNodeType: string | undefined,
+): ReadonlySet<string> {
+    const spec = resolveSpecForNode(targetNodeType);
     if (!spec) return new Set();
     const out = new Set<string>();
     for (const [field, f] of Object.entries(spec.fields)) {
@@ -51,20 +46,22 @@ function singleEdgeHandlesForTarget(targetNodeId: string): ReadonlySet<string> {
 
 /** Modality (RF nodeType) that a specific ABI target handle expects, if resolvable. */
 function expectedTargetHandleType(
-    targetNodeId: string,
+    targetNodeType: string | undefined,
     targetHandle: string | null | undefined,
 ): string | undefined {
     const field = parseTargetHandleId(targetHandle);
     if (!field) return undefined;
-    const spec = resolveSpecForNode(targetNodeId);
+    const spec = resolveSpecForNode(targetNodeType);
     if (!spec) return undefined;
     const f = spec.fields[field];
     return f?.kind === "handle" ? f.nodeType : undefined;
 }
 
 /** Set of upstream node types this target accepts on any handle. */
-function collectUpstreamTypesForTarget(targetNodeId: string): Set<string> {
-    const spec = resolveSpecForNode(targetNodeId);
+function collectUpstreamTypesForTarget(
+    targetNodeType: string | undefined,
+): Set<string> {
+    const spec = resolveSpecForNode(targetNodeType);
     if (!spec) return new Set();
     const out = new Set<string>();
     for (const f of Object.values(spec.fields)) {
@@ -82,13 +79,14 @@ function collectUpstreamTypesForTarget(targetNodeId: string): Set<string> {
 export function hasDuplicateTargetHandle(
     edges: Edge[],
     connection: Connection,
+    targetNodeType: string | undefined,
     ignoreEdgeId?: string,
 ): boolean {
     const targetId = connection.target;
     if (!targetId) return false;
     const th = connection.targetHandle;
     if (!th) return false;
-    const singleEdge = singleEdgeHandlesForTarget(targetId);
+    const singleEdge = singleEdgeHandlesForTarget(targetNodeType);
     if (!singleEdge.has(th)) return false;
     return edges.some(
         (e) =>
@@ -131,11 +129,20 @@ export function isValidFlowConnection(
     const target = connection.target;
     if (!source || !target || source === target) return false;
 
-    if (hasDuplicateTargetHandle(edges, connection, ignoreEdgeId)) return false;
-
     const sourceNode = nodes.find((n) => n.id === source);
     const targetNode = nodes.find((n) => n.id === target);
     if (!sourceNode || !targetNode) return false;
+
+    if (
+        hasDuplicateTargetHandle(
+            edges,
+            connection,
+            targetNode.type,
+            ignoreEdgeId,
+        )
+    ) {
+        return false;
+    }
 
     if (
         hasDuplicateAddSourceEdge(
@@ -149,7 +156,6 @@ export function isValidFlowConnection(
     }
 
     const outType = getEffectiveOutputType(
-        sourceNode.id,
         sourceNode.type,
         connection.sourceHandle,
     );
@@ -172,7 +178,7 @@ export function isValidFlowConnection(
     // modality. XRef/Asset schemas are isomorphic across media types, so the
     // schema-level check below cannot distinguish image/video/audio — enforce it here.
     const expected = expectedTargetHandleType(
-        targetNode.id,
+        targetNode.type,
         connection.targetHandle,
     );
     if (expected && expected !== outType) return false;
@@ -180,7 +186,7 @@ export function isValidFlowConnection(
     const abiDecision = tryAbiCompatibility(connection, nodes);
     if (abiDecision !== undefined) return abiDecision;
 
-    const allowed = collectUpstreamTypesForTarget(targetNode.id);
+    const allowed = collectUpstreamTypesForTarget(targetNode.type);
     if (allowed.size === 0) return true;
 
     return allowed.has(outType);

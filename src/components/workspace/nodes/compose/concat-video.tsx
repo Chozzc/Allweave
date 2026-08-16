@@ -4,31 +4,27 @@ import { Video } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useMemo } from "react";
 import type { TongflowPluginNodeProps } from "tongflow";
-import { collectAll, collectHandleValues, resolveSpec } from "tongflow";
+import { collectHandleValues } from "tongflow";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useAbiForm } from "@/hooks/use-abi-form";
+import { useNodeAbiSpec } from "@/hooks/use-node-abi-spec";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { MediaThumbnail } from "../base/media-thumbnail";
-
-const CONCAT_VIDEO_SOURCE_SPEC = { videos: collectAll() };
 
 const ConcatVideoNode = ({
     selected,
     data,
 }: TongflowPluginNodeProps<"concat-videos", "concatVideoNode">) => {
     const t = useTranslations("Workspace.nodes");
-    const form = useAbiForm("concat-videos", CONCAT_VIDEO_SOURCE_SPEC);
+    const form = useAbiForm("concat-videos");
 
     const nodeId = useNodeId();
     const nodeLookup = useStore((state) => state.nodeLookup);
     const edges = useStore((state) => state.edges as Edge[]);
 
-    const resolvedSpec = useMemo(
-        () => resolveSpec("concat-videos", CONCAT_VIDEO_SOURCE_SPEC),
-        [],
-    );
+    const resolvedSpec = useNodeAbiSpec("concat-videos");
 
     // Collect upstream video fileKeys from incoming edges so the editor view
     // reflects connections live (both manual drags and compose-created edges),
@@ -53,7 +49,6 @@ const ConcatVideoNode = ({
     return (
         <AbiNodeShell
             feature="concat-videos"
-            sourceSpec={CONCAT_VIDEO_SOURCE_SPEC}
             form={form}
             selected={selected}
             className="min-w-[480px]"

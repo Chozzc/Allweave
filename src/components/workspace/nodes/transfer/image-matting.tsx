@@ -2,7 +2,6 @@ import { Wand2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo } from "react";
 import type { TongflowPluginNodeProps } from "tongflow";
-import { batchOn } from "tongflow";
 import { useAbiForm } from "@/hooks/use-abi-form";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
@@ -18,7 +17,6 @@ const ImageMattingNode = ({
     return (
         <AbiNodeShell
             feature="image-matting"
-            sourceSpec={{ image: batchOn() }}
             form={form}
             selected={selected}
             data={data}

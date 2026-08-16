@@ -4,7 +4,6 @@ import { Maximize2, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo } from "react";
 import type { TongflowPluginNodeProps } from "tongflow";
-import { batchOn } from "tongflow";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -37,7 +36,6 @@ const ImageGenImageUpscaleNode = ({
     return (
         <AbiNodeShell
             feature="image-upscale"
-            sourceSpec={{ image: batchOn() }}
             form={form}
             selected={selected}
             className="min-w-[480px]"

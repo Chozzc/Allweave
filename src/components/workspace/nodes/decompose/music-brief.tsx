@@ -3,8 +3,8 @@ import { useNodeId, useNodesData, useStore } from "@xyflow/react";
 import { Lightbulb } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useMemo } from "react";
-import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
-import { coerceBaseNodeData, NODE_TYPE_SOURCE_SPEC } from "tongflow";
+import type { TongflowPluginNodeProps } from "tongflow";
+import { coerceBaseNodeData } from "tongflow";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -19,9 +19,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAbiForm } from "@/hooks/use-abi-form";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
-
-const BRIEF_SOURCE_SPEC =
-    NODE_TYPE_SOURCE_SPEC.musicBriefNode as SourceSpec<"music-brief">;
 
 function buildLanguageOptions(tLang: (key: string) => string) {
     return [
@@ -42,7 +39,7 @@ const MusicBriefNode = ({
     const t = useTranslations("Workspace.nodes");
     const tLang = useTranslations("Languages");
     const LANGUAGE_OPTIONS = buildLanguageOptions(tLang);
-    const form = useAbiForm("music-brief", BRIEF_SOURCE_SPEC);
+    const form = useAbiForm("music-brief");
 
     const nodeId = useNodeId();
     const edges = useStore((state) => state.edges as Edge[]);
@@ -79,7 +76,6 @@ const MusicBriefNode = ({
     return (
         <AbiNodeShell
             feature="music-brief"
-            sourceSpec={BRIEF_SOURCE_SPEC}
             form={form}
             selected={selected}
             className="min-w-[480px]"

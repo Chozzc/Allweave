@@ -3,7 +3,7 @@ import { Atom, Wand2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useMemo } from "react";
 import type { TongflowPluginNodeProps } from "tongflow";
-import { coerceBaseNodeData, handle } from "tongflow";
+import { coerceBaseNodeData } from "tongflow";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useAbiForm } from "@/hooks/use-abi-form";
@@ -42,7 +42,6 @@ const SpeechGenVideoNode = ({
     return (
         <AbiNodeShell
             feature="speech-text-gen-video"
-            sourceSpec={{ audio: handle({ nodeType: "audioNode" }) }}
             form={form}
             selected={selected}
             className="min-w-[480px]"

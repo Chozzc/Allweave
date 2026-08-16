@@ -2,7 +2,6 @@ import { Video as VideoIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo } from "react";
 import type { TongflowPluginNodeProps } from "tongflow";
-import { batchOn } from "tongflow";
 import { useAbiForm } from "@/hooks/use-abi-form";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
@@ -22,7 +21,6 @@ const VideoGenTextSpeechRecognizeNode = ({
         <AbiNodeShell
             feature="transcribe"
             // This variant feeds the ABI `audio` field from a videoNode upstream.
-            sourceSpec={{ audio: batchOn({ nodeType: "videoNode" }) }}
             form={form}
             selected={selected}
             className="min-w-[480px]"

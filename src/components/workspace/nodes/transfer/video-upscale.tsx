@@ -4,7 +4,6 @@ import { Maximize2, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo } from "react";
 import type { TongflowPluginNodeProps } from "tongflow";
-import { batchOn } from "tongflow";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -40,7 +39,6 @@ const VideoUpscaleNode = ({
     return (
         <AbiNodeShell
             feature="video-upscale"
-            sourceSpec={{ video: batchOn() }}
             form={form}
             selected={selected}
             data={data}

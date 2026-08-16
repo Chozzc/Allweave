@@ -3,22 +3,16 @@ import { useNodeId, useStore } from "@xyflow/react";
 import { Atom, Music, Type } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useMemo } from "react";
-import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
-import {
-    collectHandleValues,
-    NODE_TYPE_SOURCE_SPEC,
-    resolveSpec,
-} from "tongflow";
+import type { TongflowPluginNodeProps } from "tongflow";
+import { collectHandleValues } from "tongflow";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useAbiForm } from "@/hooks/use-abi-form";
+import { useNodeAbiSpec } from "@/hooks/use-node-abi-spec";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { LanguageSelect } from "../base/language-select";
 import { MediaThumbnail } from "../base/media-thumbnail";
-
-const CLONE_COMPOSE_SOURCE_SPEC =
-    NODE_TYPE_SOURCE_SPEC.textGenSpeechCloneComposeNode as SourceSpec<"text-gen-speech-clone">;
 
 const TextGenSpeechCloneComposeNode = ({
     selected,
@@ -28,16 +22,13 @@ const TextGenSpeechCloneComposeNode = ({
     "textGenSpeechCloneComposeNode"
 >) => {
     const t = useTranslations("Workspace.nodes");
-    const form = useAbiForm("text-gen-speech-clone", CLONE_COMPOSE_SOURCE_SPEC);
+    const form = useAbiForm("text-gen-speech-clone");
 
     const nodeId = useNodeId();
     const nodeLookup = useStore((state) => state.nodeLookup);
     const edges = useStore((state) => state.edges as Edge[]);
 
-    const resolvedSpec = useMemo(
-        () => resolveSpec("text-gen-speech-clone", CLONE_COMPOSE_SOURCE_SPEC),
-        [],
-    );
+    const resolvedSpec = useNodeAbiSpec("text-gen-speech-clone");
 
     const { hasText, hasRefAudio, texts, refAudioKey } = useMemo(() => {
         if (!nodeId) {
@@ -76,7 +67,6 @@ const TextGenSpeechCloneComposeNode = ({
     return (
         <AbiNodeShell
             feature="text-gen-speech-clone"
-            sourceSpec={CLONE_COMPOSE_SOURCE_SPEC}
             form={form}
             selected={selected}
             className="min-w-[480px]"

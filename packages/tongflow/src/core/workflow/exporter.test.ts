@@ -1,8 +1,5 @@
 import type { Edge, Node } from "@xyflow/react";
-import { afterEach, describe, expect, it } from "vitest";
-
-import { registerAbiNode, unregisterAbiNode } from "../abi/node-registry";
-import { batchOn, collectAll, handle } from "../abi/sources";
+import { describe, expect, it } from "vitest";
 
 import { WorkflowExporter } from "./exporter";
 
@@ -18,29 +15,13 @@ function textNode(id: string, texts: string[]): Node {
     return { id, type: "textNode", position: pos, data: { texts } };
 }
 
-afterEach(() => {
-    for (const id of ["split", "combine", "gen"]) unregisterAbiNode(id);
-});
-
 function buildSplitFanIn(consumerFeature: "combine-text" | "gen-text") {
     // src(text) → split-text → tn1/tn2 (materialized at edit time, stale
-    // staticData) → consumer.
-    registerAbiNode({
-        nodeId: "split",
-        feature: "split-text",
-        sourceSpec: {
-            text: handle({ nodeType: "textNode", path: "texts[0]" }),
-        },
-    });
+    // staticData) → consumer. Specs come from the static node-type registry
+    // (splitTextNode / textsGenTextNode / genTextNode).
     const consumerId = consumerFeature === "combine-text" ? "combine" : "gen";
-    registerAbiNode({
-        nodeId: consumerId,
-        feature: consumerFeature,
-        sourceSpec:
-            consumerFeature === "combine-text"
-                ? { texts: collectAll() }
-                : { text: batchOn({ nodeType: "textNode", path: "texts" }) },
-    });
+    const consumerType =
+        consumerFeature === "combine-text" ? "textsGenTextNode" : "genTextNode";
 
     const consumerHandle =
         consumerFeature === "combine-text" ? "in:texts" : "in:text";
@@ -49,7 +30,7 @@ function buildSplitFanIn(consumerFeature: "combine-text" | "gen-text") {
         { id: "split", type: "splitTextNode", position: pos, data: {} },
         textNode("tn1", ["stale-1"]),
         textNode("tn2", ["stale-2"]),
-        { id: consumerId, type: "consumerNode", position: pos, data: {} },
+        { id: consumerId, type: consumerType, position: pos, data: {} },
     ];
     const edges: Edge[] = [
         { id: "e1", source: "src", target: "split", targetHandle: "in:text" },

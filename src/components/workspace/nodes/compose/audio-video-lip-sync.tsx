@@ -3,22 +3,16 @@ import { useNodeId, useStore } from "@xyflow/react";
 import { Music, Sparkles, Video } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useMemo } from "react";
-import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
-import {
-    collectHandleValues,
-    NODE_TYPE_SOURCE_SPEC,
-    resolveSpec,
-} from "tongflow";
+import type { TongflowPluginNodeProps } from "tongflow";
+import { collectHandleValues } from "tongflow";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useAbiForm } from "@/hooks/use-abi-form";
+import { useNodeAbiSpec } from "@/hooks/use-node-abi-spec";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { MediaThumbnail } from "../base/media-thumbnail";
 import { NodeTextarea } from "../base/node-textarea";
-
-const AUDIO_VIDEO_LIP_SYNC_SOURCE_SPEC =
-    NODE_TYPE_SOURCE_SPEC.audioVideoLipSyncNode as SourceSpec<"audio-video-lip-sync">;
 
 const AudioVideoLipSyncNode = ({
     selected,
@@ -29,23 +23,13 @@ const AudioVideoLipSyncNode = ({
 >) => {
     const t = useTranslations("Workspace.nodes");
     const tActions = useTranslations("Workspace.nodes.actions");
-    const form = useAbiForm(
-        "audio-video-lip-sync",
-        AUDIO_VIDEO_LIP_SYNC_SOURCE_SPEC,
-    );
+    const form = useAbiForm("audio-video-lip-sync");
 
     const nodeId = useNodeId();
     const nodeLookup = useStore((state) => state.nodeLookup);
     const edges = useStore((state) => state.edges as Edge[]);
 
-    const resolvedSpec = useMemo(
-        () =>
-            resolveSpec(
-                "audio-video-lip-sync",
-                AUDIO_VIDEO_LIP_SYNC_SOURCE_SPEC,
-            ),
-        [],
-    );
+    const resolvedSpec = useNodeAbiSpec("audio-video-lip-sync");
 
     const { hasVideo, hasAudio, videoFileKey, audioFileKey } = useMemo(() => {
         if (!nodeId) {
@@ -77,7 +61,6 @@ const AudioVideoLipSyncNode = ({
     return (
         <AbiNodeShell
             feature="audio-video-lip-sync"
-            sourceSpec={AUDIO_VIDEO_LIP_SYNC_SOURCE_SPEC}
             form={form}
             selected={selected}
             className="min-w-[480px]"

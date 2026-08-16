@@ -5,27 +5,23 @@ import { useNodeId, useNodesData, useStore } from "@xyflow/react";
 import { Atom } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useEffect, useMemo } from "react";
-import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
+import type { TongflowPluginNodeProps } from "tongflow";
 import {
     type AspectRatio,
     coerceBaseNodeData,
     collectHandleValues,
-    NODE_TYPE_SOURCE_SPEC,
-    resolveSpec,
     VIDEO_ASPECT_RATIOS,
     VIDEO_DURATION_DEFAULT,
 } from "tongflow";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useAbiForm } from "@/hooks/use-abi-form";
+import { useNodeAbiSpec } from "@/hooks/use-node-abi-spec";
 import { useUpstreamNodeIds } from "@/hooks/use-upstream-ids";
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { AspectRatioPicker } from "../base/aspect-ratio-picker";
 import { NodeTextarea } from "../base/node-textarea";
 import { VideoDurationSlider } from "../base/video-duration-slider";
-
-const TEXT_GEN_VIDEO_SOURCE_SPEC =
-    NODE_TYPE_SOURCE_SPEC.textGenVideoNode as SourceSpec<"text-gen-video">;
 
 const TextGenVideoNode = ({
     selected,
@@ -40,10 +36,7 @@ const TextGenVideoNode = ({
     const edges = useStore((state) => state.edges as Edge[]);
     const ids = useUpstreamNodeIds(data.ids);
 
-    const resolvedSpec = useMemo(
-        () => resolveSpec("text-gen-video", TEXT_GEN_VIDEO_SOURCE_SPEC),
-        [],
-    );
+    const resolvedSpec = useNodeAbiSpec("text-gen-video");
 
     const fromNodes = useNodesData(ids);
     const composeTextNode = fromNodes.find((node) => node.type === "textNode");
@@ -98,7 +91,6 @@ const TextGenVideoNode = ({
     return (
         <AbiNodeShell
             feature="text-gen-video"
-            sourceSpec={TEXT_GEN_VIDEO_SOURCE_SPEC}
             form={form}
             selected={selected}
             className="min-w-[480px]"

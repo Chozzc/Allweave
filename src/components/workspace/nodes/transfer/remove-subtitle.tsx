@@ -2,7 +2,6 @@ import { Atom } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo } from "react";
 import type { RfDataNodeProps } from "tongflow";
-import { batchOn } from "tongflow";
 import { useAbiForm } from "@/hooks/use-abi-form";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
@@ -20,7 +19,6 @@ const RemoveVideoSubtitleNode = ({
     return (
         <AbiNodeShell
             feature="subtitle_remove"
-            sourceSpec={{ fileKey: batchOn({ nodeType: "videoNode" }) }}
             form={form}
             selected={selected}
             data={data}

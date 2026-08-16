@@ -3,37 +3,28 @@ import { useNodeId, useStore } from "@xyflow/react";
 import { Atom, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useMemo } from "react";
-import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
-import {
-    collectHandleValues,
-    NODE_TYPE_SOURCE_SPEC,
-    resolveSpec,
-} from "tongflow";
+import type { TongflowPluginNodeProps } from "tongflow";
+import { collectHandleValues } from "tongflow";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useAbiForm } from "@/hooks/use-abi-form";
+import { useNodeAbiSpec } from "@/hooks/use-node-abi-spec";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { NodeTextarea } from "../base/node-textarea";
-
-const IMAGE_EDIT_SOURCE_SPEC =
-    NODE_TYPE_SOURCE_SPEC.imageGenImageNode as SourceSpec<"image-edit">;
 
 const ImageGenImageNode = ({
     selected,
     data,
 }: TongflowPluginNodeProps<"image-edit", "imageGenImageNode">) => {
     const t = useTranslations("Workspace.nodes");
-    const form = useAbiForm("image-edit", IMAGE_EDIT_SOURCE_SPEC);
+    const form = useAbiForm("image-edit");
 
     const nodeId = useNodeId();
     const nodeLookup = useStore((state) => state.nodeLookup);
     const edges = useStore((state) => state.edges as Edge[]);
 
-    const resolvedSpec = useMemo(
-        () => resolveSpec("image-edit", IMAGE_EDIT_SOURCE_SPEC),
-        [],
-    );
+    const resolvedSpec = useNodeAbiSpec("image-edit");
 
     const { hasImage, promptText } = useMemo(() => {
         if (!nodeId) {
@@ -66,7 +57,6 @@ const ImageGenImageNode = ({
     return (
         <AbiNodeShell
             feature="image-edit"
-            sourceSpec={IMAGE_EDIT_SOURCE_SPEC}
             form={form}
             selected={selected}
             className="min-w-[480px]"

@@ -2,7 +2,6 @@ import { Atom } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo } from "react";
 import type { TongflowPluginNodeProps } from "tongflow";
-import { collectAll } from "tongflow";
 import { useAbiForm } from "@/hooks/use-abi-form";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
@@ -13,13 +12,12 @@ const DropVideoNode = ({
     data,
 }: TongflowPluginNodeProps<"drop-video", "dropVideoNode">) => {
     const t = useTranslations("Workspace.nodes.batch");
-    const form = useAbiForm("drop-video", { videos: collectAll() });
+    const form = useAbiForm("drop-video");
     const fileKeys = data.fileKeys;
 
     return (
         <AbiNodeShell
             feature="drop-video"
-            sourceSpec={{ videos: collectAll() }}
             form={form}
             selected={selected}
             data={data}

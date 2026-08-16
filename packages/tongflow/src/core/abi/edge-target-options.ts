@@ -11,9 +11,7 @@ import type { Edge, Node } from "@xyflow/react";
 
 import { getEffectiveOutputType } from "../workflow/flow-connection-shared";
 import { targetHandleId } from "./handle-introspect";
-import { getAbiNodeRegistration } from "./node-registry";
-import { resolveSpec } from "./resolve";
-import type { FieldSourceOverride } from "./sources";
+import { resolvedSpecForNodeType } from "./node-feature-registry";
 
 export interface EdgeTargetOption {
     /** Handle id, e.g. `in:ref_audio`. */
@@ -43,19 +41,14 @@ export function getEdgeTargetOptions(
     if (!sourceNode) return [];
 
     const upstreamType = getEffectiveOutputType(
-        sourceNode.id,
         sourceNode.type,
         edge.sourceHandle,
     );
     if (!upstreamType) return [];
 
-    const reg = getAbiNodeRegistration(edge.target);
-    if (!reg) return [];
-
-    const spec = resolveSpec(
-        reg.feature,
-        reg.sourceSpec as Record<string, FieldSourceOverride> | undefined,
-    );
+    const targetNode = nodes.find((n) => n.id === edge.target);
+    const spec = resolvedSpecForNodeType(targetNode?.type);
+    if (!spec) return [];
 
     const options: EdgeTargetOption[] = [];
     for (const field of spec.topology.inputOrder) {
@@ -65,7 +58,7 @@ export function getEdgeTargetOptions(
                 handleId: targetHandleId(field),
                 field,
                 single: !f.array && !f.collect,
-                feature: reg.feature,
+                feature: spec.topology.feature,
             });
         }
     }

@@ -3,24 +3,17 @@ import { useNodeId, useStore } from "@xyflow/react";
 import { ImageIcon, Sparkles, Type, Video } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useEffect, useMemo } from "react";
-import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
-import {
-    collectHandleValues,
-    NODE_TYPE_SOURCE_SPEC,
-    resolveSpec,
-    VIDEO_DURATION_DEFAULT,
-} from "tongflow";
+import type { TongflowPluginNodeProps } from "tongflow";
+import { collectHandleValues, VIDEO_DURATION_DEFAULT } from "tongflow";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useAbiForm } from "@/hooks/use-abi-form";
+import { useNodeAbiSpec } from "@/hooks/use-node-abi-spec";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { MediaThumbnail } from "../base/media-thumbnail";
 import { NodeTextarea } from "../base/node-textarea";
 import { VideoDurationSlider } from "../base/video-duration-slider";
-
-const VIDEO_IMAGE_GEN_VIDEO_MOVE_SOURCE_SPEC =
-    NODE_TYPE_SOURCE_SPEC.videoImageGenVideoMoveNode as SourceSpec<"video-image-gen-video-move">;
 
 const VideoImageGenVideoMoveNode = ({
     selected,
@@ -31,23 +24,13 @@ const VideoImageGenVideoMoveNode = ({
 >) => {
     const t = useTranslations("Workspace.nodes");
     const tActions = useTranslations("Workspace.nodes.actions");
-    const form = useAbiForm(
-        "video-image-gen-video-move",
-        VIDEO_IMAGE_GEN_VIDEO_MOVE_SOURCE_SPEC,
-    );
+    const form = useAbiForm("video-image-gen-video-move");
 
     const nodeId = useNodeId();
     const nodeLookup = useStore((state) => state.nodeLookup);
     const edges = useStore((state) => state.edges as Edge[]);
 
-    const resolvedSpec = useMemo(
-        () =>
-            resolveSpec(
-                "video-image-gen-video-move",
-                VIDEO_IMAGE_GEN_VIDEO_MOVE_SOURCE_SPEC,
-            ),
-        [],
-    );
+    const resolvedSpec = useNodeAbiSpec("video-image-gen-video-move");
 
     const { hasImage, hasVideo, imageFileKey, videoFileKey, promptText } =
         useMemo(() => {
@@ -95,7 +78,6 @@ const VideoImageGenVideoMoveNode = ({
     return (
         <AbiNodeShell
             feature="video-image-gen-video-move"
-            sourceSpec={VIDEO_IMAGE_GEN_VIDEO_MOVE_SOURCE_SPEC}
             form={form}
             selected={selected}
             className="min-w-[480px]"

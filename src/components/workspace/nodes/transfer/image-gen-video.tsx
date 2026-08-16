@@ -3,11 +3,10 @@ import { useNodeId, useStore } from "@xyflow/react";
 import { Atom } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useEffect, useMemo } from "react";
-import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
+import type { TongflowPluginNodeProps } from "tongflow";
 import {
     type AspectRatio,
     coerceBaseNodeData,
-    NODE_TYPE_SOURCE_SPEC,
     parseTargetHandleId,
     VIDEO_ASPECT_RATIOS,
     VIDEO_DURATION_DEFAULT,
@@ -21,8 +20,6 @@ import { VideoDurationSlider } from "../base/video-duration-slider";
 
 // `text` is a config field on this transfer node (manual prompt). Image+audio
 // wired upstream uses `imageGenVideoComposeNode` (default handles).
-const IMAGE_GEN_VIDEO_TRANSFER_SOURCE_SPEC =
-    NODE_TYPE_SOURCE_SPEC.imageGenVideoNode as SourceSpec<"image-gen-video">;
 
 const ImageGenVideoNode = ({
     selected,
@@ -30,10 +27,7 @@ const ImageGenVideoNode = ({
 }: TongflowPluginNodeProps<"image-gen-video", "imageGenVideoNode">) => {
     const t = useTranslations("Workspace.nodes");
     const tActions = useTranslations("Workspace.nodes.actions");
-    const form = useAbiForm(
-        "image-gen-video",
-        IMAGE_GEN_VIDEO_TRANSFER_SOURCE_SPEC,
-    );
+    const form = useAbiForm("image-gen-video");
 
     const nodeId = useNodeId();
     const nodeLookup = useStore((state) => state.nodeLookup);
@@ -72,7 +66,6 @@ const ImageGenVideoNode = ({
     return (
         <AbiNodeShell
             feature="image-gen-video"
-            sourceSpec={IMAGE_GEN_VIDEO_TRANSFER_SOURCE_SPEC}
             form={form}
             selected={selected}
             className="min-w-[480px]"

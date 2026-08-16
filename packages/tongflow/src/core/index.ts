@@ -9,7 +9,6 @@
 export * from "./abi/edge-target-options";
 export * from "./abi/handle-introspect";
 export * from "./abi/node-feature-registry";
-export * from "./abi/node-registry";
 export * from "./abi/resolve";
 export * from "./abi/sources";
 export * from "./agent/serialize";

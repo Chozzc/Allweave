@@ -2,7 +2,6 @@ import { Atom } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo } from "react";
 import type { TongflowPluginNodeProps } from "tongflow";
-import { collectAll } from "tongflow";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,9 +15,7 @@ const ArrangeTextNode = ({
     data,
 }: TongflowPluginNodeProps<"arrange-group", "arrangeNode">) => {
     const t = useTranslations("Workspace.nodes.batch");
-    const form = useAbiForm("arrange-group", {
-        fileKeys: collectAll({ nodeType: "videoNode" }),
-    });
+    const form = useAbiForm("arrange-group");
     const infos = data.infos ?? [];
     const groupCount = (form.state.groupCount as number | undefined) ?? 3;
     const duplicatable =
@@ -27,7 +24,6 @@ const ArrangeTextNode = ({
     return (
         <AbiNodeShell
             feature="arrange-group"
-            sourceSpec={{ fileKeys: collectAll({ nodeType: "videoNode" }) }}
             form={form}
             selected={selected}
             data={data}
