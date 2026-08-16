@@ -1,47 +1,40 @@
-"use client";
-
 /**
- * Client-side agent tool dispatch.
+ * Agent graph tools — the programmatic editing surface over a headless
+ * `FlowStore`.
  *
- * All canvas mutations go through the same `useFlow` store actions the UI
- * uses, so agent-built nodes get automatic layout, ABI handle resolution,
- * camera-follow and undo for free. The patch applier paces its steps so the
- * user watches the workflow grow instead of it popping in at once.
+ * Every mutation goes through the same store actions the canvas uses
+ * (`addNode` / `expands` / `updates` / `removeNode` / `autoLayout`), so an
+ * agent-built graph gets ABI handle resolution, layout and one undo entry per
+ * turn for free. Synchronous and host-agnostic: pacing ("watch it build"),
+ * camera follow and persistence belong to the host.
  */
 
 import type { Edge, Node } from "@xyflow/react";
+import { getAbiTopology } from "../abi/handle-introspect";
+import {
+    NODE_TYPE_TO_ABI_FEATURE,
+    resolvedSpecForNodeType,
+    resolveEdgeHandles,
+} from "../abi/node-feature-registry";
+import { MODALITY_NODE_TYPES } from "../constants/modality-nodes";
+import type { FlowStore } from "../store/flow-store";
+import { isValidFlowConnection } from "../workflow/connection-rules";
+import { isWorkflowValid } from "../workflow/parser";
+import { neighborhood, renderCanvas, resolveNodeRef } from "./serialize";
 import type {
     AgentAttachment,
     GraphPatch,
     GraphPatchAddNode,
     PatchStepResult,
     ToolResult,
-} from "tongflow";
-import {
-    exportWorkflow,
-    getAbiTopology,
-    isValidFlowConnection,
-    isWorkflowValid,
-    logger,
-    MODALITY_NODE_TYPES,
-    NODE_TYPE_SOURCE_SPEC,
-    NODE_TYPE_TO_ABI_FEATURE,
-    neighborhood,
-    parseWorkflowImportJson,
-    renderCanvas,
-    resolvedSpecForNodeType,
-    resolveEdgeHandles,
-    resolveNodeRef,
-    resolveSpec,
-} from "tongflow";
-import { v4 } from "uuid";
-import useFlow from "@/hooks/use-flow";
-import { usePluginsRegistryStore } from "@/hooks/use-plugins-registry";
-import { useTaskStore } from "@/hooks/use-task";
-import { getWorkflow, listWorkflows, saveWorkflow } from "@/lib/api/workspace";
+} from "./types";
+
+/* ------------------------------------------------------------------ */
+/* Node-type knowledge                                                 */
+/* ------------------------------------------------------------------ */
 
 /** Known add-node types (user-input widgets) accepted in patches. */
-const ADD_NODE_TYPES = new Set([
+export const ADD_NODE_TYPES: ReadonlySet<string> = new Set([
     "addTextNode",
     "addImageNode",
     "addVideoNode",
@@ -51,22 +44,19 @@ const ADD_NODE_TYPES = new Set([
     "addLinkNode",
 ]);
 
-const KNOWN_NODE_TYPES: string[] = [
+/** Every canvas node type an agent may create. */
+export const KNOWN_NODE_TYPES: readonly string[] = [
     ...Object.keys(NODE_TYPE_TO_ABI_FEATURE),
     ...MODALITY_NODE_TYPES,
     ...ADD_NODE_TYPES,
 ];
 
-/** Delay between patch steps so the build reads as a sequence, not a pop. */
-const STEP_PACING_MS = 250;
+export function isKnownNodeType(type: string): boolean {
+    return KNOWN_NODE_TYPES.includes(type);
+}
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-/* ------------------------------------------------------------------ */
-/* Helpers                                                             */
-/* ------------------------------------------------------------------ */
-
-function closestTypes(input: string, count = 3): string[] {
+/** Closest known node types for a typo'd `input` (cheap n-gram similarity). */
+export function closestNodeTypes(input: string, count = 3): string[] {
     const lower = input.toLowerCase();
     const scored = KNOWN_NODE_TYPES.map((t) => {
         const tl = t.toLowerCase();
@@ -86,26 +76,9 @@ function closestTypes(input: string, count = 3): string[] {
         .map((s) => s.t);
 }
 
-function isKnownType(type: string): boolean {
-    return KNOWN_NODE_TYPES.includes(type);
-}
+export type NodeKind = "add" | "data" | "executable";
 
-/**
- * `updates()` replaces node.data wholesale — every agent write must merge
- * with the node's current data or it would wipe params and file keys.
- */
-function mergeNodeData(nodeId: string, patch: Record<string, unknown>): void {
-    const flow = useFlow.getState();
-    const node = flow.nodes.find((n) => n.id === nodeId);
-    if (!node) return;
-    // The turn-level commit already snapshotted history; skip per-update
-    // commits so one Cmd+Z reverts the whole agent turn.
-    flow.updates(nodeId, { ...node.data, ...patch }, { history: false });
-}
-
-type NodeKind = "add" | "data" | "executable";
-
-function nodeKind(type: string | undefined): NodeKind | undefined {
+export function nodeKind(type: string | undefined): NodeKind | undefined {
     if (!type) return undefined;
     if (ADD_NODE_TYPES.has(type)) return "add";
     if ((MODALITY_NODE_TYPES as readonly string[]).includes(type)) {
@@ -121,7 +94,7 @@ function nodeKind(type: string | undefined): NodeKind | undefined {
  * reads its input from the upstream node's data, and an executable's results
  * land on its downstream data node — a direct edge would read nothing.
  */
-function edgeShapeError(
+export function edgeShapeError(
     sourceType: string | undefined,
     targetType: string | undefined,
 ): string | undefined {
@@ -177,18 +150,42 @@ function attachmentData(
 /* apply_graph_patch                                                   */
 /* ------------------------------------------------------------------ */
 
-export async function applyGraphPatch(
+export interface ApplyGraphPatchOptions {
+    /** Files the user attached; referenced by `fromAttachment` (1-based). */
+    attachments?: AgentAttachment[];
+    /**
+     * History source label for the single undo snapshot this patch commits
+     * (e.g. `agent:<turnId>`). Same-source commits coalesce.
+     */
+    historySource?: string;
+    /** Edge id factory (defaults to `crypto.randomUUID`). */
+    createId?: () => string;
+    /** Called after each successful step — hosts use it for pacing/camera. */
+    onStep?: (step: PatchStepResult) => void;
+}
+
+/**
+ * Apply one coherent change (nodes to create, edges to draw, params to set,
+ * nodes to delete) to `store`. Returns per-step results; `ok` is true only
+ * when every step succeeded.
+ */
+export function applyGraphPatch(
+    store: FlowStore,
     patch: GraphPatch,
-    attachments: AgentAttachment[],
-    turnId: string,
-): Promise<ToolResult> {
+    options: ApplyGraphPatchOptions = {},
+): ToolResult {
+    const attachments = options.attachments ?? [];
+    const createId = options.createId ?? (() => globalThis.crypto.randomUUID());
     const results: PatchStepResult[] = [];
+    const record = (step: PatchStepResult) => {
+        results.push(step);
+        if (step.ok) options.onStep?.(step);
+    };
     const aliases = new Map<string, string>();
     // Edges already claimed per target within this patch, so several sources
     // land on distinct handles (mirrors compose()'s usedTargetHandles).
     const usedTargetHandles = new Map<string, Set<string>>();
 
-    const flow = useFlow.getState();
     const hasSteps =
         (patch.add_nodes?.length ?? 0) +
             (patch.add_edges?.length ?? 0) +
@@ -199,8 +196,8 @@ export async function applyGraphPatch(
         return { ok: false, error: "empty patch" };
     }
 
-    // One history snapshot per agent turn → one Cmd+Z undoes it all.
-    flow.commitHistory(`agent:${turnId}`);
+    // One history snapshot per patch → one undo reverts it all.
+    store.getState().commitHistory(options.historySource ?? "agent");
 
     const pendingNodes = [...(patch.add_nodes ?? [])];
     let pendingEdges = [...(patch.add_edges ?? [])];
@@ -214,15 +211,16 @@ export async function applyGraphPatch(
     const refType = (ref: string): string | undefined => {
         const aliased = typeByAlias.get(ref);
         if (aliased) return aliased;
-        const resolved = resolveNodeRef(ref, useFlow.getState().nodes);
+        const nodes = store.getState().nodes;
+        const resolved = resolveNodeRef(ref, nodes);
         return resolved.id
-            ? useFlow.getState().nodes.find((n) => n.id === resolved.id)?.type
+            ? nodes.find((n) => n.id === resolved.id)?.type
             : undefined;
     };
     pendingEdges = pendingEdges.filter((e) => {
         const error = edgeShapeError(refType(e.from), refType(e.to));
         if (!error) return true;
-        results.push({
+        record({
             op: "add_edge",
             ref: `${e.from}→${e.to}`,
             ok: false,
@@ -235,19 +233,19 @@ export async function applyGraphPatch(
     /* ---- add_nodes + their first incoming edge (via expands) -------- */
 
     for (const spec of pendingNodes) {
-        if (!isKnownType(spec.type)) {
-            results.push({
+        if (!isKnownNodeType(spec.type)) {
+            record({
                 op: "add_node",
                 ref: spec.alias,
                 ok: false,
                 error: `unknown node type "${spec.type}"`,
-                hint: `closest known types: ${closestTypes(spec.type).join(", ")}`,
+                hint: `closest known types: ${closestNodeTypes(spec.type).join(", ")}`,
             });
             continue;
         }
         const { data, error } = attachmentData(spec, attachments);
         if (error) {
-            results.push({ op: "add_node", ref: spec.alias, ok: false, error });
+            record({ op: "add_node", ref: spec.alias, ok: false, error });
             continue;
         }
 
@@ -257,12 +255,12 @@ export async function applyGraphPatch(
 
         // If this node's first incoming edge originates from an
         // already-materialized node, create node+edge in one `expands` call:
-        // it derives handles, lays out the child and fires camera-follow.
+        // it derives handles and lays out the child.
         const edgeIdx = pendingEdges.findIndex((e) => {
             if (e.to !== spec.alias) return false;
             const from = resolveNodeRef(
                 e.from,
-                useFlow.getState().nodes,
+                store.getState().nodes,
                 aliases,
             );
             return !!from.id;
@@ -275,11 +273,11 @@ export async function applyGraphPatch(
             const edge = pendingEdges[edgeIdx];
             const from = resolveNodeRef(
                 edge.from,
-                useFlow.getState().nodes,
+                store.getState().nodes,
                 aliases,
             );
-            const before = new Set(useFlow.getState().nodes.map((n) => n.id));
-            const ids = useFlow
+            const before = new Set(store.getState().nodes.map((n) => n.id));
+            const ids = store
                 .getState()
                 .expands(from.id ?? null, [
                     { type: spec.type, data: nodeData },
@@ -288,7 +286,7 @@ export async function applyGraphPatch(
             reused = newId !== undefined && before.has(newId);
             if (newId) {
                 pendingEdges.splice(edgeIdx, 1);
-                const targetHandle = useFlow
+                const targetHandle = store
                     .getState()
                     .edges.find(
                         (e) => e.source === from.id && e.target === newId,
@@ -301,14 +299,14 @@ export async function applyGraphPatch(
                 }
             }
         } else {
-            newId = useFlow.getState().addNode({
+            newId = store.getState().addNode({
                 type: spec.type,
                 data: nodeData,
             });
         }
 
         if (!newId) {
-            results.push({
+            record({
                 op: "add_node",
                 ref: spec.alias,
                 ok: false,
@@ -318,27 +316,26 @@ export async function applyGraphPatch(
         }
 
         aliases.set(spec.alias, newId);
-        results.push({
+        record({
             op: "add_node",
             ref: spec.alias,
             ok: true,
             nodeId: newId,
             ...(reused ? { reused: true } : {}),
         });
-        await sleep(STEP_PACING_MS);
     }
 
     /* ---- remaining edges (cross-links, fan-ins) --------------------- */
 
     for (const spec of pendingEdges) {
-        const state = useFlow.getState();
+        const state = store.getState();
         const from = resolveNodeRef(spec.from, state.nodes, aliases);
         const to = resolveNodeRef(spec.to, state.nodes, aliases);
         const refLabel = `${spec.from}→${spec.to}`;
 
         const missing = !from.id ? spec.from : !to.id ? spec.to : undefined;
         if (missing) {
-            results.push({
+            record({
                 op: "add_edge",
                 ref: refLabel,
                 ok: false,
@@ -381,7 +378,7 @@ export async function applyGraphPatch(
         };
 
         if (!isValidFlowConnection(connection, state.nodes, state.edges)) {
-            results.push({
+            record({
                 op: "add_edge",
                 ref: refLabel,
                 ok: false,
@@ -392,30 +389,29 @@ export async function applyGraphPatch(
         }
 
         const edge: Edge = {
-            id: v4(),
+            id: createId(),
             source: fromNode.id,
             target: toNode.id,
             type: "custom-edge",
             ...(sourceHandle ? { sourceHandle } : {}),
             ...(targetHandle ? { targetHandle } : {}),
         };
-        useFlow.getState().setEdges([...useFlow.getState().edges, edge]);
+        store.getState().setEdges([...store.getState().edges, edge]);
         if (targetHandle) {
             used.add(targetHandle);
             usedTargetHandles.set(toNode.id, used);
         }
 
-        results.push({ op: "add_edge", ref: refLabel, ok: true });
-        await sleep(STEP_PACING_MS);
+        record({ op: "add_edge", ref: refLabel, ok: true });
     }
 
     /* ---- update_nodes ---------------------------------------------- */
 
     for (const spec of patch.update_nodes ?? []) {
-        const state = useFlow.getState();
+        const state = store.getState();
         const ref = resolveNodeRef(spec.id, state.nodes, aliases);
         if (!ref.id) {
-            results.push({
+            record({
                 op: "update_node",
                 ref: spec.id,
                 ok: false,
@@ -427,7 +423,7 @@ export async function applyGraphPatch(
             continue;
         }
         if ("prompt" in spec.data) {
-            results.push({
+            record({
                 op: "update_node",
                 ref: spec.id,
                 ok: false,
@@ -436,18 +432,28 @@ export async function applyGraphPatch(
             });
             continue;
         }
-        mergeNodeData(ref.id, spec.data);
-        results.push({ op: "update_node", ref: spec.id, ok: true });
-        await sleep(STEP_PACING_MS);
+        // `updates()` replaces node.data wholesale — merge with the current
+        // data or it would wipe params and file keys. The patch-level commit
+        // already snapshotted history; skip per-update commits so one undo
+        // reverts the whole patch.
+        const node = state.nodes.find((n) => n.id === ref.id);
+        if (node) {
+            state.updates(
+                ref.id,
+                { ...node.data, ...spec.data },
+                { history: false },
+            );
+        }
+        record({ op: "update_node", ref: spec.id, ok: true });
     }
 
     /* ---- remove_nodes ----------------------------------------------- */
 
     for (const refStr of patch.remove_nodes ?? []) {
-        const state = useFlow.getState();
+        const state = store.getState();
         const ref = resolveNodeRef(refStr, state.nodes, aliases);
         if (!ref.id) {
-            results.push({
+            record({
                 op: "remove_node",
                 ref: refStr,
                 ok: false,
@@ -457,23 +463,22 @@ export async function applyGraphPatch(
             });
             continue;
         }
-        useFlow.getState().removeNode(ref.id);
-        results.push({ op: "remove_node", ref: refStr, ok: true });
-        await sleep(STEP_PACING_MS);
+        store.getState().removeNode(ref.id);
+        record({ op: "remove_node", ref: refStr, ok: true });
     }
 
     // Tidy the components this patch touched. No separate history entry —
-    // the turn-level `agent:<turnId>` snapshot already covers it, so one
-    // Cmd+Z still reverts the whole agent turn including the layout.
+    // the patch-level snapshot already covers it, so one undo still reverts
+    // the whole patch including the layout.
     const touchedIds = results
         .filter((r) => r.ok && r.nodeId)
         .map((r) => r.nodeId as string);
     for (const spec of patch.update_nodes ?? []) {
-        const ref = resolveNodeRef(spec.id, useFlow.getState().nodes, aliases);
+        const ref = resolveNodeRef(spec.id, store.getState().nodes, aliases);
         if (ref.id) touchedIds.push(ref.id);
     }
     if (touchedIds.length > 0) {
-        useFlow.getState().autoLayout(touchedIds, { history: false });
+        store.getState().autoLayout(touchedIds, { history: false });
     }
 
     const failed = results.filter((r) => !r.ok);
@@ -492,9 +497,21 @@ export async function applyGraphPatch(
 /* read_canvas                                                         */
 /* ------------------------------------------------------------------ */
 
-function readCanvas(scope?: string): ToolResult {
-    const { nodes, edges, selectedNodes } = useFlow.getState();
-    const statusByNodeId = useTaskStore.getState().nodeExecutionStatusMap;
+export interface ReadCanvasOptions {
+    /** `"all"` (default), `"selection"`, or `"around:<ref>"`. */
+    scope?: string;
+    /** Live execution status per node id, if the host tracks it. */
+    statusByNodeId?: ReadonlyMap<string, string> | Record<string, string>;
+    /** Truncate long text values (default 200 chars). */
+    maxText?: number;
+}
+
+export function readCanvas(
+    store: FlowStore,
+    options: ReadCanvasOptions = {},
+): ToolResult {
+    const { nodes, edges, selectedNodes } = store.getState();
+    const { scope, statusByNodeId, maxText = 200 } = options;
 
     let only: Set<string> | undefined;
     if (scope === "selection") {
@@ -510,12 +527,18 @@ function readCanvas(scope?: string): ToolResult {
         only = neighborhood(ref.id, edges);
     }
 
+    const statusMap =
+        statusByNodeId instanceof Map
+            ? statusByNodeId
+            : statusByNodeId
+              ? new Map(Object.entries(statusByNodeId))
+              : undefined;
     return {
         ok: true,
         canvas: renderCanvas(nodes, edges, {
             selectedIds: selectedNodes.map((n) => n.id),
-            statusByNodeId,
-            maxText: 200,
+            statusByNodeId: statusMap,
+            maxText,
             only,
         }),
     };
@@ -525,9 +548,26 @@ function readCanvas(scope?: string): ToolResult {
 /* validate_workflow                                                   */
 /* ------------------------------------------------------------------ */
 
-function validateWorkflow(): ToolResult {
-    const { nodes, edges } = useFlow.getState();
-    const registry = usePluginsRegistryStore.getState().registry;
+/** The subset of the plugins registry validation needs. */
+export interface InstalledPluginsView {
+    /** ABI slot → installed plugin ids (default first). */
+    nodePluginMap?: Record<string, string[]>;
+}
+
+export interface ValidateWorkflowOptions {
+    /**
+     * Installed plugins, so validation can flag slots with no implementation
+     * or a `pluginId` that isn't installed. Omit to skip plugin checks.
+     */
+    registry?: InstalledPluginsView | null;
+}
+
+export function validateWorkflow(
+    store: FlowStore,
+    options: ValidateWorkflowOptions = {},
+): ToolResult {
+    const { nodes, edges } = store.getState();
+    const registry = options.registry;
     const problems: string[] = [];
 
     if (nodes.length === 0) return { ok: true, problems: ["canvas is empty"] };
@@ -553,12 +593,9 @@ function validateWorkflow(): ToolResult {
 
     for (const node of nodes) {
         const feature = NODE_TYPE_TO_ABI_FEATURE[node.type ?? ""];
-        if (!feature) continue;
+        const spec = resolvedSpecForNodeType(node.type);
+        if (!feature || !spec) continue;
         const short = `#${node.id.slice(0, 8)} ${node.type}`;
-        const spec = resolveSpec(
-            feature,
-            NODE_TYPE_SOURCE_SPEC[node.type ?? ""],
-        );
         const data = (node.data ?? {}) as Record<string, unknown>;
 
         for (const [field, resolved] of Object.entries(spec.fields)) {
@@ -587,17 +624,19 @@ function validateWorkflow(): ToolResult {
             }
         }
 
-        const installed = registry?.nodePluginMap?.[feature] ?? [];
-        if (installed.length === 0) {
-            problems.push(`${short}: no plugin installed for "${feature}"`);
-        } else if (
-            typeof data.pluginId === "string" &&
-            data.pluginId &&
-            !installed.includes(data.pluginId)
-        ) {
-            problems.push(
-                `${short}: plugin "${data.pluginId}" is not installed (available: ${installed.join(", ")})`,
-            );
+        if (registry) {
+            const installed = registry.nodePluginMap?.[feature] ?? [];
+            if (installed.length === 0) {
+                problems.push(`${short}: no plugin installed for "${feature}"`);
+            } else if (
+                typeof data.pluginId === "string" &&
+                data.pluginId &&
+                !installed.includes(data.pluginId)
+            ) {
+                problems.push(
+                    `${short}: plugin "${data.pluginId}" is not installed (available: ${installed.join(", ")})`,
+                );
+            }
         }
     }
 
@@ -608,16 +647,17 @@ function validateWorkflow(): ToolResult {
 /* describe_node_type                                                  */
 /* ------------------------------------------------------------------ */
 
-function describeNodeType(type: string): ToolResult {
-    if (!isKnownType(type)) {
+export function describeNodeType(type: string): ToolResult {
+    if (!isKnownNodeType(type)) {
         return {
             ok: false,
             error: `unknown node type "${type}"`,
-            hint: `closest known types: ${closestTypes(type).join(", ")}`,
+            hint: `closest known types: ${closestNodeTypes(type).join(", ")}`,
         };
     }
     const feature = NODE_TYPE_TO_ABI_FEATURE[type];
-    if (!feature) {
+    const spec = resolvedSpecForNodeType(type);
+    if (!feature || !spec) {
         return {
             ok: true,
             type,
@@ -625,8 +665,7 @@ function describeNodeType(type: string): ToolResult {
             note: "carries assets; data keys are texts (textNode/linkNode) or fileKeys (other modalities)",
         };
     }
-    const topology = getAbiTopology(feature);
-    const spec = resolveSpec(feature, NODE_TYPE_SOURCE_SPEC[type]);
+    const { topology } = spec;
     const fields: Record<string, unknown> = {};
     for (const field of topology.inputOrder) {
         const resolved = spec.fields[field];
@@ -657,120 +696,39 @@ function describeNodeType(type: string): ToolResult {
 }
 
 /* ------------------------------------------------------------------ */
-/* Workflow persistence tools                                          */
-/* ------------------------------------------------------------------ */
-
-async function toolListWorkflows(): Promise<ToolResult> {
-    try {
-        const res = await listWorkflows();
-        return {
-            ok: true,
-            workflows: (res.workflows ?? []).map((w) => ({
-                id: w.id,
-                name: w.name,
-                description: w.description ?? undefined,
-            })),
-        };
-    } catch (e) {
-        return { ok: false, error: String(e) };
-    }
-}
-
-async function toolLoadWorkflow(id: number): Promise<ToolResult> {
-    try {
-        const res = await getWorkflow(id);
-        // `flow` is stored as a JSON string; the import parser tolerates both
-        // encodings and the {flow:...} envelope.
-        const parsed = parseWorkflowImportJson({ flow: res.workflow.flow });
-        const flow = useFlow.getState();
-        flow.commitHistory("agent:load-workflow");
-        flow.setNodes(parsed.nodes);
-        flow.setEdges(parsed.edges);
-        flow.setWorkflowId(res.workflow.id);
-        flow.setWorkflowName(res.workflow.name ?? "");
-        flow.setWorkflowDescription(res.workflow.description ?? "");
-        return {
-            ok: true,
-            loaded: res.workflow.name,
-            nodes: parsed.nodes.length,
-        };
-    } catch (e) {
-        return { ok: false, error: String(e) };
-    }
-}
-
-async function toolSaveWorkflow(args: {
-    name?: string;
-    description?: string;
-}): Promise<ToolResult> {
-    try {
-        const state = useFlow.getState();
-        if (state.nodes.length === 0) {
-            return { ok: false, error: "canvas is empty; nothing to save" };
-        }
-        const name = args.name || state.workflowName || "Agent workflow";
-        const description = args.description ?? state.workflowDescription;
-        const executable = exportWorkflow(state.nodes, state.edges, {
-            name,
-            description,
-            includeOriginalFlow: true,
-        });
-        const res = await saveWorkflow({
-            workflowId: state.workflowId ?? undefined,
-            name,
-            description,
-            flow: { nodes: state.nodes, edges: state.edges },
-            executable,
-        });
-        if (res.workflowId !== undefined && res.workflowId !== null) {
-            state.setWorkflowId(res.workflowId);
-        }
-        state.setWorkflowName(name);
-        if (description) state.setWorkflowDescription(description);
-        return { ok: true, workflowId: res.workflowId, name };
-    } catch (e) {
-        return { ok: false, error: String(e) };
-    }
-}
-
-/* ------------------------------------------------------------------ */
 /* Dispatch                                                            */
 /* ------------------------------------------------------------------ */
 
-export async function executeAgentTool(
+export interface ExecuteToolContext
+    extends ApplyGraphPatchOptions,
+        ValidateWorkflowOptions {
+    /** Live execution status per node id (for `read_canvas`). */
+    statusByNodeId?: ReadonlyMap<string, string> | Record<string, string>;
+}
+
+/**
+ * Dispatch one of the `TONGFLOW_TOOL_DEFS` tools by name. Unknown names are
+ * reported as a tool error so hosts can layer their own tools on top.
+ */
+export function executeGraphTool(
+    store: FlowStore,
     name: string,
     args: Record<string, unknown>,
-    context: { attachments: AgentAttachment[]; turnId: string },
-): Promise<ToolResult> {
-    try {
-        switch (name) {
-            case "apply_graph_patch":
-                return await applyGraphPatch(
-                    args as GraphPatch,
-                    context.attachments,
-                    context.turnId,
-                );
-            case "read_canvas":
-                return readCanvas(
-                    typeof args.scope === "string" ? args.scope : undefined,
-                );
-            case "validate_workflow":
-                return validateWorkflow();
-            case "describe_node_type":
-                return describeNodeType(String(args.type ?? ""));
-            case "list_workflows":
-                return await toolListWorkflows();
-            case "load_workflow":
-                return await toolLoadWorkflow(Number(args.id));
-            case "save_workflow":
-                return await toolSaveWorkflow(
-                    args as { name?: string; description?: string },
-                );
-            default:
-                return { ok: false, error: `unknown tool "${name}"` };
-        }
-    } catch (e) {
-        logger.error("[agent] tool failed:", name, e);
-        return { ok: false, error: String(e) };
+    context: ExecuteToolContext = {},
+): ToolResult {
+    switch (name) {
+        case "apply_graph_patch":
+            return applyGraphPatch(store, args as GraphPatch, context);
+        case "read_canvas":
+            return readCanvas(store, {
+                scope: typeof args.scope === "string" ? args.scope : undefined,
+                statusByNodeId: context.statusByNodeId,
+            });
+        case "validate_workflow":
+            return validateWorkflow(store, { registry: context.registry });
+        case "describe_node_type":
+            return describeNodeType(String(args.type ?? ""));
+        default:
+            return { ok: false, error: `unknown tool "${name}"` };
     }
 }

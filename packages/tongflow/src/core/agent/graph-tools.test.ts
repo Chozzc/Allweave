@@ -5,33 +5,14 @@
  *  - collect-many handles accept several edges on the same target handle
  *  - update_nodes merges into node.data (updates() replaces wholesale)
  *  - `prompt` stays agent-unwritable; attachments substitute real fileKeys
+ *
+ * Runs against a headless `createFlowStore` — no React, no persistence.
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
-// The flow store persists to localStorage on every mutation.
-const storage = new Map<string, string>();
-vi.stubGlobal("localStorage", {
-    getItem: (k: string) => storage.get(k) ?? null,
-    setItem: (k: string, v: string) => void storage.set(k, v),
-    removeItem: (k: string) => void storage.delete(k),
-});
-
-// The workspace API client transitively imports .tsx UI (toast); vitest runs
-// without JSX transform, and these tests never touch the network anyway.
-vi.mock("@/lib/api/workspace", () => ({
-    getWorkflow: vi.fn(),
-    listWorkflows: vi.fn(),
-    saveWorkflow: vi.fn(),
-}));
-vi.mock("@/lib/api/task", () => ({
-    createTask: vi.fn(),
-    updateTaskStatus: vi.fn(),
-}));
-
-import type { AgentAttachment } from "tongflow";
-import useFlow from "@/hooks/use-flow";
-import { applyGraphPatch } from "./executor";
+import { beforeEach, describe, expect, it } from "vitest";
+import { createFlowStore, type FlowStore } from "../store/flow-store";
+import { applyGraphPatch } from "./graph-tools";
+import type { AgentAttachment } from "./types";
 
 const ATTACHMENTS: AgentAttachment[] = [
     {
@@ -45,34 +26,31 @@ const ATTACHMENTS: AgentAttachment[] = [
     },
 ];
 
+let store: FlowStore;
 function reset() {
-    useFlow.setState({
-        nodes: [],
-        edges: [],
-        historyPast: [],
-        historyFuture: [],
-    });
+    store = createFlowStore();
 }
 
 describe("applyGraphPatch", () => {
     beforeEach(reset);
 
-    it("rejects unknown node types with close suggestions", async () => {
-        const result = await applyGraphPatch(
+    it("rejects unknown node types with close suggestions", () => {
+        const result = applyGraphPatch(
+            store,
             { add_nodes: [{ alias: "x", type: "textToImageNode" }] },
-            [],
-            "t1",
+            {},
         );
         expect(result.ok).toBe(false);
         const steps = (result as unknown as { steps: { hint?: string }[] })
             .steps;
         expect(steps[0].hint).toContain("textGenImageNode");
-        expect(useFlow.getState().nodes).toHaveLength(0);
+        expect(store.getState().nodes).toHaveLength(0);
     });
 
-    it("builds a fully alternating chain with ABI handles via expands", async () => {
+    it("builds a fully alternating chain with ABI handles via expands", () => {
         // add → data → executable → data → executable → data
-        const result = await applyGraphPatch(
+        const result = applyGraphPatch(
+            store,
             {
                 add_nodes: [
                     { alias: "add1", type: "addImageNode", fromAttachment: 1 },
@@ -90,12 +68,11 @@ describe("applyGraphPatch", () => {
                     { from: "genVid", to: "vid" },
                 ],
             },
-            ATTACHMENTS,
-            "t2",
+            { attachments: ATTACHMENTS },
         );
         expect(result.ok).toBe(true);
 
-        const { nodes, edges } = useFlow.getState();
+        const { nodes, edges } = store.getState();
         expect(nodes).toHaveLength(4);
         expect(edges).toHaveLength(3);
         const intoExec = edges.find((e) => e.targetHandle === "in:image");
@@ -105,8 +82,9 @@ describe("applyGraphPatch", () => {
         expect(outOfExec?.sourceHandle).toBe("out:video");
     });
 
-    it("rejects executable→executable edges with a repair hint", async () => {
-        const result = await applyGraphPatch(
+    it("rejects executable→executable edges with a repair hint", () => {
+        const result = applyGraphPatch(
+            store,
             {
                 add_nodes: [
                     { alias: "genImg", type: "textGenImageNode" },
@@ -118,8 +96,7 @@ describe("applyGraphPatch", () => {
                 ],
                 add_edges: [{ from: "genImg", to: "genVid" }],
             },
-            [],
-            "t2c",
+            {},
         );
         expect(result.ok).toBe(false);
         const steps = (
@@ -131,14 +108,15 @@ describe("applyGraphPatch", () => {
         expect(edgeStep?.ok).toBe(false);
         expect(edgeStep?.error).toContain("insert an empty imageNode");
         // The invalid edge must not be created.
-        expect(useFlow.getState().edges).toHaveLength(0);
+        expect(store.getState().edges).toHaveLength(0);
     });
 
-    it("wires promoted (sourceSpec) handles without any component mounted", async () => {
+    it("wires promoted (sourceSpec) handles without any component mounted", () => {
         // textGenImageNode's `text: batchOn` is a sourceSpec promotion of a
         // plain-string ABI input. It lives in the static NODE_TYPE_SOURCE_SPEC
         // registry, so the target handle resolves headlessly — no mount heal.
-        const result = await applyGraphPatch(
+        const result = applyGraphPatch(
+            store,
             {
                 add_nodes: [
                     {
@@ -150,19 +128,19 @@ describe("applyGraphPatch", () => {
                 ],
                 add_edges: [{ from: "t1", to: "img" }],
             },
-            [],
-            "t2b",
+            {},
         );
         expect(result.ok).toBe(true);
 
-        const { edges } = useFlow.getState();
+        const { edges } = store.getState();
         expect(edges).toHaveLength(1);
         expect(edges[0].sourceHandle).toBe("out:textNode");
         expect(edges[0].targetHandle).toBe("in:text");
     });
 
-    it("routes several sources onto a collect-many handle", async () => {
-        const result = await applyGraphPatch(
+    it("routes several sources onto a collect-many handle", () => {
+        const result = applyGraphPatch(
+            store,
             {
                 add_nodes: [
                     { alias: "a", type: "imageNode", fromAttachment: 1 },
@@ -174,18 +152,18 @@ describe("applyGraphPatch", () => {
                     { from: "b", to: "fuse" },
                 ],
             },
-            ATTACHMENTS,
-            "t3",
+            { attachments: ATTACHMENTS },
         );
         expect(result.ok).toBe(true);
 
-        const { edges } = useFlow.getState();
+        const { edges } = store.getState();
         const fuseEdges = edges.filter((e) => e.targetHandle === "in:images");
         expect(fuseEdges).toHaveLength(2);
     });
 
-    it("merges update_nodes into existing data", async () => {
-        await applyGraphPatch(
+    it("merges update_nodes into existing data", () => {
+        applyGraphPatch(
+            store,
             {
                 add_nodes: [
                     {
@@ -195,73 +173,67 @@ describe("applyGraphPatch", () => {
                     },
                 ],
             },
-            [],
-            "t4",
+            {},
         );
-        const id = useFlow.getState().nodes[0].id;
+        const id = store.getState().nodes[0].id;
 
-        const result = await applyGraphPatch(
+        const result = applyGraphPatch(
+            store,
             { update_nodes: [{ id: id.slice(0, 8), data: { duration: 10 } }] },
-            [],
-            "t5",
+            {},
         );
         expect(result.ok).toBe(true);
 
-        const data = useFlow.getState().nodes[0].data as Record<
-            string,
-            unknown
-        >;
+        const data = store.getState().nodes[0].data as Record<string, unknown>;
         // Changed key updated, untouched key preserved (merge, not replace).
         expect(data.duration).toBe(10);
         expect(data.text).toBe("drinking");
     });
 
-    it("refuses to write the derived prompt field", async () => {
-        await applyGraphPatch(
+    it("refuses to write the derived prompt field", () => {
+        applyGraphPatch(
+            store,
             { add_nodes: [{ alias: "n", type: "textGenImageNode" }] },
-            [],
-            "t6",
+            {},
         );
-        const id = useFlow.getState().nodes[0].id;
-        const result = await applyGraphPatch(
+        const id = store.getState().nodes[0].id;
+        const result = applyGraphPatch(
+            store,
             { update_nodes: [{ id, data: { prompt: { text: "x" } } }] },
-            [],
-            "t7",
+            {},
         );
         expect(result.ok).toBe(false);
     });
 
-    it("substitutes attachment fileKeys and rejects bad indices", async () => {
-        const ok = await applyGraphPatch(
+    it("substitutes attachment fileKeys and rejects bad indices", () => {
+        const ok = applyGraphPatch(
+            store,
             {
                 add_nodes: [
                     { alias: "src", type: "addImageNode", fromAttachment: 1 },
                 ],
             },
-            ATTACHMENTS,
-            "t8",
+            { attachments: ATTACHMENTS },
         );
         expect(ok.ok).toBe(true);
-        const data = useFlow.getState().nodes[0].data as Record<
-            string,
-            unknown
-        >;
+        const data = store.getState().nodes[0].data as Record<string, unknown>;
         expect(data.fileKeys).toEqual(["tasks/upload/cat.png"]);
 
-        const bad = await applyGraphPatch(
+        const bad = applyGraphPatch(
+            store,
             {
                 add_nodes: [
                     { alias: "x", type: "addImageNode", fromAttachment: 9 },
                 ],
             },
-            ATTACHMENTS,
-            "t9",
+            { attachments: ATTACHMENTS },
         );
         expect(bad.ok).toBe(false);
     });
 
-    it("resolves references against existing canvas nodes", async () => {
-        await applyGraphPatch(
+    it("resolves references against existing canvas nodes", () => {
+        applyGraphPatch(
+            store,
             {
                 add_nodes: [
                     {
@@ -271,21 +243,20 @@ describe("applyGraphPatch", () => {
                     },
                 ],
             },
-            [],
-            "t10",
+            {},
         );
-        const existingId = useFlow.getState().nodes[0].id;
+        const existingId = store.getState().nodes[0].id;
 
         // Second patch references the first patch's node by short id.
-        const result = await applyGraphPatch(
+        const result = applyGraphPatch(
+            store,
             {
                 add_nodes: [{ alias: "img", type: "textGenImageNode" }],
                 add_edges: [{ from: existingId.slice(0, 8), to: "img" }],
             },
-            [],
-            "t11",
+            {},
         );
         expect(result.ok).toBe(true);
-        expect(useFlow.getState().edges).toHaveLength(1);
+        expect(store.getState().edges).toHaveLength(1);
     });
 });

@@ -117,7 +117,7 @@ export interface RenderCanvasOptions {
     /** Node ids the user currently has selected on the canvas. */
     selectedIds?: string[];
     /** nodeId → execution status, from the task store. */
-    statusByNodeId?: Map<string, string>;
+    statusByNodeId?: ReadonlyMap<string, string>;
     /** Max characters per string value. Digest uses 60, full read 200. */
     maxText?: number;
     /** Restrict output to this subset (already scoped by the caller). */
