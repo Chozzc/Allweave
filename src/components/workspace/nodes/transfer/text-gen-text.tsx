@@ -1,7 +1,7 @@
-import { useNodeId, useNodesData } from "@xyflow/react";
+import { useNodesData } from "@xyflow/react";
 import { Maximize2, Wand2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,30 +15,17 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAbiForm } from "@/hooks/use-abi-form";
-import { useFlow } from "@/hooks/use-flow";
-import {
-    resolveSkill,
-    useSkillsRegistry,
-    useSkillsRegistryStore,
-} from "@/hooks/use-skills";
 import { useUpstreamNodeIds } from "@/hooks/use-upstream-ids";
 import { batchOn } from "@/lib/abi/sources";
-import { composeSkillPrompt } from "@/lib/skills/compose";
-import type { SkillRef } from "@/lib/skills/types";
 import type { TongflowPluginNodeProps } from "@/types/tongflow-flow";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
-import { NodeSkillSelect } from "../base/node-skill-select";
 import { NodeTextarea } from "../base/node-textarea";
 
 const GenTextNode = ({
     selected,
     data,
-}: TongflowPluginNodeProps<
-    "gen-text",
-    "genTextNode",
-    { skill?: SkillRef }
->) => {
+}: TongflowPluginNodeProps<"gen-text", "genTextNode">) => {
     const t = useTranslations("Workspace.nodes");
     const tBase = useTranslations("Workspace.nodes.base");
     const form = useAbiForm("gen-text");
@@ -71,45 +58,6 @@ const GenTextNode = ({
     const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
     const [fullscreenValue, setFullscreenValue] = useState("");
 
-    // Skill (reusable prompt pack from an installed tongflow-package-*).
-    // `skill` is a UI-only node.data field — buildPrompts only assembles ABI
-    // fields, so the ref never leaks into the task prompt by itself.
-    const nodeId = useNodeId();
-    const flowUpdates = useFlow((s) => s.updates);
-    const skillRef = data.skill;
-    const { registry: skillsRegistry } = useSkillsRegistry();
-    const activeSkill = resolveSkill(skillsRegistry, skillRef);
-
-    const setSkill = useCallback(
-        (ref: SkillRef | null) => {
-            if (!nodeId) return;
-            flowUpdates(nodeId, { ...data, skill: ref ?? undefined });
-        },
-        [nodeId, flowUpdates, data],
-    );
-
-    // Read the skill body via getState() at run time (not from the render
-    // closure) so an edited package always contributes its latest content.
-    const transformPrompts = useCallback(
-        (prompts: Record<string, unknown>[]) => {
-            if (!skillRef) return prompts;
-            const skill = resolveSkill(
-                useSkillsRegistryStore.getState().registry,
-                skillRef,
-            );
-            // Uninstalled package / removed skill: degrade to a no-op.
-            if (!skill) return prompts;
-            return prompts.map((p) => ({
-                ...p,
-                userPrompt: composeSkillPrompt(
-                    skill.content,
-                    typeof p.userPrompt === "string" ? p.userPrompt : "",
-                ),
-            }));
-        },
-        [skillRef],
-    );
-
     return (
         <>
             <AbiNodeShell
@@ -124,10 +72,7 @@ const GenTextNode = ({
                 title={t("titles.textGenText")}
                 icon={<Wand2 className="h-5 w-5" />}
                 executeLabel={tBase("execute")}
-                executeDisabled={
-                    (!effectivePrompt.trim() && !activeSkill) || !texts?.length
-                }
-                transformPrompts={transformPrompts}
+                executeDisabled={!effectivePrompt.trim() || !texts?.length}
                 headerActions={
                     !hasUpstreamPrompt ? (
                         <Button
@@ -146,7 +91,6 @@ const GenTextNode = ({
                 }
             >
                 <div className="p-4 space-y-4">
-                    <NodeSkillSelect value={skillRef} onChange={setSkill} />
                     <div className="space-y-2">
                         {hasUpstreamPrompt ? (
                             <Card className="p-3 bg-muted/50">

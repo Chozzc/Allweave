@@ -123,14 +123,3 @@ def test_scan_accepts_local_prefix(tmp_path):
     assert payload["errors"] == []
     assert "tongflow-local-fake" in payload["plugins"]
 
-
-def test_scan_skips_package_dirs_silently(tmp_path):
-    # tongflow-package-* content packages carry no executable code; the plugin
-    # scanner must ignore them without reporting an error.
-    root = tmp_path / "plugins"
-    pdir = root / "tongflow-package-skills"
-    (pdir / "skills").mkdir(parents=True)
-    (pdir / "skills" / "polish.md").write_text("---\nname: Polish\n---\nbody", encoding="utf-8")
-    payload = _entry(root, _write_abi(tmp_path))
-    assert payload["errors"] == []
-    assert payload["plugins"] == {}

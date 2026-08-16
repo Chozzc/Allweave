@@ -14,7 +14,6 @@ import {
 } from "@/lib/plugins/official-plugins.server";
 import { invalidatePluginsRegistry } from "@/lib/plugins/plugins-registry.server";
 import { pluginsDir } from "@/lib/runtime/paths.server";
-import { invalidateSkillsRegistry } from "@/lib/skills/skills-registry.server";
 
 // We clone with isomorphic-git (pure JS) so the host does not need a system git
 // binary. Trade-off: isomorphic-git speaks HTTP(S) only — SSH remotes are not
@@ -24,14 +23,7 @@ const PLUGIN_GIT_AUTHOR = { name: "tongflow", email: "tongflow@local" };
 // The scanner only detects directories that follow the naming convention; a
 // plugin cloned under any other name is silently ignored. We enforce the prefix
 // up front so a custom git URL either yields a usable plugin or a clear error.
-// tongflow-package-* are content packages (skill packs, no executable code)
-// discovered by the skills registry instead of the plugin scanner.
-const PLUGIN_ID_RE =
-    /^tongflow-(modal|api|router|local|package)-[a-z0-9][a-z0-9-]*$/;
-
-function isContentPackageId(id: string): boolean {
-    return id.startsWith("tongflow-package-");
-}
+const PLUGIN_ID_RE = /^tongflow-(modal|api|router|local)-[a-z0-9][a-z0-9-]*$/;
 
 export interface InstallResult {
     id: string;
@@ -78,7 +70,7 @@ function assertSafeGitUrl(gitUrl: string): void {
 function assertValidPluginId(id: string): void {
     if (!PLUGIN_ID_RE.test(id)) {
         throw new PluginInstallError(
-            `Plugin directory "${id}" must match the tongflow-modal-*, tongflow-api-*, tongflow-router-*, tongflow-local-* or tongflow-package-* convention, otherwise the scanner cannot detect it.`,
+            `Plugin directory "${id}" must match the tongflow-modal-*, tongflow-api-*, tongflow-router-* or tongflow-local-* convention, otherwise the scanner cannot detect it.`,
         );
     }
 }
@@ -163,13 +155,6 @@ export async function installPlugin(params: {
     logger.info(`[plugins] ${action}: ${id}`);
 
     // Rescan so the new plugin shows up in the registry without a restart.
-    // Content packages are invisible to the plugin scanner — their "recognized"
-    // signal is the skills registry finding at least one skill in them.
-    if (isContentPackageId(id)) {
-        const skillsRegistry = invalidateSkillsRegistry();
-        const pkg = skillsRegistry.packages[id];
-        return { id, action, recognized: Boolean(pkg?.skills.length) };
-    }
     const registry = invalidatePluginsRegistry();
     const recognized = Boolean(registry.plugins[id]);
 
@@ -211,11 +196,7 @@ export async function uninstallPlugin(id: string): Promise<UninstallResult> {
     logger.info(`[plugins] uninstalled: ${id}`);
 
     // Rescan so the removed plugin disappears from node pickers immediately.
-    if (isContentPackageId(id)) {
-        invalidateSkillsRegistry();
-    } else {
-        invalidatePluginsRegistry();
-    }
+    invalidatePluginsRegistry();
 
     return { id };
 }

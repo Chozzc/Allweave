@@ -31,7 +31,6 @@ import {
     parseWorkflowImportJson,
 } from "@/lib/workflow/exporter";
 import { isWorkflowValid } from "@/lib/workflow/parser";
-import { searchDocs } from "./docs-search";
 import { neighborhood, renderCanvas, resolveNodeRef } from "./serialize";
 import type {
     AgentAttachment,
@@ -759,8 +758,6 @@ export async function executeAgentTool(
                 return validateWorkflow();
             case "describe_node_type":
                 return describeNodeType(String(args.type ?? ""));
-            case "search_docs":
-                return await searchDocs(String(args.query ?? ""));
             case "list_workflows":
                 return await toolListWorkflows();
             case "load_workflow":
