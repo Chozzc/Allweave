@@ -3,10 +3,10 @@ import { FileText, Maximize2, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import type { RfDataNodeProps } from "tongflow";
+import { logger } from "tongflow";
 import { Button } from "@/components/ui/button";
 import { DropdownMenuLabel } from "@/components/ui/dropdown-menu";
-import { logger } from "@/lib/logger";
-import type { RfDataNodeProps } from "@/types/nodes";
 import { BaseNodeShell } from "../base/base-node-shell";
 import {
     NodeHeader,

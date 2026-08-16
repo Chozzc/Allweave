@@ -457,7 +457,7 @@ def main() -> int:
     ap.add_argument(
         "--abi",
         type=Path,
-        default=Path("config/tongflow.abi.json"),
+        default=Path("packages/tongflow/abi/tongflow.abi.json"),
         help="Path to tongflow.abi.json",
     )
     ns = ap.parse_args()

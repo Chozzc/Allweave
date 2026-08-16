@@ -3,18 +3,16 @@ import { useNodeId, useStore } from "@xyflow/react";
 import { Atom } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useEffect, useMemo } from "react";
-
+import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
 import {
     type AspectRatio,
+    coerceBaseNodeData,
+    NODE_TYPE_SOURCE_SPEC,
+    parseTargetHandleId,
     VIDEO_ASPECT_RATIOS,
     VIDEO_DURATION_DEFAULT,
-} from "@/constants/media-options";
+} from "tongflow";
 import { useAbiForm } from "@/hooks/use-abi-form";
-import { parseTargetHandleId } from "@/lib/abi/handle-introspect";
-import { NODE_TYPE_SOURCE_SPEC } from "@/lib/abi/node-feature-registry";
-import type { SourceSpec } from "@/lib/abi/sources";
-import { coerceBaseNodeData } from "@/lib/workflow/flow-node-data";
-import type { TongflowPluginNodeProps } from "@/types/tongflow-flow";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { AspectRatioPicker } from "../base/aspect-ratio-picker";

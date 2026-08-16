@@ -3,7 +3,8 @@ import { useNodeId, useNodesData, useStore } from "@xyflow/react";
 import { Lightbulb } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useMemo } from "react";
-
+import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
+import { coerceBaseNodeData, NODE_TYPE_SOURCE_SPEC } from "tongflow";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -16,10 +17,6 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useAbiForm } from "@/hooks/use-abi-form";
-import { NODE_TYPE_SOURCE_SPEC } from "@/lib/abi/node-feature-registry";
-import type { SourceSpec } from "@/lib/abi/sources";
-import { coerceBaseNodeData } from "@/lib/workflow/flow-node-data";
-import type { TongflowPluginNodeProps } from "@/types/tongflow-flow";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
 

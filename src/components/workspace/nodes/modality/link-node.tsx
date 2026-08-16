@@ -2,9 +2,8 @@ import { Handle, Position } from "@xyflow/react";
 import { Link as LinkIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo } from "react";
-
+import type { RfDataNodeProps } from "tongflow";
 import { DropdownMenuLabel } from "@/components/ui/dropdown-menu";
-import type { RfDataNodeProps } from "@/types/nodes";
 
 import { BaseNodeShell } from "../base/base-node-shell";
 import {

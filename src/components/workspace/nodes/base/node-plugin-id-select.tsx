@@ -3,6 +3,7 @@
 import { useNodeId } from "@xyflow/react";
 import { useTranslations } from "next-intl";
 import { useMemo } from "react";
+import type { BaseNodeData } from "tongflow";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import useFlow from "@/hooks/use-flow";
@@ -11,7 +12,6 @@ import {
     usePluginsRegistry,
     usePluginsRegistryStore,
 } from "@/hooks/use-plugins-registry";
-import type { BaseNodeData } from "@/types/nodes";
 import { NodePluginSelect } from "./node-plugin-select";
 
 export function pluginDisplayName(pluginId: string): string {

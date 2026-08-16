@@ -5,21 +5,20 @@ import { useNodeId, useNodesData, useStore } from "@xyflow/react";
 import { Atom } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useEffect, useMemo } from "react";
-
-import { Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
 import {
     type AspectRatio,
+    coerceBaseNodeData,
+    collectHandleValues,
+    NODE_TYPE_SOURCE_SPEC,
+    resolveSpec,
     VIDEO_ASPECT_RATIOS,
     VIDEO_DURATION_DEFAULT,
-} from "@/constants/media-options";
+} from "tongflow";
+import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { useAbiForm } from "@/hooks/use-abi-form";
 import { useUpstreamNodeIds } from "@/hooks/use-upstream-ids";
-import { NODE_TYPE_SOURCE_SPEC } from "@/lib/abi/node-feature-registry";
-import { collectHandleValues, resolveSpec } from "@/lib/abi/resolve";
-import type { SourceSpec } from "@/lib/abi/sources";
-import { coerceBaseNodeData } from "@/lib/workflow/flow-node-data";
-import type { TongflowPluginNodeProps } from "@/types/tongflow-flow";
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { AspectRatioPicker } from "../base/aspect-ratio-picker";
 import { NodeTextarea } from "../base/node-textarea";

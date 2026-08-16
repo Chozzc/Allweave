@@ -1,16 +1,15 @@
 import { Atom } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useCallback, useEffect, useMemo } from "react";
-
+import type { TongflowPluginNodeProps } from "tongflow";
 import {
     type AspectRatio,
+    batchOn,
     IMAGE_ASPECT_RATIOS,
     IMAGE_RESOLUTION_TIERS,
     type ResolutionTier,
-} from "@/constants/media-options";
+} from "tongflow";
 import { useAbiForm } from "@/hooks/use-abi-form";
-import { batchOn } from "@/lib/abi/sources";
-import type { TongflowPluginNodeProps } from "@/types/tongflow-flow";
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { AspectRatioPicker } from "../base/aspect-ratio-picker";
 import { ResolutionPicker } from "../base/resolution-picker";

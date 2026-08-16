@@ -285,7 +285,7 @@ docker compose up -d
 
 ## 自定义插件
 
-画布上每一个能跑的节点，背后都是一份**契约**——ABI（[`config/tongflow.abi.json`](../config/tongflow.abi.json)），它定义「有哪些能力」以及「每个能力的输入输出长什么样」，而与「由谁实现」无关。一个插件就是一个小小的 Python 包，挑 ABI 里一个或多个槽，借助 tongflow Python SDK，用 ABI 生成的类型给出**怎么做**的那部分。
+画布上每一个能跑的节点，背后都是一份**契约**——ABI（[`packages/tongflow/abi/tongflow.abi.json`](../packages/tongflow/abi/tongflow.abi.json)），它定义「有哪些能力」以及「每个能力的输入输出长什么样」，而与「由谁实现」无关。一个插件就是一个小小的 Python 包，挑 ABI 里一个或多个槽，借助 tongflow Python SDK，用 ABI 生成的类型给出**怎么做**的那部分。
 
 完整的开发流程——ABI、`@node_slot` 装饰器、SDK、目录结构以及如何发布，请见 **[docs/plugins.md](plugins.md)**。
 

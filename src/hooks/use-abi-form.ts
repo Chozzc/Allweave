@@ -20,11 +20,15 @@ import {
     useRef,
     useState,
 } from "react";
-import type { NodeSlot, SlotInput } from "@/generated/abi";
-import useFlow from "@/hooks/use-flow";
+import type {
+    FieldSourceOverride,
+    NodeSlot,
+    SlotInput,
+    SourceSpec,
+} from "tongflow";
 
-import { type ResolvedSpec, resolveSpec } from "@/lib/abi/resolve";
-import type { FieldSourceOverride, SourceSpec } from "@/lib/abi/sources";
+import { type ResolvedSpec, resolveSpec } from "tongflow";
+import useFlow from "@/hooks/use-flow";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */

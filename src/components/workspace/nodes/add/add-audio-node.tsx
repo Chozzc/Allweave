@@ -3,13 +3,13 @@ import { Library, Mic, Music, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type React from "react";
 import { memo, useState } from "react";
+import { logger } from "tongflow";
 import { AudioRecorderWithVisualizer } from "@/components/ui/audio-recorder";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import useFlow from "@/hooks/use-flow";
 import { useMultipleUpload, useUpload } from "@/hooks/use-upload";
-import { logger } from "@/lib/logger";
 import { LibInput } from "../../share/lib-input";
 import { BaseNodeShell } from "../base/base-node-shell";
 

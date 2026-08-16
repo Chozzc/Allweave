@@ -2,18 +2,16 @@ import { useNodesData } from "@xyflow/react";
 import { Clapperboard, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useCallback, useMemo, useRef } from "react";
-
+import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
 import {
     type AspectRatio,
+    coerceBaseNodeData,
+    NODE_TYPE_SOURCE_SPEC,
     VIDEO_ASPECT_RATIOS,
     VIDEO_DURATIONS,
-} from "@/constants/media-options";
+} from "tongflow";
 import { useAbiForm } from "@/hooks/use-abi-form";
 import { useUpstreamNodeIds } from "@/hooks/use-upstream-ids";
-import { NODE_TYPE_SOURCE_SPEC } from "@/lib/abi/node-feature-registry";
-import type { SourceSpec } from "@/lib/abi/sources";
-import { coerceBaseNodeData } from "@/lib/workflow/flow-node-data";
-import type { TongflowPluginNodeProps } from "@/types/tongflow-flow";
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { AspectRatioPicker } from "../base/aspect-ratio-picker";
 import { DurationPicker } from "../base/duration-picker";

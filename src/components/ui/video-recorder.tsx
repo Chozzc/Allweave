@@ -3,8 +3,8 @@
 import { Camera, Circle, Square } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { logger } from "tongflow";
 import { showErrorToast } from "@/components/ui/error-toast";
-import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
 

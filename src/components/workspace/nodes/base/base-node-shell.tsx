@@ -9,7 +9,8 @@ import { Wand2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { HTMLAttributes, ReactNode } from "react";
 import { forwardRef } from "react";
-
+import type { BaseNodeData } from "tongflow";
+import { isModalityNode } from "tongflow";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -21,10 +22,8 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { isModalityNode } from "@/constants/modality-nodes";
 import useFlow from "@/hooks/use-flow";
 import { cn } from "@/lib/utils";
-import type { BaseNodeData } from "@/types/nodes";
 
 import { NodeComboButton } from "./node-combo-button";
 import { NodeCommentBox } from "./node-comment-box";

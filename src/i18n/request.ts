@@ -1,6 +1,6 @@
 import { cookies, headers } from "next/headers";
 import { getRequestConfig } from "next-intl/server";
-import { logger } from "@/lib/logger";
+import { logger } from "tongflow";
 
 export default getRequestConfig(async () => {
     const cookieStore = await cookies();

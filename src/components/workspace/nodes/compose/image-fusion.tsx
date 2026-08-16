@@ -2,21 +2,19 @@ import { useNodesData } from "@xyflow/react";
 import { Combine, Maximize2, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useCallback, useMemo, useRef, useState } from "react";
-
+import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
+import {
+    type AspectRatio,
+    coerceBaseNodeData,
+    IMAGE_ASPECT_RATIOS,
+    NODE_TYPE_SOURCE_SPEC,
+} from "tongflow";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import {
-    type AspectRatio,
-    IMAGE_ASPECT_RATIOS,
-} from "@/constants/media-options";
 import { useAbiForm } from "@/hooks/use-abi-form";
 import { useUpstreamNodeIds } from "@/hooks/use-upstream-ids";
-import { NODE_TYPE_SOURCE_SPEC } from "@/lib/abi/node-feature-registry";
-import type { SourceSpec } from "@/lib/abi/sources";
 import { cn } from "@/lib/utils";
-import { coerceBaseNodeData } from "@/lib/workflow/flow-node-data";
-import type { TongflowPluginNodeProps } from "@/types/tongflow-flow";
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { AspectRatioPicker } from "../base/aspect-ratio-picker";
 import { MediaThumbnail } from "../base/media-thumbnail";

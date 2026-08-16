@@ -4,7 +4,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { logger } from "@/lib/logger";
+import { logger } from "tongflow";
 import { PYTHON_UTF8_ENV, resolvePythonLite } from "@/lib/plugins/python-lite";
 import { dataDir, resourcesDir } from "@/lib/runtime/paths.server";
 

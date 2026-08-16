@@ -2,7 +2,7 @@
  * Material API client — local library
  */
 
-import { logger } from "@/lib/logger";
+import { logger } from "tongflow";
 import { apiDelete, apiGet, apiPatch, apiPost } from "./client";
 
 export type MaterialType =

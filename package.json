@@ -41,7 +41,7 @@
         "lint": "pnpm exec biome format --write",
         "lint:check": "pnpm exec biome check --error-on-warnings .",
         "typecheck": "tsc --noEmit",
-        "gen:abi": "tsx scripts/gen-abi-types.ts",
+        "gen:abi": "tsx packages/tongflow/scripts/gen-abi-types.ts",
         "abi:generate": "node scripts/generate-tongflow-abi.mjs",
         "tongflow:publish": "bash scripts/publish-tongflow-pypi.sh",
         "test": "vitest run",

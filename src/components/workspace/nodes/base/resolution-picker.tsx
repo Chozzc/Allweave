@@ -1,9 +1,9 @@
 import { Maximize2 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import type { ResolutionTier } from "tongflow";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import type { ResolutionTier } from "@/constants/media-options";
 import { cn } from "@/lib/utils";
 
 interface ResolutionPickerProps {

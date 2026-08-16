@@ -11,16 +11,14 @@
 
 import { Handle, Position } from "@xyflow/react";
 import { useMemo } from "react";
-
-import type { NodeSlot } from "@/generated/abi";
+import type { FieldSourceOverride, NodeSlot, SourceSpec } from "tongflow";
 import {
     type AbiTopology,
     getAbiTopology,
+    resolveSpec,
     sourceHandleId,
     targetHandleId,
-} from "@/lib/abi/handle-introspect";
-import { resolveSpec } from "@/lib/abi/resolve";
-import type { FieldSourceOverride, SourceSpec } from "@/lib/abi/sources";
+} from "tongflow";
 
 export interface AbiHandlesProps<F extends NodeSlot> {
     feature: F;

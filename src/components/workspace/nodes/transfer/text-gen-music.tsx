@@ -4,7 +4,8 @@ import { Clock, Maximize2, Music, Tag, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-
+import type { TongflowPluginNodeProps } from "tongflow";
+import { coerceBaseNodeData, handle } from "tongflow";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -18,9 +19,6 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { useAbiForm } from "@/hooks/use-abi-form";
-import { handle } from "@/lib/abi/sources";
-import { coerceBaseNodeData } from "@/lib/workflow/flow-node-data";
-import type { TongflowPluginNodeProps } from "@/types/tongflow-flow";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { MediaThumbnail } from "../base/media-thumbnail";

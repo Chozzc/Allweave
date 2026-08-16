@@ -1,12 +1,11 @@
 import { Atom } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo } from "react";
-
+import type { TongflowPluginNodeProps } from "tongflow";
+import { batchOn } from "tongflow";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useAbiForm } from "@/hooks/use-abi-form";
-import { batchOn } from "@/lib/abi/sources";
-import type { TongflowPluginNodeProps } from "@/types/tongflow-flow";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { LanguageSelect } from "../base/language-select";

@@ -3,13 +3,13 @@ import { Box, Library, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type React from "react";
 import { memo, useState } from "react";
+import { logger } from "tongflow";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import useFlow from "@/hooks/use-flow";
 import { useMultipleUpload } from "@/hooks/use-upload";
-import { logger } from "@/lib/logger";
 import { LibInput } from "../../share/lib-input";
 import { BaseNodeShell } from "../base/base-node-shell";
 

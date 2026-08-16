@@ -17,6 +17,7 @@ import {
 import { useTranslations } from "next-intl";
 import type { HTMLAttributes, ReactNode } from "react";
 import { forwardRef, useCallback, useMemo, useState } from "react";
+import { coerceBaseNodeData } from "tongflow";
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -36,7 +37,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import useFlow from "@/hooks/use-flow";
 import { cn } from "@/lib/utils";
-import { coerceBaseNodeData } from "@/lib/workflow/flow-node-data";
 
 /**
  * Recursively collect all downstream node IDs starting from a given node.

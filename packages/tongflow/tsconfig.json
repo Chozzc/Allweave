@@ -11,7 +11,7 @@
         "isolatedModules": true,
         "skipLibCheck": true,
         "declaration": true,
-        "types": []
+        "types": ["node"]
     },
     "include": ["src/**/*.ts"],
     "exclude": ["dist", "node_modules"]

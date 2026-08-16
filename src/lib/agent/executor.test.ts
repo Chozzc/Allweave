@@ -29,9 +29,9 @@ vi.mock("@/lib/api/task", () => ({
     updateTaskStatus: vi.fn(),
 }));
 
+import type { AgentAttachment } from "tongflow";
 import useFlow from "@/hooks/use-flow";
 import { applyGraphPatch } from "./executor";
-import type { AgentAttachment } from "./types";
 
 const ATTACHMENTS: AgentAttachment[] = [
     {

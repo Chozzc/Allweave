@@ -1,6 +1,6 @@
 "use client";
 
-import { logger } from "@/lib/logger";
+import { logger } from "tongflow";
 import type { SSEMessage } from "@/types/sse";
 
 export const SSE_TASK_MESSAGE_EVENT = "sse-task-message";

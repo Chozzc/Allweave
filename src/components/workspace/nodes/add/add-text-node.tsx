@@ -8,12 +8,12 @@ import {
 import { Edit3, Library, Lock, Type, Unlock } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useCallback, useMemo } from "react";
+import type { AddTextNodeData } from "tongflow";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import useFlow from "@/hooks/use-flow";
 import { useNodeState } from "@/hooks/use-node-data";
 import { useTaskStore } from "@/hooks/use-task";
-import type { AddTextNodeData } from "@/types/nodes";
 import { LibInput } from "../../share/lib-input";
 import { BaseNodeShell } from "../base/base-node-shell";
 import { NodeHeaderAction } from "../base/node-header";

@@ -12,6 +12,7 @@ import {
 import { useTranslations } from "next-intl";
 import { memo, useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { logger } from "tongflow";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { showErrorToast } from "@/components/ui/error-toast";
@@ -24,7 +25,6 @@ import {
     type Material,
     type MaterialType,
 } from "@/lib/api/material";
-import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
 interface LibInputProps {

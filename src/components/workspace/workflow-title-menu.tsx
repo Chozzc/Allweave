@@ -13,6 +13,13 @@ import { useTranslations } from "next-intl";
 import type { ChangeEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import {
+    exportWorkflow,
+    logger,
+    type ParsedWorkflowImport,
+    parseWorkflowImportJson,
+    WORKFLOW_IMPORT_NO_CANVAS,
+} from "tongflow";
 import { useShallow } from "zustand/react/shallow";
 import {
     AlertDialog,
@@ -44,13 +51,6 @@ import {
     saveWorkflow,
     updateWorkflow,
 } from "@/lib/api/workspace";
-import { logger } from "@/lib/logger";
-import {
-    exportWorkflow,
-    type ParsedWorkflowImport,
-    parseWorkflowImportJson,
-    WORKFLOW_IMPORT_NO_CANVAS,
-} from "@/lib/workflow/exporter";
 
 function safeWorkflowFileName(name: string): string {
     const s = name.replace(/[/\\?%*:|"<>]/g, "_").trim();

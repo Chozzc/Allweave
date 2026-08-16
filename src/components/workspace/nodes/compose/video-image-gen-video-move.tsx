@@ -3,15 +3,16 @@ import { useNodeId, useStore } from "@xyflow/react";
 import { ImageIcon, Sparkles, Type, Video } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useEffect, useMemo } from "react";
-
+import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
+import {
+    collectHandleValues,
+    NODE_TYPE_SOURCE_SPEC,
+    resolveSpec,
+    VIDEO_DURATION_DEFAULT,
+} from "tongflow";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { VIDEO_DURATION_DEFAULT } from "@/constants/media-options";
 import { useAbiForm } from "@/hooks/use-abi-form";
-import { NODE_TYPE_SOURCE_SPEC } from "@/lib/abi/node-feature-registry";
-import { collectHandleValues, resolveSpec } from "@/lib/abi/resolve";
-import type { SourceSpec } from "@/lib/abi/sources";
-import type { TongflowPluginNodeProps } from "@/types/tongflow-flow";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { MediaThumbnail } from "../base/media-thumbnail";

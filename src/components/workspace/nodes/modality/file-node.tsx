@@ -9,10 +9,10 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo } from "react";
+import type { RfDataNodeProps } from "tongflow";
+import { logger } from "tongflow";
 import { DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { useFileAsyncLoader } from "@/hooks/use-file-async-loader";
-import { logger } from "@/lib/logger";
-import type { RfDataNodeProps } from "@/types/nodes";
 import { BaseNodeShell } from "../base/base-node-shell";
 import {
     NodeHeader,

@@ -3,6 +3,8 @@ import { Download, Maximize2, Video as VideoIcon, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import type { RfDataNodeProps } from "tongflow";
+import { logger, proportionalMediaNodeWidthPx } from "tongflow";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenuItem,
@@ -14,8 +16,6 @@ import {
     useFileAsyncLoader,
     useFileAsyncLoaderBatch,
 } from "@/hooks/use-file-async-loader";
-import { logger } from "@/lib/logger";
-import type { RfDataNodeProps } from "@/types/nodes";
 import { BaseNodeShell } from "../base/base-node-shell";
 import {
     NodeHeader,
@@ -25,7 +25,6 @@ import {
     NodeHeaderMenuAction,
     NodeHeaderTitle,
 } from "../base/node-header";
-import { proportionalMediaNodeWidthPx } from "./media-node-max-width";
 import { ModalityPlaceholder } from "./modality-placeholder";
 
 type VideoNodeRfProps = RfDataNodeProps<"videoNode">;

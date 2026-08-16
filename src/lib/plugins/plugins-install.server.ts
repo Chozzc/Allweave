@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { and, eq, inArray } from "drizzle-orm";
 import * as git from "isomorphic-git";
 import http from "isomorphic-git/http/node";
+import { logger } from "tongflow";
 import { getDb, tasks } from "@/db";
-import { logger } from "@/lib/logger";
 import {
     isPluginInstalled,
     loadOfficialPluginManifest,

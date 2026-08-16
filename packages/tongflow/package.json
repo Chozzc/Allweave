@@ -33,19 +33,38 @@
                 "default": "./dist/index.cjs"
             }
         },
-        "./package.json": "./package.json"
+        "./package.json": "./package.json",
+        "./abi": "./abi/tongflow.abi.json"
     },
     "files": [
         "dist",
+        "abi",
         "README.md"
     ],
     "scripts": {
+        "gen:abi": "tsx scripts/gen-abi-types.ts",
         "build": "tsdown",
         "test": "vitest run",
         "typecheck": "tsc --noEmit -p tsconfig.json"
     },
+    "dependencies": {
+        "@types/json-schema": "7.0.15",
+        "json-schema-to-ts": "3.1.1",
+        "zod": "4.1.8"
+    },
+    "peerDependencies": {
+        "@xyflow/react": "^12"
+    },
+    "peerDependenciesMeta": {
+        "@xyflow/react": {
+            "optional": true
+        }
+    },
     "devDependencies": {
+        "@types/node": "20.19.13",
+        "@xyflow/react": "12.9.0",
         "tsdown": "0.22.14",
+        "tsx": "4.20.5",
         "typescript": "5",
         "vitest": "4.1.5"
     }

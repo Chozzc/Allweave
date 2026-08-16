@@ -7,13 +7,10 @@
  */
 
 import type { ReactNode } from "react";
-
-import type { NodeSlot } from "@/generated/abi";
+import type { BaseNodeData, NodeSlot, SourceSpec } from "tongflow";
 import { useAbiExecution } from "@/hooks/use-abi-execution";
 import type { UseAbiFormReturn } from "@/hooks/use-abi-form";
 import type { Task } from "@/hooks/use-task";
-import type { SourceSpec } from "@/lib/abi/sources";
-import type { BaseNodeData } from "@/types/nodes";
 
 import { AbiHandles } from "./abi-handles";
 import { BaseNodeShell } from "./base-node-shell";

@@ -2,7 +2,8 @@ import { useNodesData } from "@xyflow/react";
 import { Maximize2, Wand2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useMemo, useState } from "react";
-
+import type { TongflowPluginNodeProps } from "tongflow";
+import { batchOn } from "tongflow";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -16,8 +17,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAbiForm } from "@/hooks/use-abi-form";
 import { useUpstreamNodeIds } from "@/hooks/use-upstream-ids";
-import { batchOn } from "@/lib/abi/sources";
-import type { TongflowPluginNodeProps } from "@/types/tongflow-flow";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { NodeTextarea } from "../base/node-textarea";

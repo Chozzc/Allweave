@@ -25,6 +25,11 @@ import {
 import "@xyflow/react/dist/style.css";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
+import {
+    isValidFlowConnection,
+    logger,
+    parseWorkflowImportJson,
+} from "tongflow";
 import { useShallow } from "zustand/react/shallow";
 import {
     AlertDialog,
@@ -41,10 +46,7 @@ import type { FlowState } from "@/hooks/use-flow";
 import { useFlow } from "@/hooks/use-flow";
 import { useTaskStore } from "@/hooks/use-task";
 import { useWorkflowRecovery } from "@/hooks/use-workflow-recovery";
-import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
-import { isValidFlowConnection } from "@/lib/workflow/connection-rules";
-import { parseWorkflowImportJson } from "@/lib/workflow/exporter";
 import { AppView } from "./app-view/app-view";
 import { ModeSwitch } from "./mode-switch";
 import { OnboardingGate } from "./onboarding/onboarding-gate";

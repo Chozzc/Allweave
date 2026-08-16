@@ -8,6 +8,7 @@
 import { FolderOpen, Loader2, Workflow, Zap } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { logger } from "tongflow";
 import { Button } from "@/components/ui/button";
 import {
     Sheet,
@@ -23,7 +24,6 @@ import {
 import { PortfolioDialog } from "@/components/workspace/portfolio-dialog";
 import { WorkflowDialog } from "@/components/workspace/workflow-dialog";
 import { listTasks, type Task } from "@/lib/api/task";
-import { logger } from "@/lib/logger";
 import { localizeStoredTaskError } from "@/lib/task/error-localize";
 
 export function WorkspaceLeftNav() {

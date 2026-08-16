@@ -18,13 +18,8 @@
 
 import type { Edge, Node } from "@xyflow/react";
 import { useEffect, useMemo, useState } from "react";
-import type {
-    DataNode,
-    WorkflowOutput,
-} from "@/lib/workflow/executable-workflow";
-import { DATA_NODE_TYPES } from "@/lib/workflow/executable-workflow";
-import { exportWorkflow } from "@/lib/workflow/exporter";
-import { WorkflowParser } from "@/lib/workflow/parser";
+import type { DataNode, WorkflowOutput } from "tongflow";
+import { DATA_NODE_TYPES, exportWorkflow, WorkflowParser } from "tongflow";
 
 export type AppFormErrorState = "empty" | "invalid" | "nothingToRun" | null;
 

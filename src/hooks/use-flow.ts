@@ -14,28 +14,22 @@ import {
     type OnNodesChange,
     type OnSelectionChangeFunc,
 } from "@xyflow/react";
-import { v4 } from "uuid";
-import { create } from "zustand";
-import {
-    resolvedSpecForNodeType,
-    resolveEdgeHandles,
-} from "@/lib/abi/node-feature-registry";
-import { DATA_NODE_TYPES } from "@/lib/workflow/executable-workflow";
-import {
-    currentFocusGeneration,
-    type FlowSnapshot,
-    pushSnapshot,
-    snapshotFlow,
-} from "@/lib/workflow/flow-history";
 import {
     componentsContaining,
     computeAutoLayout,
-} from "@/lib/workflow/layout/auto-layout";
-import {
+    currentFocusGeneration,
+    DATA_NODE_TYPES,
     estimateNodeSize,
+    type FlowSnapshot,
     H_GAP,
+    pushSnapshot,
+    resolvedSpecForNodeType,
+    resolveEdgeHandles,
+    snapshotFlow,
     V_GAP,
-} from "@/lib/workflow/layout/node-dims";
+} from "tongflow";
+import { v4 } from "uuid";
+import { create } from "zustand";
 
 // True when React Flow reports a persisted data/input node type
 function isDataNode(nodeType: string): boolean {

@@ -3,6 +3,7 @@
 import { ExternalLink, Loader2, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
+import { logger } from "tongflow";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -14,7 +15,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { apiGet, apiPatch } from "@/lib/api/client";
 import { openExternalUrl } from "@/lib/desktop/open-external";
-import { logger } from "@/lib/logger";
 import type { PluginEnvDecl } from "@/lib/plugins/plugin-env-manifest-schema";
 import { resolveEnvKeyType } from "@/lib/settings/env-key-metadata";
 import { buildSettingsSections } from "../settings/build-settings-sections";

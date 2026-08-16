@@ -1,10 +1,7 @@
 import { join } from "node:path";
 import chokidar, { type FSWatcher } from "chokidar";
-import { logger } from "@/lib/logger";
-import type {
-    PluginConfig,
-    PluginsRegistry,
-} from "@/lib/plugins/plugins-registry-schema";
+import type { PluginConfig, PluginsRegistry } from "tongflow";
+import { logger } from "tongflow";
 import { runPluginsScanner } from "@/lib/plugins/plugins-scanner.server";
 import { pluginsDir, resourcesDir } from "@/lib/runtime/paths.server";
 

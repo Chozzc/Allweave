@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import React, { memo, useRef, useState } from "react";
+import { logger } from "tongflow";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -21,7 +22,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WhiteBoard, type WhiteBoardRef } from "@/components/ui/whiteboard";
 import useFlow from "@/hooks/use-flow";
 import { useMultipleUpload, useUpload } from "@/hooks/use-upload";
-import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 import { LibInput } from "../../share/lib-input";
 import { BaseNodeShell } from "../base/base-node-shell";

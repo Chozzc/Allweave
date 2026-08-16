@@ -3,12 +3,11 @@ import { useNodeId, useStore } from "@xyflow/react";
 import { MessageSquare, PackagePlus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useMemo } from "react";
-
+import type { TongflowPluginNodeProps } from "tongflow";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useAbiForm } from "@/hooks/use-abi-form";
-import type { TongflowPluginNodeProps } from "@/types/tongflow-flow";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { NodeTextarea } from "../base/node-textarea";

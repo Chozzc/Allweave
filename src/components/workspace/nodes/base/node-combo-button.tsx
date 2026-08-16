@@ -1,7 +1,7 @@
 import { useNodeId, useStore } from "@xyflow/react";
 import { CheckCircle, Circle } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { isModalityNode } from "@/constants/modality-nodes";
+import { isModalityNode } from "tongflow";
 import useFlow from "@/hooks/use-flow";
 import { cn } from "@/lib/utils";
 

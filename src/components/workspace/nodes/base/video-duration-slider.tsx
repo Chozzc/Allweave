@@ -1,15 +1,14 @@
 import { Clock } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
-
-import { Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import {
     clampVideoDuration,
     VIDEO_DURATION_MAX,
     VIDEO_DURATION_MIN,
-} from "@/constants/media-options";
+} from "tongflow";
+import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 
 export interface VideoDurationSliderProps {
     value: number;

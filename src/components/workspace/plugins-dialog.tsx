@@ -12,6 +12,7 @@ import {
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { logger } from "tongflow";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -40,7 +41,6 @@ import {
 } from "@/components/ui/tooltip";
 import { refreshPluginsRegistry } from "@/hooks/use-plugins-registry";
 import { apiGet, apiPost } from "@/lib/api/client";
-import { logger } from "@/lib/logger";
 
 const navBtnClass =
     "h-10 w-10 rounded-xl bg-white border border-gray-100 hover:bg-gray-50 text-gray-500 hover:text-gray-900 dark:bg-zinc-800 dark:border-zinc-700 dark:text-gray-400 dark:hover:text-white dark:hover:bg-zinc-700 transition-all duration-200";

@@ -2,8 +2,8 @@ import { useNodeId, useReactFlow, useStore } from "@xyflow/react";
 import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
+import { coerceBaseNodeData } from "tongflow";
 import { cn } from "@/lib/utils";
-import { coerceBaseNodeData } from "@/lib/workflow/flow-node-data";
 
 export function NodeCommentBox() {
     const nodeId = useNodeId();

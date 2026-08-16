@@ -1,9 +1,9 @@
 import { Clock } from "lucide-react";
 import { useTranslations } from "next-intl";
+import type { Duration } from "tongflow";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import type { Duration } from "@/constants/media-options";
 import { cn } from "@/lib/utils";
 
 interface DurationPickerProps {

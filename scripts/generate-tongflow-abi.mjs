@@ -1,7 +1,7 @@
 /**
- * Build-time helper: generate a starter `config/tongflow.abi.json`.
+ * Build-time helper: generate a starter `packages/tongflow/abi/tongflow.abi.json`.
  *
- * NOTE: After migration, `config/tongflow.abi.json` is the only tracked config JSON.
+ * NOTE: After migration, `packages/tongflow/abi/tongflow.abi.json` is the only tracked config JSON.
  * This script is intentionally conservative: it will NOT read other config JSON files.
  */
 import fs from "node:fs";
@@ -10,7 +10,13 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
-const outPath = path.join(root, "config", "tongflow.abi.json");
+const outPath = path.join(
+    root,
+    "packages",
+    "tongflow",
+    "abi",
+    "tongflow.abi.json",
+);
 
 // If user already maintains ABI, keep it as-is.
 if (fs.existsSync(outPath)) {
@@ -18,7 +24,7 @@ if (fs.existsSync(outPath)) {
     process.exit(0);
 }
 
-// Minimal starter ABI: only two slots; mirrors `config/tongflow.abi.json` shape (nodeSlot + inputs + outputs + $defs.Asset).
+// Minimal starter ABI: only two slots; mirrors `packages/tongflow/abi/tongflow.abi.json` shape (nodeSlot + inputs + outputs + $defs.Asset).
 const Asset = { $ref: "#/$defs/Asset" };
 const nodes = [
     {

@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { TaskStatus, WorkflowStatus } from "tongflow";
 import { showErrorToast } from "@/components/ui/error-toast";
 import { CommunitySupportRow } from "@/components/workspace/community-support-row";
 import {
     MissingKeyDialog,
     type MissingKeyRequest,
 } from "@/components/workspace/missing-key-dialog";
-import { TaskStatus, WorkflowStatus } from "@/constants/task-status";
 import { getClientTranslator } from "@/i18n/client";
 import type { SerializedWorkflowFailure } from "@/lib/task/error-envelope";
 import { buildTaskErrorDetail } from "@/lib/task/error-format";

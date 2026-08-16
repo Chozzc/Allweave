@@ -5,9 +5,9 @@
 
 import { useTranslations } from "next-intl";
 import { useCallback, useState } from "react";
+import { logger } from "tongflow";
 import { showErrorToast } from "@/components/ui/error-toast";
 import { getPresignedUploadUrl, UploadValidationError } from "@/lib/api/upload";
-import { logger } from "@/lib/logger";
 
 // -------------------- Type definitions --------------------
 

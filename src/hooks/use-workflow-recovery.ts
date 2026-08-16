@@ -9,12 +9,7 @@
  */
 
 import { useCallback, useEffect, useRef } from "react";
-import {
-    NodeStatus,
-    TaskStatus,
-    WorkflowStatus,
-} from "@/constants/task-status";
-import { logger } from "@/lib/logger";
+import { logger, NodeStatus, TaskStatus, WorkflowStatus } from "tongflow";
 import { getTaskWaitUrl } from "@/lib/task/api-url";
 import { emitSSEConnected, emitSSETaskMessage } from "@/lib/task/sse-events";
 import type { SSEMessage, SSEStatus } from "@/types/sse";

@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { useRef, useState } from "react";
+import { logger } from "tongflow";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -14,7 +15,6 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { logger } from "@/lib/logger";
 
 export const SpeakerVoiceRecorder = ({
     trigger,

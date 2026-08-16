@@ -9,7 +9,7 @@ import type {
     NodeStatusType,
     TaskStatusType,
     WorkflowStatusType,
-} from "@/constants/task-status";
+} from "tongflow";
 
 export interface SSENodeInfo {
     id: string;

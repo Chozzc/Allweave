@@ -3,7 +3,7 @@ import { useNodeId, useStore } from "@xyflow/react";
 import { Split } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useEffect, useMemo } from "react";
-
+import type { TongflowPluginNodeProps } from "tongflow";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
@@ -14,7 +14,6 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { useAbiForm } from "@/hooks/use-abi-form";
-import type { TongflowPluginNodeProps } from "@/types/tongflow-flow";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
 

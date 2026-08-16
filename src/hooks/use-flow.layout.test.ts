@@ -14,12 +14,8 @@ vi.stubGlobal("localStorage", {
     removeItem: (k: string) => void storage.delete(k),
 });
 
+import { estimateNodeSize, H_GAP, V_GAP } from "tongflow";
 import useFlow from "@/hooks/use-flow";
-import {
-    estimateNodeSize,
-    H_GAP,
-    V_GAP,
-} from "@/lib/workflow/layout/node-dims";
 
 function reset() {
     useFlow.setState({

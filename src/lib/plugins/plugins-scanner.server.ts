@@ -2,10 +2,7 @@ import "server-only";
 
 import { execFileSync } from "node:child_process";
 import { delimiter, join } from "node:path";
-import {
-    type PluginsRegistry,
-    PluginsRegistrySchema,
-} from "@/lib/plugins/plugins-registry-schema";
+import { type PluginsRegistry, PluginsRegistrySchema } from "tongflow";
 import { PYTHON_UTF8_ENV } from "@/lib/plugins/python-lite";
 import { pluginsDir, resourcesDir } from "@/lib/runtime/paths.server";
 
@@ -36,7 +33,13 @@ export function runPluginsScanner(): PluginsRegistry {
             "--root",
             pluginsDir(),
             "--abi",
-            join(resourcesDir(), "config", "tongflow.abi.json"),
+            join(
+                resourcesDir(),
+                "packages",
+                "tongflow",
+                "abi",
+                "tongflow.abi.json",
+            ),
         ],
         {
             cwd: resourcesDir(),

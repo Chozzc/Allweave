@@ -7,7 +7,7 @@ import {
 } from "@xyflow/react";
 import { useTranslations } from "next-intl";
 import { useCallback, useMemo } from "react";
-
+import { getEdgeTargetOptions } from "tongflow";
 import {
     Select,
     SelectContent,
@@ -16,7 +16,6 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { useFlow } from "@/hooks/use-flow";
-import { getEdgeTargetOptions } from "@/lib/abi/edge-target-options";
 
 const CustomEdge = ({
     id,

@@ -2,8 +2,8 @@
 import { Mic, StopCircle, Trash } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { logger } from "tongflow";
 import { showErrorToast } from "@/components/ui/error-toast";
-import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";

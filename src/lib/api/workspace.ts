@@ -2,7 +2,7 @@
  * Workspace API client — local workflows
  */
 
-import type { ExecutableWorkflow } from "@/lib/workflow/executable-workflow";
+import type { ExecutableWorkflow } from "tongflow";
 import { apiDelete, apiGet, apiPost, apiPut } from "./client";
 import type { Material } from "./material";
 

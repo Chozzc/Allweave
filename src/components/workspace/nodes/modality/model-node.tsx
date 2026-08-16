@@ -14,11 +14,11 @@ import { useTranslations } from "next-intl";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import * as THREE from "three";
+import type { RfDataNodeProps } from "tongflow";
+import { logger } from "tongflow";
 import { Button } from "@/components/ui/button";
 import { DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { useFileAsyncLoader } from "@/hooks/use-file-async-loader";
-import { logger } from "@/lib/logger";
-import type { RfDataNodeProps } from "@/types/nodes";
 import { BaseNodeShell } from "../base/base-node-shell";
 import {
     NodeHeader,

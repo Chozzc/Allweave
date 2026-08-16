@@ -3,9 +3,9 @@
 import { useNodeId } from "@xyflow/react";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo } from "react";
+import type { BaseNodeData } from "tongflow";
 import useFlow from "@/hooks/use-flow";
 import { useNodePluginModels } from "@/hooks/use-plugins-registry";
-import type { BaseNodeData } from "@/types/nodes";
 import { useResolvedPluginId } from "./node-plugin-id-select";
 import { NodePluginSelect } from "./node-plugin-select";
 

@@ -3,18 +3,17 @@ import { useNodeId, useStore } from "@xyflow/react";
 import { Image as ImageIcon, Music, Sparkles, Video } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useEffect, useMemo } from "react";
-
-import { Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import type { SourceSpec, TongflowPluginNodeProps } from "tongflow";
 import {
     type AspectRatio,
+    collectHandleValues,
+    NODE_TYPE_SOURCE_SPEC,
+    resolveSpec,
     VIDEO_ASPECT_RATIOS,
-} from "@/constants/media-options";
+} from "tongflow";
+import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { useAbiForm } from "@/hooks/use-abi-form";
-import { NODE_TYPE_SOURCE_SPEC } from "@/lib/abi/node-feature-registry";
-import { collectHandleValues, resolveSpec } from "@/lib/abi/resolve";
-import type { SourceSpec } from "@/lib/abi/sources";
-import type { TongflowPluginNodeProps } from "@/types/tongflow-flow";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { AspectRatioPicker } from "../base/aspect-ratio-picker";

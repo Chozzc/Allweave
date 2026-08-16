@@ -1,17 +1,15 @@
 import { Atom, Ear, Mic, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useCallback, useRef } from "react";
-
+import type { TongflowPluginNodeProps } from "tongflow";
+import { batchOn, configField, logger, type SourceSpec } from "tongflow";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { SpeakerVoiceRecorder } from "@/components/workspace/speaker-voice-recorder";
 import { useAbiForm } from "@/hooks/use-abi-form";
 import { useUpload } from "@/hooks/use-upload";
-import { batchOn, configField, type SourceSpec } from "@/lib/abi/sources";
 import { getFileUrl } from "@/lib/file/url";
-import { logger } from "@/lib/logger";
-import type { TongflowPluginNodeProps } from "@/types/tongflow-flow";
 
 import { AbiNodeShell } from "../base/abi-node-shell";
 import { LanguageSelect } from "../base/language-select";

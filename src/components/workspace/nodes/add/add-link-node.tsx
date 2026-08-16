@@ -2,13 +2,12 @@ import { Handle, Position, useNodeId, useNodesData } from "@xyflow/react";
 import { Link as LinkIcon, Plus, Trash } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { memo, useMemo, useState } from "react";
-
+import type { RfDataNodeProps } from "tongflow";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import useFlow from "@/hooks/use-flow";
 import { useNodeState } from "@/hooks/use-node-data";
-import type { RfDataNodeProps } from "@/types/nodes";
 
 import { BaseNodeShell } from "../base/base-node-shell";
 

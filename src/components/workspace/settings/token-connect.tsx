@@ -4,6 +4,7 @@ import { CheckCircle2, Circle, ExternalLink, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { logger } from "tongflow";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -29,7 +30,6 @@ import { DISCORD_URL, WECHAT_GROUP_QR_SRC } from "@/constants/community";
 import { useInChinaTz } from "@/hooks/use-in-china-tz";
 import { apiPatch } from "@/lib/api/client";
 import { openExternalUrl } from "@/lib/desktop/open-external";
-import { logger } from "@/lib/logger";
 
 /** One credential extracted from the pasted blob. */
 export interface TokenSpec {

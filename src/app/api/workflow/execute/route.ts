@@ -6,12 +6,12 @@
 import { eq, inArray, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { type NextRequest, NextResponse } from "next/server";
+import type { ExecutableWorkflow } from "tongflow";
+import { logger } from "tongflow";
 import { getDb } from "@/db";
 import { tasks, workflows } from "@/db/schema";
-import { logger } from "@/lib/logger";
 import { getFeatureByName } from "@/lib/plugins/feature-registry.server";
 import { getPluginConfig } from "@/lib/plugins/plugins-registry.server";
-import type { ExecutableWorkflow } from "@/lib/workflow/executable-workflow";
 
 const DEFAULT_CONCURRENT_TASKS = 3;
 

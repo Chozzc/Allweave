@@ -11,7 +11,20 @@
 
 import { useNodeId, useReactFlow, useStore, useStoreApi } from "@xyflow/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { NodeSlot } from "@/generated/abi";
+import type { FieldSourceOverride, NodeSlot, SourceSpec } from "tongflow";
+import {
+    buildPrompts,
+    collectHandleValues,
+    getAbiNodeBySlot,
+    logger,
+    parseTargetHandleId,
+    promptMissingRequired,
+    registerAbiNode,
+    resolveAbiOutputMappings,
+    resolveEdgeHandles,
+    resolveSpec,
+    unregisterAbiNode,
+} from "tongflow";
 import useFlow from "@/hooks/use-flow";
 import { usePluginsRegistry } from "@/hooks/use-plugins-registry";
 import {
@@ -20,21 +33,6 @@ import {
     useNodeTaskUpdate,
     useTaskStore,
 } from "@/hooks/use-task";
-import { parseTargetHandleId } from "@/lib/abi/handle-introspect";
-import { resolveEdgeHandles } from "@/lib/abi/node-feature-registry";
-import { registerAbiNode, unregisterAbiNode } from "@/lib/abi/node-registry";
-import {
-    buildPrompts,
-    collectHandleValues,
-    promptMissingRequired,
-    resolveSpec,
-} from "@/lib/abi/resolve";
-import type { FieldSourceOverride, SourceSpec } from "@/lib/abi/sources";
-import { logger } from "@/lib/logger";
-import {
-    getAbiNodeBySlot,
-    resolveAbiOutputMappings,
-} from "@/lib/schema/tongflow-abi";
 import {
     applyResolvedOutputRoutes,
     normalizeTaskPayloadData,

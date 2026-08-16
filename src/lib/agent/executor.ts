@@ -10,35 +10,35 @@
  */
 
 import type { Edge, Node } from "@xyflow/react";
-import { v4 } from "uuid";
-import { MODALITY_NODE_TYPES } from "@/constants/modality-nodes";
-import useFlow from "@/hooks/use-flow";
-import { usePluginsRegistryStore } from "@/hooks/use-plugins-registry";
-import { useTaskStore } from "@/hooks/use-task";
-import { getAbiTopology } from "@/lib/abi/handle-introspect";
-import {
-    NODE_TYPE_SOURCE_SPEC,
-    NODE_TYPE_TO_ABI_FEATURE,
-    resolvedSpecForNodeType,
-    resolveEdgeHandles,
-} from "@/lib/abi/node-feature-registry";
-import { resolveSpec } from "@/lib/abi/resolve";
-import { getWorkflow, listWorkflows, saveWorkflow } from "@/lib/api/workspace";
-import { logger } from "@/lib/logger";
-import { isValidFlowConnection } from "@/lib/workflow/connection-rules";
-import {
-    exportWorkflow,
-    parseWorkflowImportJson,
-} from "@/lib/workflow/exporter";
-import { isWorkflowValid } from "@/lib/workflow/parser";
-import { neighborhood, renderCanvas, resolveNodeRef } from "./serialize";
 import type {
     AgentAttachment,
     GraphPatch,
     GraphPatchAddNode,
     PatchStepResult,
     ToolResult,
-} from "./types";
+} from "tongflow";
+import {
+    exportWorkflow,
+    getAbiTopology,
+    isValidFlowConnection,
+    isWorkflowValid,
+    logger,
+    MODALITY_NODE_TYPES,
+    NODE_TYPE_SOURCE_SPEC,
+    NODE_TYPE_TO_ABI_FEATURE,
+    neighborhood,
+    parseWorkflowImportJson,
+    renderCanvas,
+    resolvedSpecForNodeType,
+    resolveEdgeHandles,
+    resolveNodeRef,
+    resolveSpec,
+} from "tongflow";
+import { v4 } from "uuid";
+import useFlow from "@/hooks/use-flow";
+import { usePluginsRegistryStore } from "@/hooks/use-plugins-registry";
+import { useTaskStore } from "@/hooks/use-task";
+import { getWorkflow, listWorkflows, saveWorkflow } from "@/lib/api/workspace";
 
 /** Known add-node types (user-input widgets) accepted in patches. */
 const ADD_NODE_TYPES = new Set([
