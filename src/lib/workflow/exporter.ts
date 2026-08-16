@@ -716,7 +716,7 @@ export class WorkflowExporter {
                             ),
                         )
                         .filter((s) => {
-                            const key = `${s.fromNodeId} ${s.fromField}`;
+                            const key = `${s.fromNodeId}\u0000${s.fromField}`;
                             if (seen.has(key)) return false;
                             seen.add(key);
                             return true;

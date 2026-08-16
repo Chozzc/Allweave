@@ -14,7 +14,8 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10 --activate
 
 # Install deps first for layer caching; --frozen-lockfile for reproducibility.
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/tongflow/package.json ./packages/tongflow/
 RUN pnpm install --frozen-lockfile
 
 # Build. `prebuild` runs `pnpm gen:abi` (needs config/tongflow.abi.json and the
