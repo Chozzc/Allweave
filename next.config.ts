@@ -26,9 +26,6 @@ const nextConfig: NextConfig = {
                 url: false,
             },
         };
-        // Markdown imported as a raw string (agent manual is bundled into the
-        // server code so it survives serverless/Workers deploys with no fs).
-        config.module.rules.push({ test: /\.md$/, type: "asset/source" });
         return config;
     },
 };
