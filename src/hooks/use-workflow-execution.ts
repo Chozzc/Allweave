@@ -27,19 +27,20 @@ import {
     TaskStatus,
     WorkflowStatus,
 } from "tongflow";
-import { showErrorToast } from "@/components/ui/error-toast";
-import useFlow from "@/hooks/use-flow";
-import { useTaskStore } from "@/hooks/use-task";
-import { saveFromTask } from "@/lib/api/material";
-import { saveWorkflow } from "@/lib/api/workspace";
-import { getTaskStopUrl, getTaskWaitUrl } from "@/lib/task/api-url";
-import { applyResolvedOutputRoutes } from "@/lib/task/payload";
+import type { SSEMessage } from "tongflow/canvas";
 import {
+    applyResolvedOutputRoutes,
     emitSSEConnected,
     emitSSETaskMessage,
+    getTaskStopUrl,
+    getTaskWaitUrl,
+    saveFromTask,
+    showErrorToast,
     TASK_CANCEL_REQUEST_EVENT,
-} from "@/lib/task/sse-events";
-import type { SSEMessage } from "@/types/sse";
+    useFlow,
+    useTaskStore,
+} from "tongflow/canvas";
+import { saveWorkflow } from "@/lib/api/workspace";
 
 interface UseWorkflowExecutionArgs {
     nodes: Node[];

@@ -1,4 +1,4 @@
-import { apiGet } from "./client";
+import { apiGet } from "tongflow/canvas";
 
 export interface Feature {
     name: string;

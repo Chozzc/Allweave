@@ -6,6 +6,9 @@
    them explicitly or shell-only utility classes are never generated. */
 @source "../ext";
 @source "./(ext)";
+/* The canvas lives in the workspace package (`tongflow/canvas`); it is a
+   sibling tree, so name it explicitly too. */
+@source "../../packages/tongflow/src/canvas";
 
 @custom-variant dark (&:is(.dark *));
 

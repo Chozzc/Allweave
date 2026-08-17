@@ -3,9 +3,8 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { NodeStatus, TaskStatus, WorkflowStatus } from "tongflow";
-import { SSE_TASK_MESSAGE_EVENT } from "@/lib/task/sse-events";
-import { cn } from "@/lib/utils";
-import type { SSEMessage } from "@/types/sse";
+import type { SSEMessage } from "tongflow/canvas";
+import { cn, SSE_TASK_MESSAGE_EVENT } from "tongflow/canvas";
 
 type Phase = "idle" | "running" | "completed" | "failed";
 

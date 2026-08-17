@@ -1,9 +1,9 @@
+import { pluginDisplayName } from "tongflow/canvas";
 import type {
     PluginEnvDecl,
     PluginEnvVar,
 } from "@/lib/plugins/plugin-env-manifest-schema";
 import { resolveEnvKeySection } from "@/lib/settings/env-key-metadata";
-import { pluginDisplayName } from "../nodes/base/node-plugin-id-select";
 
 /** A declared var as rendered inside a card; shared vars carry `usedBy`. */
 export interface GroupVar extends PluginEnvVar {

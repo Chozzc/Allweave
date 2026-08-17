@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import { logger } from "tongflow";
+import { apiGet } from "tongflow/canvas";
 import { create } from "zustand";
-import { apiGet } from "@/lib/api/client";
 
 /**
  * Setup status shared by the onboarding surfaces (welcome wizard, canvas

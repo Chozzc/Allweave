@@ -1,6 +1,7 @@
 import { cookies, headers } from "next/headers";
 import { getRequestConfig } from "next-intl/server";
 import { logger } from "tongflow";
+import { type CanvasLocale, canvasMessages } from "tongflow/canvas";
 
 export default getRequestConfig(async () => {
     const cookieStore = await cookies();
@@ -31,8 +32,11 @@ export default getRequestConfig(async () => {
     // Validate locale
     if (!["en", "zh", "ja", "ko"].includes(locale)) locale = "zh";
 
+    // The canvas package owns the Workspace / Upload / Recorder / … namespaces
+    // (shipped with `tongflow/canvas`); the app adds its shell namespaces.
+    const appMessages = (await import(`./messages/${locale}.json`)).default;
     return {
         locale,
-        messages: (await import(`./messages/${locale}.json`)).default,
+        messages: { ...canvasMessages[locale as CanvasLocale], ...appMessages },
     };
 });

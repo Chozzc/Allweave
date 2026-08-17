@@ -15,20 +15,18 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
     AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
+    apiPatch,
+    Badge,
+    Button,
     Dialog,
     DialogContent,
     DialogDescription,
     DialogHeader,
     DialogTitle,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
+    Textarea,
+} from "tongflow/canvas";
 import { DISCORD_URL, WECHAT_GROUP_QR_SRC } from "@/constants/community";
 import { useInChinaTz } from "@/hooks/use-in-china-tz";
-import { apiPatch } from "@/lib/api/client";
 import { openExternalUrl } from "@/lib/desktop/open-external";
 
 /** One credential extracted from the pasted blob. */

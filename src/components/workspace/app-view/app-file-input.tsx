@@ -3,9 +3,13 @@
 import { FileIcon, Loader2, UploadCloud, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { DataNode } from "tongflow";
-import { useFileAsyncLoader, useFileUrl } from "@/hooks/use-file-async-loader";
-import { useDropzone, useMultipleUpload } from "@/hooks/use-upload";
-import { cn } from "@/lib/utils";
+import {
+    cn,
+    useDropzone,
+    useFileAsyncLoader,
+    useFileUrl,
+    useMultipleUpload,
+} from "tongflow/canvas";
 import { MODEL_FILE_ACCEPT } from "./model-file-accept";
 
 const MAX_FILES = 9;

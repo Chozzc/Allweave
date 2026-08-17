@@ -10,10 +10,13 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { logger, NodeStatus, TaskStatus, WorkflowStatus } from "tongflow";
-import { getTaskWaitUrl } from "@/lib/task/api-url";
-import { emitSSEConnected, emitSSETaskMessage } from "@/lib/task/sse-events";
-import type { SSEMessage, SSEStatus } from "@/types/sse";
-import { useTaskStore } from "./use-task";
+import type { SSEMessage, SSEStatus } from "tongflow/canvas";
+import {
+    emitSSEConnected,
+    emitSSETaskMessage,
+    getTaskWaitUrl,
+    useTaskStore,
+} from "tongflow/canvas";
 
 interface UseWorkflowRecoveryOptions {
     /** Node status update callback */

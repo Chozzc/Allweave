@@ -1,0 +1,40 @@
+import { Scissors } from "lucide-react";
+import { memo } from "react";
+import { useTranslations } from "use-intl";
+import type { TongflowPluginNodeProps } from "../../../core";
+import { useAbiForm } from "../../hooks/use-abi-form";
+
+import { AbiNodeShell } from "../base/abi-node-shell";
+import { NodeTextarea } from "../base/node-textarea";
+
+const SplitTextNode = ({
+    selected,
+    data,
+}: TongflowPluginNodeProps<"split-text", "splitTextNode">) => {
+    const t = useTranslations("Workspace.nodes");
+    const tBase = useTranslations("Workspace.nodes.base");
+    const form = useAbiForm("split-text");
+
+    return (
+        <AbiNodeShell
+            feature="split-text"
+            form={form}
+            selected={selected}
+            data={data}
+            title={t("titles.splitText")}
+            icon={<Scissors className="h-5 w-5" />}
+            executeLabel={tBase("execute")}
+        >
+            <div className="p-4 space-y-4">
+                <NodeTextarea
+                    rows={3}
+                    placeholder={t("common.enterInstructions")}
+                    {...form.bind("userPrompt")}
+                    className="min-h-[80px]"
+                />
+            </div>
+        </AbiNodeShell>
+    );
+};
+
+export default memo(SplitTextNode);

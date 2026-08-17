@@ -5,7 +5,7 @@ import ExtSlot from "@ext/ui-slot";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { Toaster } from "react-hot-toast";
-import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { ErrorBoundary } from "tongflow/canvas";
 import { TaskFailureToaster } from "@/components/workspace/task-failure-toaster";
 
 const geistSans = Geist({

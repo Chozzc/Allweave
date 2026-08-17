@@ -20,7 +20,7 @@ import {
     parseWorkflowImportJson,
     WORKFLOW_IMPORT_NO_CANVAS,
 } from "tongflow";
-import { useShallow } from "zustand/react/shallow";
+import type { FlowState } from "tongflow/canvas";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -30,22 +30,20 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import {
+    Button,
     Dialog,
     DialogClose,
     DialogContent,
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from "@/components/ui/dialog";
-import { showErrorToast } from "@/components/ui/error-toast";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import type { FlowState } from "@/hooks/use-flow";
-import { useFlow } from "@/hooks/use-flow";
+    Input,
+    Label,
+    showErrorToast,
+    Textarea,
+    useFlow,
+} from "tongflow/canvas";
+import { useShallow } from "zustand/react/shallow";
 import {
     type SaveWorkflowRequest,
     saveWorkflow,

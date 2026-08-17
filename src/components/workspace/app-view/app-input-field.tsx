@@ -1,8 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Label, Textarea } from "tongflow/canvas";
 import { AppFileInput } from "./app-file-input";
 import {
     type AppFieldValue,

@@ -16,7 +16,7 @@ import type { Node } from "@xyflow/react";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
 import type { BaseNodeData } from "tongflow";
-import { cn } from "@/lib/utils";
+import { cn } from "tongflow/canvas";
 
 // Seedance multimodal reference (images → video) accepts up to 9 images.
 const MAX_IMAGES_GEN_VIDEO = 9;
