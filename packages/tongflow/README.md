@@ -125,7 +125,9 @@ export function Studio() {
   `/api/upload`, `/api/plugins/registry`, …), optionally with a custom
   `fetch` and an asset-URL resolver. Defaults are same-origin.
 - `canvasMessages[locale]` are the i18n catalogs (`en` / `zh` / `ja` / `ko`);
-  merge them into your `use-intl` (or `next-intl`) provider.
+  merge them into your `use-intl` (or `next-intl`) provider. Import them from
+  `tongflow/canvas/messages` in server code (RSC / SSR) — that entry carries no
+  `"use client"` directive.
 - Styling is Tailwind v4 utilities + TongFlow's tokens in `tongflow/canvas.css`
   (no preflight — bring your own base styles). React 18 and 19 are supported.
 

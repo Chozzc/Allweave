@@ -22,7 +22,10 @@
             "@/*": ["./src/*"],
             "@ext/*": ["./src/ext/*", "./src/ext-default/*"],
             "tongflow": ["./packages/tongflow/src/core/index.ts"],
-            "tongflow/canvas": ["./packages/tongflow/src/canvas/index.ts"]
+            "tongflow/canvas": ["./packages/tongflow/src/canvas/index.ts"],
+            "tongflow/canvas/messages": [
+                "./packages/tongflow/src/canvas/i18n/messages.ts"
+            ]
         }
     },
     "include": [

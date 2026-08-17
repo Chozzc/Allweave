@@ -47,6 +47,16 @@
                 "default": "./dist/canvas.cjs"
             }
         },
+        "./canvas/messages": {
+            "import": {
+                "types": "./dist/canvas-messages.d.ts",
+                "default": "./dist/canvas-messages.js"
+            },
+            "require": {
+                "types": "./dist/canvas-messages.d.cts",
+                "default": "./dist/canvas-messages.cjs"
+            }
+        },
         "./canvas.css": "./dist/canvas.css",
         "./abi": "./abi/tongflow.abi.json",
         "./package.json": "./package.json"
