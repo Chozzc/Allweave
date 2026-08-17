@@ -1,0 +1,73 @@
+# Publish the `tongflow` npm package (packages/tongflow) via npm Trusted
+# Publishing (OIDC): no token, no 2FA prompt, provenance attached.
+#
+# One-time setup on npmjs.com → package "tongflow" → Settings → Trusted
+# Publisher: GitHub Actions, owner `tong-io`, repository `tongflow`,
+# workflow filename `npm-publish.yml`, environment `npm`.
+#
+# Trigger: push a tag `npm-vX.Y.Z` whose version matches
+# packages/tongflow/package.json (or run manually with `dry_run`).
+name: npm publish
+
+on:
+  push:
+    tags: ["npm-v*"]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Build + pack only, do not publish"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write # OIDC token for npm trusted publishing
+
+jobs:
+  publish:
+    name: Build, test, publish tongflow
+    runs-on: ubuntu-latest
+    environment: npm
+    defaults:
+      run:
+        working-directory: packages/tongflow
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing needs npm >= 11.5.1.
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: .
+
+      - name: Verify tag matches package version
+        if: github.ref_type == 'tag'
+        run: |
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          TAG_VERSION="${GITHUB_REF_NAME#npm-v}"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "tag npm-v$TAG_VERSION does not match package.json version $PKG_VERSION" >&2
+            exit 1
+          fi
+
+      - name: Typecheck, test, build
+        run: pnpm typecheck && pnpm test && pnpm build
+
+      - name: Pack (dry run)
+        run: npm pack --dry-run
+
+      - name: Publish
+        if: github.ref_type == 'tag' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
+        run: npm publish --access public --provenance
