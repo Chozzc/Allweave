@@ -1,7 +1,7 @@
 import { cookies, headers } from "next/headers";
 import { getRequestConfig } from "next-intl/server";
 import { logger } from "tongflow";
-import { type CanvasLocale, canvasMessages } from "tongflow/canvas";
+import { type CanvasLocale, canvasMessages } from "tongflow/canvas/messages";
 
 export default getRequestConfig(async () => {
     const cookieStore = await cookies();

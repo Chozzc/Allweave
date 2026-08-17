@@ -11,7 +11,12 @@ import { defineConfig } from "tsdown";
  */
 export default defineConfig([
     {
-        entry: { index: "src/core/index.ts" },
+        // `canvas-messages` is server-safe (plain JSON catalogs, no "use client")
+        // so RSC / SSR code can merge them into its i18n provider.
+        entry: {
+            index: "src/core/index.ts",
+            "canvas-messages": "src/canvas/i18n/messages.ts",
+        },
         format: ["esm", "cjs"],
         platform: "neutral",
         dts: true,

@@ -10,6 +10,10 @@ export default defineConfig({
     resolve: {
         alias: {
             "@": path.resolve(__dirname, "./src"),
+            "tongflow/canvas/messages": path.resolve(
+                __dirname,
+                "./packages/tongflow/src/canvas/i18n/messages.ts",
+            ),
             "tongflow/canvas": path.resolve(
                 __dirname,
                 "./packages/tongflow/src/canvas/index.ts",
