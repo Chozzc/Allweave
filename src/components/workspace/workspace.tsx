@@ -45,8 +45,6 @@ import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 import { isValidFlowConnection } from "@/lib/workflow/connection-rules";
 import { parseWorkflowImportJson } from "@/lib/workflow/exporter";
-import { AgentPanel } from "./agent/agent-panel";
-import { AgentToggleButton } from "./agent/agent-toggle-button";
 import { AppView } from "./app-view/app-view";
 import { ModeSwitch } from "./mode-switch";
 import { OnboardingGate } from "./onboarding/onboarding-gate";
@@ -442,7 +440,6 @@ function WorkspaceInner({
                 </div>
 
                 <div className="absolute right-5 top-5 z-10 flex items-center gap-3">
-                    <AgentToggleButton />
                     <WorkspaceNav />
                 </div>
 
@@ -478,7 +475,6 @@ function WorkspaceInner({
                     </AlertDialogContent>
                 </AlertDialog>
             </div>
-            <AgentPanel />
         </div>
     );
 }

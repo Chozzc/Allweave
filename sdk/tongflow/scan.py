@@ -17,7 +17,7 @@ from ._ast_utils import (
 )
 from .parse_deploy import _slot_to_ident, parse_deploy_py
 
-SCANNER_VERSION = 4
+SCANNER_VERSION = 5
 
 SKIP_DIR_NAMES = frozenset(
     {
@@ -269,11 +269,6 @@ def scan(plugins_root: Path, abi_path: Path) -> dict[str, object]:
 
     for pdir in _iter_plugin_dirs(plugins_root):
         plugin_id = pdir.name
-        # Content packages (tongflow-package-*) ship data files only (e.g. skill
-        # prompt packs) and no executable plugin code; they are discovered by the
-        # app's own package registry, so the plugin scanner skips them silently.
-        if plugin_id.lower().startswith("tongflow-package-"):
-            continue
         _runner, runner_error = _detect_runner(pdir)
         if runner_error:
             errors.append({"pluginId": plugin_id, "message": runner_error})
