@@ -6,6 +6,7 @@
 
 ## Directory conventions
 
+- **pnpm workspace:** the Next.js app lives at the repo root (`package.json` name `tongflow-app`, private). Publishable npm packages live under [`packages/`](packages/) — currently [`packages/tongflow`](packages/tongflow) (npm name **`tongflow`**, framework-free workflow core; a `./canvas` React entry follows). The app consumes it from source via `tsconfig.json` `paths` (`tongflow` → `packages/tongflow/src/core/index.ts`) + `next.config.ts` `transpilePackages`; publishing uses `dist/` built by `pnpm build:packages`. Root scripts `build:packages` / `test:packages` fan out to every package; CI runs them in the `packages` job.
 - **`src/lib/`** = business code, organized by domain subdirectory (`abi/`, `task/`, `workflow/`, `plugin-executor/`, `plugins/`, `file/`, `upload/`, `schema/`, `api/`, `runtime/`, `settings/`). May hold state, perform I/O, or be server-only. (Drizzle DB schema lives separately under [`src/db/`](src/db/), e.g. the `tasks` table in [`src/db/workspace.schema.ts`](src/db/workspace.schema.ts).)
 - **`src/utils/`** = pure helpers only (no I/O, no business concepts, ≤ a few small files). Anything stateful or domain-aware belongs in `src/lib/`.
 - **Server-only files** are suffixed `.server.ts` and live under a domain subdir (e.g. [`src/lib/plugins/plugins-registry.server.ts`](src/lib/plugins/plugins-registry.server.ts)).

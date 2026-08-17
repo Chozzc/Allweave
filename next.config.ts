@@ -5,6 +5,9 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
     output: "standalone",
+    // Workspace package consumed from source (tsconfig paths) — let Next
+    // transpile it like app code.
+    transpilePackages: ["tongflow"],
     // NOTE: do not add outputFileTracingExcludes for data//plugins//desktop
     // here — its glob matching is unanchored, so "data/**" (even as
     // "./data/**") also strips next/dist/lib/metadata/** from the standalone
