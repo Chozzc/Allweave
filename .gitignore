@@ -70,3 +70,6 @@ __pycache__/
 /.open-next/
 /.dev.vars*
 /.wrangler/
+
+# workspace package build output
+packages/*/dist

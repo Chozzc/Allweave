@@ -25,7 +25,8 @@
             "!**/.tongflow",
             "!data",
             "!.claude",
-            "!plugins"
+            "!plugins",
+            "!packages/*/dist"
         ]
     },
     "formatter": {
