@@ -11,6 +11,7 @@
 
 import type { Edge, Node } from "@xyflow/react";
 import { ReactFlowProvider } from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect } from "react";
 import { logger, parseWorkflowImportJson } from "tongflow";

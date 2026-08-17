@@ -5,7 +5,6 @@
  * Ported from the saas project; node types are added incrementally as needed
  */
 
-import "@xyflow/react/dist/style.css";
 import type { EdgeTypes, NodeTypes } from "@xyflow/react";
 
 // Edge component

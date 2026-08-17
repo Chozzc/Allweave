@@ -1,22 +1,28 @@
 # tongflow
 
-Framework-free core of [TongFlow](https://github.com/tong-io/tongflow), the
-multi-modal AIGC workflow studio: the ABI contract, the static node registry,
-connection validation, the workflow exporter, canvas layout, a **headless
-canvas model** and the **agent graph tools** that let an external agent build
-and edit workflows programmatically.
+The core of [TongFlow](https://github.com/tong-io/tongflow), the multi-modal
+AIGC workflow studio, as an npm package with two entries:
 
-No React, no Next.js, no I/O — it runs in Node, browsers and workers alike.
+- **`tongflow`** — framework-free: the ABI contract, the static node
+  registry, connection validation, the workflow exporter, canvas layout, a
+  **headless canvas model** and the **agent graph tools** that let an external
+  agent build and edit workflows programmatically. No React, no Next.js, no
+  I/O — it runs in Node, browsers and workers alike.
+- **`tongflow/canvas`** — the React canvas (`FlowCanvas`, every node/edge
+  component, hooks, UI primitives) that renders and edits that model against a
+  TongFlow-compatible API.
+
 Execution is not in this package: export a workflow and hand it to the
 Python SDK engine (`pip install tongflow`, `python -m tongflow.engine`).
 
 ```sh
-npm install tongflow zustand
+npm install tongflow zustand            # core
+npm install react react-dom @xyflow/react use-intl   # + canvas peers
 ```
 
 `zustand` is a peer dependency (the headless store is a `zustand/vanilla`
-store). `@xyflow/react` is an optional peer used for its `Node` / `Edge` types
-only.
+store). `@xyflow/react`, `react`, `react-dom` and `use-intl` are optional
+peers only the canvas entry needs.
 
 ## What's inside
 
@@ -86,23 +92,47 @@ The graph rules an agent must follow (the strict
 are documented in
 [`docs/agent-workflow-manual.md`](https://github.com/tong-io/tongflow/blob/main/docs/agent-workflow-manual.md).
 
-## Embedding in a React canvas
+## The React canvas (`tongflow/canvas`)
 
-The TongFlow app itself layers React Flow callbacks over `createFlowSlice`:
+```tsx
+import "@xyflow/react/dist/style.css";
+import "tongflow/canvas.css";
+import { ReactFlowProvider } from "@xyflow/react";
+import { IntlProvider } from "use-intl";
+import { CanvasProvider, FlowCanvas, canvasMessages, useFlow } from "tongflow/canvas";
 
-```ts
-import { create } from "zustand";
-import { createFlowSlice, type FlowCoreState } from "tongflow";
-
-const useFlow = create<FlowCoreState & MyBindings>()((set, get) => ({
-    ...createFlowSlice(set, get),
-    onNodesChange: (changes) => { /* applyNodeChanges + set({ nodes }) */ },
-    // ...
-}));
-useFlow.subscribe((s, prev) => { if (s.nodes !== prev.nodes) persist(s.nodes); });
+export function Studio() {
+    return (
+        <IntlProvider locale="en" messages={canvasMessages.en}>
+            <CanvasProvider apiBaseUrl="https://my-tongflow-server" locale="en">
+                <ReactFlowProvider>
+                    <div style={{ width: "100%", height: "100vh" }}>
+                        <FlowCanvas />
+                    </div>
+                </ReactFlowProvider>
+            </CanvasProvider>
+        </IntlProvider>
+    );
+}
 ```
 
-A ready-made React canvas (`tongflow/canvas`) is on the roadmap.
+- `FlowCanvas` renders the whole TongFlow node set over the flow store
+  (`useFlow`), validates connections against the ABI while dragging, and
+  exposes `fitView` / `focusNode` / `tidyLayout` through a ref. Overlays go in
+  as `children`.
+- `CanvasProvider` / `configureCanvasHost` point the canvas at a
+  TongFlow-compatible HTTP API (`/api/task/create`, `/api/task/wait` SSE,
+  `/api/upload`, `/api/plugins/registry`, …), optionally with a custom
+  `fetch` and an asset-URL resolver. Defaults are same-origin.
+- `canvasMessages[locale]` are the i18n catalogs (`en` / `zh` / `ja` / `ko`);
+  merge them into your `use-intl` (or `next-intl`) provider.
+- Styling is Tailwind v4 utilities + TongFlow's tokens in `tongflow/canvas.css`
+  (no preflight — bring your own base styles). React 18 and 19 are supported.
+
+The TongFlow app itself is the first host: its `useFlow` is
+`createFlowSlice` + React Flow callbacks + a localStorage subscription, and its
+workspace shell composes navigation, dialogs and persistence around
+`FlowCanvas`.
 
 ## Versioning
 
