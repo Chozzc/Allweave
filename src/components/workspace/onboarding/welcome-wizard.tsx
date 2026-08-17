@@ -3,18 +3,19 @@
 import { ExternalLink, Loader2, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { logger } from "tongflow";
 import {
+    apiGet,
+    apiPatch,
+    Button,
     Dialog,
     DialogContent,
     DialogDescription,
     DialogHeader,
     DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { apiGet, apiPatch } from "@/lib/api/client";
+    Input,
+} from "tongflow/canvas";
 import { openExternalUrl } from "@/lib/desktop/open-external";
-import { logger } from "@/lib/logger";
 import type { PluginEnvDecl } from "@/lib/plugins/plugin-env-manifest-schema";
 import { resolveEnvKeyType } from "@/lib/settings/env-key-metadata";
 import { buildSettingsSections } from "../settings/build-settings-sections";

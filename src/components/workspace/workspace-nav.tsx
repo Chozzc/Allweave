@@ -8,24 +8,20 @@ import { Globe, Moon, Sun } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import {
+    Button,
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
-} from "@/components/ui/dialog";
-import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "tongflow/canvas";
 import { PluginsDialog } from "@/components/workspace/plugins-dialog";
 import { SettingsDialog } from "@/components/workspace/settings/settings-dialog";
 import { useInChinaTz } from "@/hooks/use-in-china-tz";

@@ -36,7 +36,7 @@ def load_slots(abi_path: Path) -> list[str]:
 
 def generate_node_slots_py(slots: list[str]) -> str:
     lines: list[str] = []
-    lines.append('"""Generated from config/tongflow.abi.json. DO NOT EDIT."""')
+    lines.append('"""Generated from packages/tongflow/abi/tongflow.abi.json. DO NOT EDIT."""')
     lines.append("")
     lines.append("from __future__ import annotations")
     lines.append("")

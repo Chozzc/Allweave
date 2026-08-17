@@ -1,6 +1,6 @@
 import type { JSONSchema7 } from "json-schema";
 
-import { ABI_NODES, type NodeSlot } from "@/generated/abi";
+import { ABI_NODES, type NodeSlot } from "tongflow";
 import { saveFile } from "@/lib/file/file-utils";
 
 const FILE_REF_REFS = new Set([

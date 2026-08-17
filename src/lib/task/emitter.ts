@@ -9,7 +9,7 @@
  * publish events.
  */
 
-import type { SSEStatusType } from "@/constants/task-status";
+import type { SSEStatusType } from "tongflow";
 
 export interface TaskEvent {
     id: string;

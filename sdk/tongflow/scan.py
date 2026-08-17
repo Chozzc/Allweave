@@ -444,10 +444,7 @@ def _iso_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(
-        description="Scan Tongflow local plugins/ and print registry JSON (stdout).",
-    )
+def add_scan_arguments(ap: argparse.ArgumentParser) -> None:
     ap.add_argument(
         "--root",
         type=Path,
@@ -457,12 +454,23 @@ def main() -> int:
     ap.add_argument(
         "--abi",
         type=Path,
-        default=Path("config/tongflow.abi.json"),
-        help="Path to tongflow.abi.json",
+        default=None,
+        help=(
+            "Path to tongflow.abi.json (default: $TONGFLOW_ABI_PATH, then the "
+            "ABI bundled with this SDK, then ./packages/tongflow/abi/tongflow.abi.json)."
+        ),
     )
-    ns = ap.parse_args()
+
+
+def run_scan(ns: argparse.Namespace) -> int:
+    # Imported lazily: the engine module tree is optional for pure scanning.
+    from .engine.abi_schema import resolve_abi_path
+
     root = ns.root if ns.root.is_absolute() else (Path.cwd() / ns.root).resolve()
-    abi = ns.abi if ns.abi.is_absolute() else (Path.cwd() / ns.abi).resolve()
+    if ns.abi is None:
+        abi = resolve_abi_path()
+    else:
+        abi = ns.abi if ns.abi.is_absolute() else (Path.cwd() / ns.abi).resolve()
     if not abi.is_file():
         err = {
             "version": 1,
@@ -485,5 +493,14 @@ def main() -> int:
     return 0
 
 
+def main(argv: "list[str] | None" = None) -> int:
+    ap = argparse.ArgumentParser(
+        prog="python -m tongflow scan",
+        description="Scan Tongflow local plugins/ and print registry JSON (stdout).",
+    )
+    add_scan_arguments(ap)
+    return run_scan(ap.parse_args(argv))
+
+
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

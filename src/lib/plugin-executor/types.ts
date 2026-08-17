@@ -1,4 +1,4 @@
-import type { NodeSlot, SlotInput, SlotOutput } from "@/generated/abi";
+import type { NodeSlot, SlotInput, SlotOutput } from "tongflow";
 
 export type PluginExecRequest<S extends NodeSlot = NodeSlot> = {
     pluginId: string;

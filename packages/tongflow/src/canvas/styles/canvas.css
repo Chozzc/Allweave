@@ -1,0 +1,13 @@
+/*
+ * Standalone stylesheet for `tongflow/canvas` (built to dist/canvas.css).
+ *
+ * Utilities + theme tokens for every class the canvas uses. Preflight is
+ * intentionally NOT included so it never fights the host's own reset —
+ * bring your own base styles (or Tailwind's preflight) and import
+ * `@xyflow/react/dist/style.css` alongside this file.
+ */
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities);
+@import "tw-animate-css";
+@import "./theme.css";
+@source "../";

@@ -3,9 +3,9 @@
  */
 
 import { eq } from "drizzle-orm";
+import { logger } from "tongflow";
 import { getDb } from "@/db";
 import { materials, tasks, workflows } from "@/db/schema";
-import { logger } from "@/lib/logger";
 
 type MaterialType = "image" | "video" | "audio" | "text" | "file" | "model";
 

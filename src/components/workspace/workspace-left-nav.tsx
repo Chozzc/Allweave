@@ -8,22 +8,21 @@
 import { FolderOpen, Loader2, Workflow, Zap } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { logger } from "tongflow";
 import {
+    Button,
+    listTasks,
     Sheet,
     SheetContent,
     SheetHeader,
     SheetTitle,
-} from "@/components/ui/sheet";
-import {
+    type TaskRecord as Task,
     Tooltip,
     TooltipContent,
     TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "tongflow/canvas";
 import { PortfolioDialog } from "@/components/workspace/portfolio-dialog";
 import { WorkflowDialog } from "@/components/workspace/workflow-dialog";
-import { listTasks, type Task } from "@/lib/api/task";
-import { logger } from "@/lib/logger";
 import { localizeStoredTaskError } from "@/lib/task/error-localize";
 
 export function WorkspaceLeftNav() {

@@ -15,24 +15,22 @@ import {
 import { useTranslations } from "next-intl";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { Button } from "@/components/ui/button";
+import { logger } from "tongflow";
 import {
+    Button,
     Dialog,
     DialogContent,
     DialogTitle,
     DialogTrigger,
-} from "@/components/ui/dialog";
-import { showErrorToast } from "@/components/ui/error-toast";
-import {
+    getFileUrl,
+    showErrorToast,
     Tooltip,
     TooltipContent,
     TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Waterfall } from "@/components/ui/waterfall";
-import { useFlow } from "@/hooks/use-flow";
+    useFlow,
+    Waterfall,
+} from "tongflow/canvas";
 import { listWorkflows, type Workflow } from "@/lib/api/workspace";
-import { getFileUrl } from "@/lib/file/url";
-import { logger } from "@/lib/logger";
 import { formatDate } from "@/utils/date-utils";
 
 function inferMediaType(

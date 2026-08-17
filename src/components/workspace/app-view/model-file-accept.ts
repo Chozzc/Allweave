@@ -3,7 +3,7 @@
  * catalog maintained next to the model node.
  */
 
-import { FORMAT_CATEGORIES } from "@/components/workspace/nodes/modality/model-node.formats";
+import { FORMAT_CATEGORIES } from "tongflow/canvas";
 
 export const MODEL_FILE_ACCEPT = Array.from(
     new Set(

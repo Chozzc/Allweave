@@ -3,8 +3,8 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useState } from "react";
 import toast from "react-hot-toast";
-import { apiGet, apiPut } from "@/lib/api/client";
-import { logger } from "@/lib/logger";
+import { logger } from "tongflow";
+import { apiGet, apiPut } from "tongflow/canvas";
 import type { PluginEnvDecl } from "@/lib/plugins/plugin-env-manifest-schema";
 
 interface EnvResponse {

@@ -3,12 +3,17 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
     test: {
+        css: false,
         environment: "node",
         include: ["src/**/*.test.ts", "packages/*/src/**/*.test.ts"],
     },
     resolve: {
         alias: {
             "@": path.resolve(__dirname, "./src"),
+            "tongflow/canvas": path.resolve(
+                __dirname,
+                "./packages/tongflow/src/canvas/index.ts",
+            ),
             tongflow: path.resolve(
                 __dirname,
                 "./packages/tongflow/src/core/index.ts",

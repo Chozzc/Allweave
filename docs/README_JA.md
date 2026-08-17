@@ -285,7 +285,7 @@ docker compose up -d
 
 ## カスタムプラグイン
 
-キャンバス上で動作するすべてのノードの背後には、**契約**——ABI（[`config/tongflow.abi.json`](../config/tongflow.abi.json)）があります。これは「どんな能力があるか」と「各能力の入出力がどんな形か」を定義し、「誰が実装するか」とは無関係です。プラグインとは小さなPythonパッケージで、ABI の中の1つまたは複数のスロットを選び、tongflow Python SDK を使って、ABI から生成された型で**どう実装するか**の部分を提供します。
+キャンバス上で動作するすべてのノードの背後には、**契約**——ABI（[`packages/tongflow/abi/tongflow.abi.json`](../packages/tongflow/abi/tongflow.abi.json)）があります。これは「どんな能力があるか」と「各能力の入出力がどんな形か」を定義し、「誰が実装するか」とは無関係です。プラグインとは小さなPythonパッケージで、ABI の中の1つまたは複数のスロットを選び、tongflow Python SDK を使って、ABI から生成された型で**どう実装するか**の部分を提供します。
 
 完全な開発フロー——ABI、`@node_slot` デコレータ、SDK、ディレクトリ構造、公開方法については **[docs/plugins.md](plugins.md)** を参照してください。
 

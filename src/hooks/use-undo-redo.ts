@@ -7,8 +7,8 @@
  */
 
 import { useEffect } from "react";
-import { useFlow } from "@/hooks/use-flow";
-import { bumpFocusGeneration } from "@/lib/workflow/flow-history";
+import { bumpFocusGeneration } from "tongflow";
+import { useFlow } from "tongflow/canvas";
 
 // Inside editable elements Cmd/Ctrl+Z must stay native text undo.
 const EDITABLE_SELECTOR = "input, textarea, select, [contenteditable]";

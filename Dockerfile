@@ -18,7 +18,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/tongflow/package.json ./packages/tongflow/
 RUN pnpm install --frozen-lockfile
 
-# Build. `prebuild` runs `pnpm gen:abi` (needs config/tongflow.abi.json and the
+# Build. `prebuild` runs `pnpm gen:abi` (needs packages/tongflow/abi/tongflow.abi.json and the
 # biome/tsx binaries from node_modules), then `next build` emits .next/standalone.
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -52,6 +52,7 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/drizzle ./drizzle
 COPY --from=builder /app/config ./config
+COPY --from=builder /app/packages/tongflow/abi ./packages/tongflow/abi
 COPY --from=builder /app/sdk ./sdk
 
 # /data: SQLite db + uploads + settings.json + plugin venv. /plugins: installed plugins.
