@@ -142,3 +142,16 @@ describe("project model", () => {
         expect(f.kind === "files" && f.paths[0]).toBe(fromProjectKey(root, "01_DEV/script.md"));
     });
 });
+
+describe("templates", () => {
+    it("expands {{tf://…}} placeholders inside text", async () => {
+        const { expandTemplate, hasTemplateRefs } = await import("../src/project/refs.ts");
+        await upsertEntity(root, { id: "CHR_MEI", card: "# Mei\n", consistency: { promptPrefix: "Mei, short black hair" } });
+        expect(hasTemplateRefs("plain")).toBe(false);
+        expect(hasTemplateRefs("{{tf://CHR_MEI/prompt}} x")).toBe(true);
+        expect(hasTemplateRefs("{{tf://CHR_MEI/prompt}} x")).toBe(true); // regex lastIndex reset
+        const out = await expandTemplate(root, "{{ tf://STY_MAIN/prompt }}, {{tf://CHR_MEI/prompt}}, full body");
+        expect(out).toBe("anime style, clean line art, soft cel shading, cinematic composition, Mei, short black hair, full body");
+        await expect(expandTemplate(root, "{{tf://CHR_MEI/REF}}")).rejects.toThrow(/no REF take/);
+    });
+});

@@ -48,6 +48,33 @@ export function isTfRef(value: unknown): value is string {
     return typeof value === "string" && value.startsWith(TF_SCHEME);
 }
 
+const TEMPLATE_RE = /\{\{\s*(tf:\/\/[^}\s]+)\s*\}\}/g;
+
+/** True when a string embeds `{{tf://…}}` placeholders. */
+export function hasTemplateRefs(value: unknown): value is string {
+    return typeof value === "string" && TEMPLATE_RE.test(value) && ((TEMPLATE_RE.lastIndex = 0), true);
+}
+
+/**
+ * Expand `{{tf://…}}` placeholders inside a string: text refs are joined with
+ * a space, file refs become their project keys. Lets one prompt compose the
+ * style prefix, a character prefix and shot-specific text:
+ *   "{{tf://STY_MAIN/prompt}}, {{tf://CHR_MEI/prompt}}, full-body reference sheet"
+ */
+export async function expandTemplate(projectRoot: string, text: string): Promise<string> {
+    const matches = [...text.matchAll(TEMPLATE_RE)];
+    if (matches.length === 0) return text;
+    let out = "";
+    let last = 0;
+    for (const m of matches) {
+        out += text.slice(last, m.index);
+        const r = await resolveRef(projectRoot, m[1]);
+        out += r.kind === "texts" ? r.texts.join(" ") : r.keys.join(" ");
+        last = (m.index ?? 0) + m[0].length;
+    }
+    return out + text.slice(last);
+}
+
 export type ResolvedRef =
     | { kind: "files"; ref: string; paths: string[]; keys: string[] }
     | { kind: "texts"; ref: string; texts: string[] };

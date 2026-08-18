@@ -6,7 +6,7 @@
  */
 import { type ExecutableWorkflow, getAbiNodeBySlot, getAbiOutputRoutesBySlot } from "tongflow";
 import type { WorkflowDocument } from "../project/workflow-file.ts";
-import { isTfRef, resolveRef } from "../project/refs.ts";
+import { expandTemplate, hasTemplateRefs, isTfRef, resolveRef } from "../project/refs.ts";
 
 export interface CanvasTaskBody {
     feature: string;
@@ -89,6 +89,7 @@ async function resolvePromptRefs(projectRoot: string, value: unknown): Promise<R
                 if (r.kind === "texts") return r.texts.join("\n");
                 return r.paths.length === 1 ? r.paths[0] : r.paths;
             }
+            if (hasTemplateRefs(v)) return expandTemplate(projectRoot, v);
             return v;
         }
         if (Array.isArray(v)) {

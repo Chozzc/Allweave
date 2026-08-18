@@ -68,6 +68,7 @@ export function workflowTools(env: ToolEnv): ToolDefinition[] {
                 "Patch incrementally — never rebuild an existing workflow from scratch. Reference new nodes by the alias you give them; existing nodes by their short id. Never invent uuids. " +
                 "Graph grammar: data node (textNode / imageNode / audioNode / videoNode …) → executable node → its output data nodes are created automatically. " +
                 "For a data node use data:{texts:[…]} or data:{fileKeys:['tf://CHR_MEI/REF']} (tf:// refs are resolved at run time). " +
+                "Compose prompts with {{tf://…}} placeholders inside ONE text, e.g. texts:['{{tf://STY_MAIN/prompt}}, {{tf://CHR_MEI/prompt}}, full-body reference sheet'] — never chain text-combining nodes for that. " +
                 "A level-0 data node WITHOUT static data becomes a workflow INPUT you bind later with tongflow_workflow_bind. " +
                 "Use tongflow_node_catalog / tongflow_node_describe to see node types, their wires and config fields.",
             parameters: {

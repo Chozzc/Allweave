@@ -51,6 +51,14 @@ tf://file/01_DEV/script.md      any project file
 
 Use tf:// refs in `tongflow_workflow_bind` bindings and inside data nodes (`data:{fileKeys:['tf://CHR_MEI/REF']}`) so a workflow keeps working when the circled take changes.
 
+**Composing prompts:** put `{{tf://…}}` placeholders inside ONE text — they are expanded at run time:
+
+```
+textNode data.texts: ["{{tf://STY_MAIN/prompt}}, {{tf://CHR_MEI/prompt}}, full-body character reference sheet, front and side view, neutral pose, plain background"]
+```
+
+That is the standard shape for every image / video prompt: style prefix, entity prefix(es), then the shot-specific text. Do not build text-combining node chains for this, and do not bind refs to input names that do not exist — a workflow only has inputs when a level-0 data node has NO data.
+
 ## The consistency kit (why shots match)
 
 Every entity's `consistency.json` holds `promptPrefix`, `promptSuffix`, `negativePrompt`, `seed`, `pluginId`, `model`. Fill it when you create the entity (`tongflow_bible_upsert`) and **always** feed it into workflows that render the entity: bind character `REF` images as image inputs and compose prompts as `<STY_MAIN prefix>, <CHR prefix>, <shot-specific text>`. Never re-describe a character from memory when a REF exists.
@@ -65,7 +73,8 @@ Every entity's `consistency.json` holds `promptPrefix`, `promptSuffix`, `negativ
 6. Circle the good take (`tongflow_take_circle`) or fix the workflow / prompt and run again (next take).
 
 Rules of thumb:
-- Patch incrementally; never rebuild a workflow from scratch; never invent node ids.
+- Patch incrementally; never rebuild a workflow from scratch; never invent node ids. Read the patch result: `ok:false` steps must be fixed before running.
+- Two ways to parameterize: (a) a level-0 data node WITHOUT data becomes an input you bind per run (`tongflow_workflow_bind` / `tongflow_workflow_run inputs`); (b) put `tf://` refs or `{{tf://…}}` templates directly in node data. Both resolve at run time against the circled takes.
 - Text you author (script, dialogue, prompts) goes into files / the breakdown, then into workflows **as inputs** — text generation nodes are only for mechanical bulk transforms.
 - One workflow per job type, parameterized by inputs (e.g. `shot-keyframe` reused for every shot with different bindings) — not one workflow per shot.
 - Before running, make sure the plugin for each node is installed (`tongflow_plugins_list`, `tongflow_plugins_install`) and its API keys are configured in the tongflow settings.

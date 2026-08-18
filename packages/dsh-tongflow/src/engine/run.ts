@@ -9,7 +9,7 @@ import type { Pass, Provenance, RunEvent, RunSummary, TakeInfo } from "../shared
 import type { ProjectRef } from "../project/manifest.ts";
 import { assertPassForOwner } from "../project/naming.ts";
 import { fromProjectKey, projectPaths, toProjectKey } from "../project/paths.ts";
-import { isTfRef, resolveRef } from "../project/refs.ts";
+import { expandTemplate, hasTemplateRefs, isTfRef, resolveRef } from "../project/refs.ts";
 import { type WorkflowDocument, readWorkflowFile, workflowHash } from "../project/workflow-file.ts";
 import { nowIso } from "../util/fsx.ts";
 import { type IngestTarget, ingestOutputs } from "./ingest.ts";
@@ -178,7 +178,7 @@ async function bindValue(projectRoot: string, type: string, bound: string | stri
             continue;
         }
         if (isText) {
-            texts.push(v);
+            texts.push(hasTemplateRefs(v) ? await expandTemplate(projectRoot, v) : v);
             continue;
         }
         if (/^(https?:|data:)/.test(v) || isAbsolute(v)) {
@@ -212,26 +212,31 @@ async function resolveEmbeddedRefs(projectRoot: string, workflow: ExecutableWork
             }
             sd.fileKeys = out;
         }
-        if (sd.texts?.some(isTfRef)) {
+        if (sd.texts?.some((t) => isTfRef(t) || hasTemplateRefs(t))) {
             const out: string[] = [];
             for (const t of sd.texts) {
-                if (!isTfRef(t)) {
+                if (isTfRef(t)) {
+                    const r = await resolveRef(projectRoot, t);
+                    out.push(...(r.kind === "texts" ? r.texts : r.keys));
+                } else if (hasTemplateRefs(t)) {
+                    out.push(await expandTemplate(projectRoot, t));
+                } else {
                     out.push(t);
-                    continue;
                 }
-                const r = await resolveRef(projectRoot, t);
-                out.push(...(r.kind === "texts" ? r.texts : r.keys));
             }
             sd.texts = out;
         }
     }
     for (const node of workflow.executableNodes) {
         for (const [field, binding] of Object.entries(node.bindings)) {
-            if ((binding.kind === "static" || binding.kind === "config") && isTfRef(binding.value)) {
+            if (binding.kind !== "static" && binding.kind !== "config") continue;
+            if (isTfRef(binding.value)) {
                 const r = await resolveRef(projectRoot, binding.value);
                 if (r.kind === "texts") binding.value = r.texts.join("\n");
                 else if (r.paths.length === 1) binding.value = r.paths[0];
                 else throw new Error(`${binding.value} (in ${field}) resolves to ${r.paths.length} files; a config field takes one`);
+            } else if (hasTemplateRefs(binding.value)) {
+                binding.value = await expandTemplate(projectRoot, binding.value);
             }
         }
     }

@@ -277,9 +277,13 @@ export class StudioApi {
         if (patch.purpose !== undefined) meta.purpose = patch.purpose;
         // Validate that bound names exist as inputs (advisory error).
         const inputNames = new Set((doc.executable?.inputs ?? []).map((i) => i.name));
-        const unknown = Object.keys(meta.bindings ?? {}).filter((n) => inputNames.size > 0 && !inputNames.has(n));
+        const unknown = Object.keys(meta.bindings ?? {}).filter((n) => !inputNames.has(n));
         if (unknown.length > 0) {
-            throw new Error(`unknown input names: ${unknown.join(", ")} (inputs: ${[...inputNames].join(", ") || "none"})`);
+            throw new Error(
+                inputNames.size === 0
+                    ? `this workflow has no inputs (every level-0 data node carries static data); to parameterize it add a data node WITHOUT data — or put tf:// refs / {{tf://…}} templates directly into node data. Rejected: ${unknown.join(", ")}`
+                    : `unknown input names: ${unknown.join(", ")} (inputs: ${[...inputNames].join(", ")})`,
+            );
         }
         const store = hydrateStore(doc);
         const registry = (await this.studio.registry.get()).registry;

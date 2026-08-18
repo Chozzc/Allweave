@@ -23,7 +23,7 @@ Work stage by stage. Each stage has an artifact, a tool, and an acceptance check
 
 For every character, key location, hero prop:
 - `tongflow_bible_upsert` with a full `card.md` (name, age, silhouette, face, hair, wardrobe, palette, personality, voice description) and `consistency` = `{ promptPrefix: "<style-agnostic visual description, comma separated>", negativePrompt, seed }`.
-- Generate the **reference sheet** into `REF`: workflow `character-sheet` (text → image, prompt = `tf://STY_MAIN/prompt` + `tf://CHR_X/prompt` + "full-body character reference sheet, front and side view, neutral pose, plain background"). Run → `tongflow_look` → circle the best. Do 2–3 takes if the first is off-model. Repeat with `location-plate` for locations (establishing plate) if useful.
+- Generate the **reference sheet** into `REF`: workflow `character-sheet` = `textNode` (texts: `["{{tf://STY_MAIN/prompt}}, {{tf://CHR_X/prompt}}, full-body character reference sheet, front and side view, neutral pose, plain background"]`) → `textGenImageNode`. Set `target {owner: CHR_X, pass: REF}`. Run → `tongflow_look` → circle the best. Do 2–3 takes if the first is off-model. Repeat with a `location-plate` workflow for locations (establishing plate) if useful.
 - Voice: choose a preset voice or make a `VO` reference clip with a text-to-speech workflow (a neutral sentence in the character's voice). Circle it; dubbing binds `tf://CHR_X/VO`.
 - Acceptance: every speaking character has a circled REF and VO; STY_MAIN prefix final.
 
@@ -38,7 +38,7 @@ For every character, key location, hero prop:
 
 ## 5. Keyframes (KF)
 
-- Workflow `shot-keyframe`: image-edit / image-fusion node with inputs: `refs` ← `tf://CHR_X/REF` for every character in the shot (and `tf://LOC_Y/REF` if a plate exists), `prompt` ← composed text `tf://STY_MAIN/prompt` + `tf://CHR_X/prompt` + `tf://<SHOT>/prompt/KF`; aspect ratio from the project. Target `{owner: <SHOT>, pass: KF}`. Bind per shot with `tongflow_workflow_run` `inputs`, run in background, batch by scene.
+- Workflow `shot-keyframe`: an image-edit / image-fusion node fed by an `imageNode` WITHOUT data (→ input `refs`, bind per run to `tf://CHR_X/REF`, and `tf://LOC_Y/REF` if a plate exists) and a `textNode` WITHOUT data (→ input `prompt`, bind per run to `"{{tf://STY_MAIN/prompt}}, {{tf://CHR_X/prompt}}, {{tf://<SHOT>/prompt/KF}}"`); aspect ratio from the project. Target `{owner: <SHOT>, pass: KF}`. Run per shot with `tongflow_workflow_run` `inputs`, in background, batch by scene.
 - QC each KF with `tongflow_look`: on-model face/hair/wardrobe vs REF, correct shot size, no text/watermark, hands. Note issues in dailies; re-run with an adjusted `prompts.KF` for bad ones; circle the good ones.
 - Acceptance: every shot has a circled KF.
 
