@@ -116,6 +116,47 @@ export function fillDefaultPlugins(store: FlowStore, registry: PluginsRegistry |
     return missing;
 }
 
+/**
+ * Mirror upstream data-node payloads (texts / fileKeys) into the downstream
+ * executable node's `data`, the way the canvas' compose action snapshots them.
+ * Canvas node components gate their execute button on that snapshot, while
+ * the exporter reads edges — so a headless patch must keep both in step.
+ */
+export function mirrorUpstreamPayloads(store: FlowStore): void {
+    const { nodes, edges } = store.getState();
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+    let changed = false;
+    const next = nodes.map((node) => {
+        const type = node.type ?? "";
+        if (!isAbiNodeType(type)) return node;
+        const texts: string[] = [];
+        const fileKeys: string[] = [];
+        for (const e of edges) {
+            if (e.target !== node.id) continue;
+            const src = byId.get(e.source);
+            if (!src || isAbiNodeType(src.type ?? "")) continue;
+            const d = (src.data ?? {}) as { texts?: unknown; fileKeys?: unknown };
+            if (Array.isArray(d.texts)) texts.push(...d.texts.filter((t): t is string => typeof t === "string"));
+            if (Array.isArray(d.fileKeys)) fileKeys.push(...d.fileKeys.filter((k): k is string => typeof k === "string"));
+        }
+        const data = { ...((node.data ?? {}) as Record<string, unknown>) };
+        const same = (a: unknown, b: string[]) => Array.isArray(a) && a.length === b.length && a.every((v, i) => v === b[i]);
+        let touched = false;
+        if (texts.length > 0 && !same(data.texts, texts)) {
+            data.texts = texts;
+            touched = true;
+        }
+        if (fileKeys.length > 0 && !same(data.fileKeys, fileKeys)) {
+            data.fileKeys = fileKeys;
+            touched = true;
+        }
+        if (!touched) return node;
+        changed = true;
+        return { ...node, data };
+    });
+    if (changed) store.setState({ nodes: next } as Partial<ReturnType<FlowStore["getState"]>>);
+}
+
 export interface SaveOptions {
     registry?: PluginsRegistry;
     meta?: WorkflowFileMeta;
@@ -131,6 +172,7 @@ export async function saveWorkflowFile(
     options: SaveOptions = {},
 ): Promise<WorkflowDocument> {
     fillDefaultPlugins(store, options.registry);
+    mirrorUpstreamPayloads(store);
     const state = store.getState();
     const name = options.name ?? state.workflowName ?? basename(key, WORKFLOW_EXT);
     const description = options.description ?? state.workflowDescription ?? "";

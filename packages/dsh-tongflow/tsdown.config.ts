@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, resolve as resolvePath } from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig, type UserConfig } from "tsdown";
 
 /**
@@ -47,6 +48,24 @@ const CSS_VIRTUAL_PREFIX = "\0dsh-tongflow-css:";
 const CSS_VIRTUAL_SUFFIX = ".mjs";
 
 const require = createRequire(import.meta.url);
+
+/**
+ * pnpm installs one copy of a package per peer set; `tongflow/canvas` (react 19
+ * set) and our own code (react 18 set) would otherwise bundle two copies of
+ * use-intl / @xyflow/react / zustand and their React contexts would not match.
+ * Resolve every import of these packages from THIS package's own dependency
+ * tree, honouring their exports maps.
+ */
+function dedupePlugin(names: readonly string[]) {
+    return {
+        name: "dsh-tongflow-dedupe",
+        resolveId(source: string) {
+            const hit = names.find((n) => source === n || source.startsWith(`${n}/`));
+            if (!hit) return null;
+            return fileURLToPath(import.meta.resolve(source));
+        },
+    };
+}
 
 /**
  * Turn `import "x.css"` into a JS module that injects the stylesheet as a
@@ -118,7 +137,16 @@ const client: UserConfig = {
     dts: false,
     sourcemap: true,
     clean: false,
-    external: [...CLIENT_EXTERNALS],
+    // spark (Gaussian splat viewer, ~5 MB, dynamically imported by the 3D model
+    // node) stays external: the loader cannot answer it, so that node shows an
+    // error boundary instead of dragging it into every page. three is a
+    // static import of the canvas and is inlined.
+    external: [...CLIENT_EXTERNALS, /^@sparkjsdev\//],
+    // uuid's exports map picks the Node build under rolldown's default
+    // conditions; force the browser build (no node:crypto).
+    alias: {
+        uuid: resolvePath(dirname(require.resolve("uuid/package.json")), "dist/index.js"),
+    },
     // zustand / immer read process.env.NODE_ENV; zustand's esm build probes
     // import.meta.env.MODE which a CJS output cannot carry.
     define: {
@@ -143,9 +171,12 @@ const client: UserConfig = {
             },
         },
         cssInjectPlugin(),
+        dedupePlugin(["use-intl", "@xyflow/react", "zustand", "react-hot-toast"]),
     ],
     outputOptions: {
         entryFileNames: "client.js",
+        // One file: the loader resolves no chunk graph.
+        inlineDynamicImports: true,
         banner: `window.__ModuleLoader__.load({ id: ${JSON.stringify(PACKAGE_ID)}, factory: (require) => {`,
         footer: "return module.exports; } });",
         intro: "var module = { exports: {} }; var exports = module.exports;",

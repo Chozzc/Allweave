@@ -156,7 +156,7 @@ export async function executeRun(
         await rm(runDir, { recursive: true, force: true }).catch(() => undefined);
     }
     summary.takes = ingest.takes;
-    emit({ type: "ingested", at: nowIso(), takes: ingest.takes });
+    emit({ type: "ingested", at: nowIso(), takes: ingest.takes, outputs: result.outputs });
     return { summary, result, texts: ingest.texts, loose: ingest.loose };
 }
 

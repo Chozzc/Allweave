@@ -1,7 +1,11 @@
 {
     "compilerOptions": {
         "target": "ES2022",
-        "lib": ["ES2022", "DOM", "DOM.Iterable"],
+        "lib": [
+            "ES2022",
+            "DOM",
+            "DOM.Iterable"
+        ],
         "module": "ESNext",
         "moduleResolution": "Bundler",
         "strict": true,
@@ -12,8 +16,27 @@
         "skipLibCheck": true,
         "allowImportingTsExtensions": true,
         "jsx": "react-jsx",
-        "types": []
+        "types": [],
+        "baseUrl": ".",
+        "paths": {
+            "react": [
+                "./node_modules/@types/react"
+            ],
+            "react/jsx-runtime": [
+                "./node_modules/@types/react/jsx-runtime"
+            ],
+            "react-dom": [
+                "./node_modules/@types/react-dom"
+            ]
+        }
     },
-    "include": ["src/client/**/*.ts", "src/client/**/*.tsx", "src/shared/**/*.ts"],
-    "exclude": ["lib", "node_modules"]
+    "include": [
+        "src/client/**/*.ts",
+        "src/client/**/*.tsx",
+        "src/shared/**/*.ts"
+    ],
+    "exclude": [
+        "lib",
+        "node_modules"
+    ]
 }

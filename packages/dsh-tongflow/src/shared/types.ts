@@ -196,6 +196,8 @@ export interface RunEvent {
     totalNodes?: number;
     levels?: number;
     takes?: TakeInfo[];
+    /** Raw node outputs (nodeId → plugin output), on `ingested`. */
+    outputs?: Record<string, unknown>;
 }
 
 export interface RunSummary {

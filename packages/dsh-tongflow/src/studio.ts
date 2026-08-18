@@ -4,13 +4,15 @@
  * skills all talk to this instead of to each other.
  */
 import { createRequire } from "node:module";
-import { mkdir } from "node:fs/promises";
+import { chmod, mkdir } from "node:fs/promises";
+import { join } from "node:path";
 import type { Config } from "./config.ts";
 import { ensureVenv } from "./engine/bootstrap.ts";
 import { RegistryManager } from "./engine/registry.ts";
 import { RunManager } from "./engine/runs.ts";
 import { type ProjectRef, loadProject } from "./project/manifest.ts";
 import { type StudioPaths, resolveStudioRoot, studioPaths } from "./project/paths.ts";
+import { readJsonOr, writeJson } from "./util/fsx.ts";
 
 export type Logger = (line: string) => void;
 
@@ -71,10 +73,33 @@ export class Studio {
         return this.pythonPromise;
     }
 
-    /** Environment handed to the engine (inherited by plugin subprocesses). */
+    /** Environment handed to the engine (inherited by plugin subprocesses): config.env < env.json < resolver. */
     async pluginEnv(): Promise<Record<string, string>> {
+        const stored = await this.readEnvFile();
         const extra = this.resolveEnv ? await this.resolveEnv() : {};
-        return { ...this.config.env, ...extra };
+        return { ...this.config.env, ...stored, ...extra };
+    }
+
+    private get envFile(): string {
+        return join(this.paths.root, "env.json");
+    }
+
+    /** Secrets the user entered in the studio UI (plugin API keys, Modal tokens). */
+    readEnvFile(): Promise<Record<string, string>> {
+        return readJsonOr<Record<string, string>>(this.envFile, {});
+    }
+
+    /** Merge updates into env.json (`null` deletes); file is created 0600. */
+    async updateEnvFile(patch: Record<string, string | null>): Promise<Record<string, string>> {
+        const current = await this.readEnvFile();
+        for (const [k, v] of Object.entries(patch)) {
+            if (!/^[A-Z][A-Z0-9_]*$/.test(k)) throw new Error(`invalid env key "${k}"`);
+            if (v === null || v === "") delete current[k];
+            else current[k] = v;
+        }
+        await writeJson(this.envFile, current);
+        await chmod(this.envFile, 0o600).catch(() => undefined);
+        return current;
     }
 
     project(projectId: string): Promise<ProjectRef> {
