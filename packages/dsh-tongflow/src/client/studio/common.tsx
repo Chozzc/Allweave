@@ -3,30 +3,59 @@ import type { Pass, TakeInfo } from "../../shared/types.ts";
 import { modalityOfExt } from "../../shared/types.ts";
 import { fileUrl } from "../api.ts";
 
-export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]): { data: T | undefined; error: string | undefined; loading: boolean; reload: () => void } {
-    const [state, setState] = useState<{ data?: T; error?: string; loading: boolean }>({ loading: true });
+export function useAsync<T>(
+    fn: () => Promise<T>,
+    deps: unknown[],
+): {
+    data: T | undefined;
+    error: string | undefined;
+    loading: boolean;
+    reload: () => void;
+} {
+    const [state, setState] = useState<{
+        data?: T;
+        error?: string;
+        loading: boolean;
+    }>({ loading: true });
     const [tick, setTick] = useState(0);
     useEffect(() => {
         let alive = true;
         setState((s) => ({ ...s, loading: true }));
         fn().then(
             (data) => alive && setState({ data, loading: false }),
-            (error: unknown) => alive && setState({ error: error instanceof Error ? error.message : String(error), loading: false }),
+            (error: unknown) =>
+                alive &&
+                setState({
+                    error:
+                        error instanceof Error ? error.message : String(error),
+                    loading: false,
+                }),
         );
         return () => {
             alive = false;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [...deps, tick]);
-    return { data: state.data, error: state.error, loading: state.loading, reload: () => setTick((t) => t + 1) };
+    return {
+        data: state.data,
+        error: state.error,
+        loading: state.loading,
+        reload: () => setTick((t) => t + 1),
+    };
 }
 
 export function TakeThumb({ pid, take }: { pid: string; take: TakeInfo }) {
     const url = fileUrl(pid, take.key);
     const modality = modalityOfExt(take.ext);
-    if (modality === "image") return <img src={url} alt={take.fileName} loading="lazy" />;
-    if (modality === "video") return <video src={url} muted preload="metadata" />;
-    return <span className="glyph">{modality === "audio" ? "♪" : modality === "model" ? "◈" : "▤"}</span>;
+    if (modality === "image")
+        return <img src={url} alt={take.fileName} loading="lazy" />;
+    if (modality === "video")
+        return <video src={url} muted preload="metadata" />;
+    return (
+        <span className="glyph">
+            {modality === "audio" ? "♪" : modality === "model" ? "◈" : "▤"}
+        </span>
+    );
 }
 
 export function TakesGrid({
@@ -40,7 +69,8 @@ export function TakesGrid({
     selected?: TakeInfo;
     onSelect: (take: TakeInfo) => void;
 }) {
-    if (takes.length === 0) return <div className="tfs-muted">no takes yet</div>;
+    if (takes.length === 0)
+        return <div className="tfs-muted">no takes yet</div>;
     return (
         <div className="tfs-takes">
             {takes.map((t) => (
@@ -55,7 +85,13 @@ export function TakesGrid({
                     </div>
                     <div className="tfs-take-foot">
                         <span>{t.take}</span>
-                        {t.circled ? <span className="circle">● circled</span> : <span className="tfs-muted">{fmtBytes(t.size)}</span>}
+                        {t.circled ? (
+                            <span className="circle">● circled</span>
+                        ) : (
+                            <span className="tfs-muted">
+                                {fmtBytes(t.size)}
+                            </span>
+                        )}
                     </div>
                 </div>
             ))}
@@ -92,11 +128,22 @@ export function passLabel(pass: Pass): string {
     )[pass];
 }
 
-export function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+export function Modal({
+    title,
+    onClose,
+    children,
+}: {
+    title: string;
+    onClose: () => void;
+    children: React.ReactNode;
+}) {
     return (
         <div className="tfs-modal-backdrop" onClick={onClose}>
             <div className="tfs-modal" onClick={(e) => e.stopPropagation()}>
-                <div className="tfs-row" style={{ justifyContent: "space-between" }}>
+                <div
+                    className="tfs-row"
+                    style={{ justifyContent: "space-between" }}
+                >
                     <h2>{title}</h2>
                     <button className="tfs-btn small" onClick={onClose}>
                         ✕

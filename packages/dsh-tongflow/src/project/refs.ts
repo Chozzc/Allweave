@@ -28,7 +28,6 @@ import type { ConsistencyKit, Pass } from "../shared/types.ts";
 import { readJsonOr } from "../util/fsx.ts";
 import { findShot, readBreakdown } from "./breakdown.ts";
 import {
-    SHOT_PASSES,
     isEntityId,
     isEpisodeId,
     isPass,
@@ -37,9 +36,16 @@ import {
     isTakeId,
     ownerKindOf,
     passesFor,
+    SHOT_PASSES,
     shotSortKey,
 } from "./naming.ts";
-import { CARD_FILE, CONSISTENCY_FILE, entityDir, fromProjectKey, toProjectKey } from "./paths.ts";
+import {
+    CARD_FILE,
+    CONSISTENCY_FILE,
+    entityDir,
+    fromProjectKey,
+    toProjectKey,
+} from "./paths.ts";
 import { listTakes, resolveTake } from "./takes.ts";
 
 export const TF_SCHEME = "tf://";
@@ -52,7 +58,11 @@ const TEMPLATE_RE = /\{\{\s*(tf:\/\/[^}\s]+)\s*\}\}/g;
 
 /** True when a string embeds `{{tf://…}}` placeholders. */
 export function hasTemplateRefs(value: unknown): value is string {
-    return typeof value === "string" && TEMPLATE_RE.test(value) && ((TEMPLATE_RE.lastIndex = 0), true);
+    if (typeof value !== "string") return false;
+    TEMPLATE_RE.lastIndex = 0;
+    const hit = TEMPLATE_RE.test(value);
+    TEMPLATE_RE.lastIndex = 0;
+    return hit;
 }
 
 /**
@@ -61,7 +71,10 @@ export function hasTemplateRefs(value: unknown): value is string {
  * style prefix, a character prefix and shot-specific text:
  *   "{{tf://STY_MAIN/prompt}}, {{tf://CHR_MEI/prompt}}, full-body reference sheet"
  */
-export async function expandTemplate(projectRoot: string, text: string): Promise<string> {
+export async function expandTemplate(
+    projectRoot: string,
+    text: string,
+): Promise<string> {
     const matches = [...text.matchAll(TEMPLATE_RE)];
     if (matches.length === 0) return text;
     let out = "";
@@ -89,18 +102,24 @@ export class RefResolutionError extends Error {
     }
 }
 
-export async function resolveRef(projectRoot: string, ref: string): Promise<ResolvedRef> {
-    if (!isTfRef(ref)) throw new RefResolutionError(ref, "not a tf:// reference");
+export async function resolveRef(
+    projectRoot: string,
+    ref: string,
+): Promise<ResolvedRef> {
+    if (!isTfRef(ref))
+        throw new RefResolutionError(ref, "not a tf:// reference");
     const body = ref.slice(TF_SCHEME.length);
     const segments = body.split("/").filter((s) => s.length > 0);
-    if (segments.length === 0) throw new RefResolutionError(ref, "empty reference");
+    if (segments.length === 0)
+        throw new RefResolutionError(ref, "empty reference");
     const [head, ...rest] = segments;
 
     if (head === "file" || head === "text") {
         const key = rest.join("/");
         if (!key) throw new RefResolutionError(ref, "missing path");
         const abs = fromProjectKey(projectRoot, key);
-        if (head === "file") return { kind: "files", ref, paths: [abs], keys: [key] };
+        if (head === "file")
+            return { kind: "files", ref, paths: [abs], keys: [key] };
         return { kind: "texts", ref, texts: [await readFile(abs, "utf8")] };
     }
 
@@ -109,30 +128,65 @@ export async function resolveRef(projectRoot: string, ref: string): Promise<Reso
     // Shot-owned
     if (isShotId(head)) return resolveShotRef(projectRoot, ref, head, rest);
     // Episode / scene collections and episode passes
-    if (isEpisodeId(head) || isSceneId(head)) return resolveSequenceRef(projectRoot, ref, head, rest);
+    if (isEpisodeId(head) || isSceneId(head))
+        return resolveSequenceRef(projectRoot, ref, head, rest);
 
     throw new RefResolutionError(ref, `unknown owner "${head}"`);
 }
 
-async function resolveEntityRef(projectRoot: string, ref: string, entity: string, rest: string[]): Promise<ResolvedRef> {
+async function resolveEntityRef(
+    projectRoot: string,
+    ref: string,
+    entity: string,
+    rest: string[],
+): Promise<ResolvedRef> {
     const [what, arg] = rest;
-    if (!what) throw new RefResolutionError(ref, "expected /REF, /VO, /card, /prompt or /negative");
-    if (isPass(what)) return resolvePassRef(projectRoot, ref, entity, what, arg);
+    if (!what)
+        throw new RefResolutionError(
+            ref,
+            "expected /REF, /VO, /card, /prompt or /negative",
+        );
+    if (isPass(what))
+        return resolvePassRef(projectRoot, ref, entity, what, arg);
     const dir = entityDir(projectRoot, entity);
-    if (what === "card") return { kind: "texts", ref, texts: [await readFile(join(dir, CARD_FILE), "utf8")] };
-    const kit = await readJsonOr<ConsistencyKit>(join(dir, CONSISTENCY_FILE), {});
-    if (what === "prompt") return { kind: "texts", ref, texts: [kit.promptPrefix ?? ""] };
-    if (what === "suffix") return { kind: "texts", ref, texts: [kit.promptSuffix ?? ""] };
-    if (what === "negative") return { kind: "texts", ref, texts: [kit.negativePrompt ?? ""] };
+    if (what === "card")
+        return {
+            kind: "texts",
+            ref,
+            texts: [await readFile(join(dir, CARD_FILE), "utf8")],
+        };
+    const kit = await readJsonOr<ConsistencyKit>(
+        join(dir, CONSISTENCY_FILE),
+        {},
+    );
+    if (what === "prompt")
+        return { kind: "texts", ref, texts: [kit.promptPrefix ?? ""] };
+    if (what === "suffix")
+        return { kind: "texts", ref, texts: [kit.promptSuffix ?? ""] };
+    if (what === "negative")
+        return { kind: "texts", ref, texts: [kit.negativePrompt ?? ""] };
     throw new RefResolutionError(ref, `unknown entity field "${what}"`);
 }
 
-async function resolveShotRef(projectRoot: string, ref: string, shot: string, rest: string[]): Promise<ResolvedRef> {
+async function resolveShotRef(
+    projectRoot: string,
+    ref: string,
+    shot: string,
+    rest: string[],
+): Promise<ResolvedRef> {
     const [what, arg] = rest;
-    if (!what) throw new RefResolutionError(ref, "expected /SB, /KF, /ANI, /DLG, /dialogue, /prompt/<PASS> or /action");
+    if (!what)
+        throw new RefResolutionError(
+            ref,
+            "expected /SB, /KF, /ANI, /DLG, /dialogue, /prompt/<PASS> or /action",
+        );
     if (isPass(what)) return resolvePassRef(projectRoot, ref, shot, what, arg);
     const found = await findShot(projectRoot, shot);
-    if (!found) throw new RefResolutionError(ref, `shot ${shot} is not in the breakdown`);
+    if (!found)
+        throw new RefResolutionError(
+            ref,
+            `shot ${shot} is not in the breakdown`,
+        );
     const row = found.shot;
     switch (what) {
         case "dialogue": {
@@ -140,7 +194,10 @@ async function resolveShotRef(projectRoot: string, ref: string, shot: string, re
             if (arg !== undefined) {
                 const n = Number(arg);
                 if (!Number.isInteger(n) || n < 1 || n > lines.length) {
-                    throw new RefResolutionError(ref, `dialogue line ${arg} out of range (1..${lines.length})`);
+                    throw new RefResolutionError(
+                        ref,
+                        `dialogue line ${arg} out of range (1..${lines.length})`,
+                    );
                 }
                 return { kind: "texts", ref, texts: [lines[n - 1]] };
             }
@@ -149,7 +206,11 @@ async function resolveShotRef(projectRoot: string, ref: string, shot: string, re
         case "prompt": {
             const pass = (arg ?? "").toUpperCase() as "SB" | "KF" | "ANI";
             const text = row.prompts?.[pass];
-            if (text === undefined) throw new RefResolutionError(ref, `shot ${shot} has no ${pass || "?"} prompt`);
+            if (text === undefined)
+                throw new RefResolutionError(
+                    ref,
+                    `shot ${shot} has no ${pass || "?"} prompt`,
+                );
             return { kind: "texts", ref, texts: [text] };
         }
         case "action":
@@ -159,17 +220,30 @@ async function resolveShotRef(projectRoot: string, ref: string, shot: string, re
     }
 }
 
-async function resolveSequenceRef(projectRoot: string, ref: string, seq: string, rest: string[]): Promise<ResolvedRef> {
+async function resolveSequenceRef(
+    projectRoot: string,
+    ref: string,
+    seq: string,
+    rest: string[],
+): Promise<ResolvedRef> {
     const [what, arg] = rest;
-    if (!what) throw new RefResolutionError(ref, "expected a pass (e.g. /ANI, /CUT)");
-    if (!isPass(what)) throw new RefResolutionError(ref, `unknown field "${what}"`);
+    if (!what)
+        throw new RefResolutionError(ref, "expected a pass (e.g. /ANI, /CUT)");
+    if (!isPass(what))
+        throw new RefResolutionError(ref, `unknown field "${what}"`);
     // Episode-owned pass (MUS/SFX/MIX/CUT) → its own takes.
-    if (isEpisodeId(seq) && (passesFor("episode") as readonly string[]).includes(what)) {
+    if (
+        isEpisodeId(seq) &&
+        (passesFor("episode") as readonly string[]).includes(what)
+    ) {
         return resolvePassRef(projectRoot, ref, seq, what, arg);
     }
     // Shot pass across a sequence → circled take of every shot, in order.
     if (!(SHOT_PASSES as readonly string[]).includes(what)) {
-        throw new RefResolutionError(ref, `pass ${what} cannot be collected across ${seq}`);
+        throw new RefResolutionError(
+            ref,
+            `pass ${what} cannot be collected across ${seq}`,
+        );
     }
     const episode = isEpisodeId(seq) ? seq : seq.slice(0, 4);
     const bd = await readBreakdown(projectRoot, episode);
@@ -191,7 +265,10 @@ async function resolveSequenceRef(projectRoot: string, ref: string, seq: string,
         keys.push(take.key);
     }
     if (missing.length > 0) {
-        throw new RefResolutionError(ref, `no ${what} take yet for: ${missing.join(", ")}`);
+        throw new RefResolutionError(
+            ref,
+            `no ${what} take yet for: ${missing.join(", ")}`,
+        );
     }
     return { kind: "files", ref, paths, keys };
 }
@@ -213,22 +290,41 @@ async function resolvePassRef(
             keys: takes.map((t) => t.key),
         };
     }
-    if (arg !== undefined && !isTakeId(arg)) throw new RefResolutionError(ref, `"${arg}" is not a take id (T01…T99) or *`);
+    if (arg !== undefined && !isTakeId(arg))
+        throw new RefResolutionError(
+            ref,
+            `"${arg}" is not a take id (T01…T99) or *`,
+        );
     const take = await resolveTake(projectRoot, owner, pass, arg);
     if (!take) {
         throw new RefResolutionError(
             ref,
-            arg ? `${owner}/${pass}/${arg} does not exist` : `${owner} has no ${pass} take yet — generate one first`,
+            arg
+                ? `${owner}/${pass}/${arg} does not exist`
+                : `${owner} has no ${pass} take yet — generate one first`,
         );
     }
-    return { kind: "files", ref, paths: [fromProjectKey(projectRoot, take.key)], keys: [take.key] };
+    return {
+        kind: "files",
+        ref,
+        paths: [fromProjectKey(projectRoot, take.key)],
+        keys: [take.key],
+    };
 }
 
 /** Resolve a ref to a single file path or throw when it yields several / none. */
-export async function resolveRefToFile(projectRoot: string, ref: string): Promise<string> {
+export async function resolveRefToFile(
+    projectRoot: string,
+    ref: string,
+): Promise<string> {
     const r = await resolveRef(projectRoot, ref);
-    if (r.kind !== "files") throw new RefResolutionError(ref, "resolves to text, not a file");
-    if (r.paths.length !== 1) throw new RefResolutionError(ref, `resolves to ${r.paths.length} files`);
+    if (r.kind !== "files")
+        throw new RefResolutionError(ref, "resolves to text, not a file");
+    if (r.paths.length !== 1)
+        throw new RefResolutionError(
+            ref,
+            `resolves to ${r.paths.length} files`,
+        );
     return r.paths[0];
 }
 

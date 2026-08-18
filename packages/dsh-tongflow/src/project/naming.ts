@@ -27,7 +27,11 @@ export const SHOT_PASSES = ["SB", "KF", "ANI", "DLG"] as const;
 /** Passes owned by an episode (post-production). */
 export const EPISODE_PASSES = ["MUS", "SFX", "MIX", "CUT"] as const;
 
-export const PASSES = [...ENTITY_PASSES, ...SHOT_PASSES, ...EPISODE_PASSES] as const;
+export const PASSES = [
+    ...ENTITY_PASSES,
+    ...SHOT_PASSES,
+    ...EPISODE_PASSES,
+] as const;
 export type Pass = (typeof PASSES)[number];
 
 export const PASS_LABELS: Record<Pass, string> = {
@@ -102,7 +106,10 @@ export function entityKindOf(id: string): EntityKind {
 }
 
 /** Build an entity id from a kind and a free-form name ("Mei Lin" → CHR_MEI_LIN). */
-export function entityIdFor(kind: EntityKind | EntityPrefix, name: string): string {
+export function entityIdFor(
+    kind: EntityKind | EntityPrefix,
+    name: string,
+): string {
     const prefix = (Object.keys(ENTITY_KINDS) as EntityPrefix[]).find(
         (p) => p === kind || ENTITY_KINDS[p] === kind,
     );
@@ -199,14 +206,23 @@ export interface TakeFileParts {
 const TAKE_FILE_RE =
     /^(?<owner>(?:CHR|LOC|PRP|STY)_[A-Z0-9]+(?:_[A-Z0-9]+)*|EP\d{2}_SC\d{3}_SH\d{4}|EP\d{2})_(?<pass>[A-Z]+)_(?<take>T\d{2})\.(?<ext>[A-Za-z0-9]+)$/;
 
-export function takeFileName(owner: string, pass: Pass, take: string, ext: string): string {
+export function takeFileName(
+    owner: string,
+    pass: Pass,
+    take: string,
+    ext: string,
+): string {
     if (!isTakeId(take)) throw new Error(`invalid take id "${take}"`);
     const cleanExt = ext.replace(/^\./, "").toLowerCase();
     if (!cleanExt) throw new Error("take file extension is required");
     return `${owner}_${pass}_${take}.${cleanExt}`;
 }
 
-export function provenanceFileName(owner: string, pass: Pass, take: string): string {
+export function provenanceFileName(
+    owner: string,
+    pass: Pass,
+    take: string,
+): string {
     return `${owner}_${pass}_${take}.provenance.json`;
 }
 

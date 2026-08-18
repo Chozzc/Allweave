@@ -1,0 +1,63 @@
+{
+    "name": "Dub line (voice clone)",
+    "description": "Voice reference + line → dialogue audio (DLG). Bind `voice` and `text` per line.",
+    "flow": {
+        "nodes": [
+            {
+                "id": "c2213ad7-e699-481e-9d97-0574c43b9c63",
+                "type": "audioNode",
+                "position": {
+                    "x": 100,
+                    "y": 22
+                },
+                "origin": [0.5, 0.5],
+                "data": {
+                    "inputName": "voice"
+                }
+            },
+            {
+                "id": "b3f54eeb-965f-4cbe-8711-35b022d83255",
+                "type": "textNode",
+                "position": {
+                    "x": 100,
+                    "y": 200
+                },
+                "origin": [0.5, 0.5],
+                "data": {
+                    "inputName": "text"
+                }
+            },
+            {
+                "id": "7d473042-3681-49cf-b02c-5946560c6195",
+                "type": "textGenSpeechCloneComposeNode",
+                "position": {
+                    "x": 620,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {}
+            }
+        ],
+        "edges": [
+            {
+                "id": "5c0350ae-594a-4934-a299-9d3e8ee609ca",
+                "source": "c2213ad7-e699-481e-9d97-0574c43b9c63",
+                "target": "7d473042-3681-49cf-b02c-5946560c6195",
+                "type": "custom-edge",
+                "sourceHandle": "out:audioNode",
+                "targetHandle": "in:ref_audio"
+            },
+            {
+                "id": "44e4d9af-3130-44f7-9f2e-3bde06b6cb46",
+                "source": "b3f54eeb-965f-4cbe-8711-35b022d83255",
+                "target": "7d473042-3681-49cf-b02c-5946560c6195",
+                "type": "custom-edge",
+                "sourceHandle": "out:textNode",
+                "targetHandle": "in:text"
+            }
+        ]
+    },
+    "meta": {
+        "purpose": "Per dialogue line. Inputs: voice ← tf://CHR_X/VO, text ← tf://<SHOT>/dialogue/<n>."
+    }
+}

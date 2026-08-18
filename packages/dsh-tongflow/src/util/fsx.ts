@@ -33,7 +33,10 @@ export async function readJsonOr<T>(path: string, fallback: T): Promise<T> {
 }
 
 /** Write via a temp file + rename so readers never observe a partial file. */
-export async function writeFileAtomic(path: string, data: string | Uint8Array): Promise<void> {
+export async function writeFileAtomic(
+    path: string,
+    data: string | Uint8Array,
+): Promise<void> {
     await mkdir(dirname(path), { recursive: true });
     const tmp = join(dirname(path), `.${process.pid}.${Date.now()}.tmp`);
     await writeFile(tmp, data);

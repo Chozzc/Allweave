@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
-import type { EntityDetail, EpisodeBreakdown, Pass, TakeInfo, TreeNode } from "../../shared/types.ts";
+import type {
+    EntityDetail,
+    EpisodeBreakdown,
+    Pass,
+    TakeInfo,
+    TreeNode,
+} from "../../shared/types.ts";
 import { modalityOfExt } from "../../shared/types.ts";
 import { fileUrl, studio } from "../api.ts";
 import { CanvasPane } from "./CanvasPane.tsx";
-import { Modal, TakesGrid, passLabel, useAsync } from "./common.tsx";
+import { Modal, passLabel, TakesGrid, useAsync } from "./common.tsx";
 
 export interface PreviewProps {
     pid: string;
@@ -13,12 +19,20 @@ export interface PreviewProps {
     selectedTake?: TakeInfo;
     onSelectTake: (t: TakeInfo | undefined) => void;
     onChanged: () => void;
-    onCanvasSave: (state: "saving" | "saved" | "error", detail?: string) => void;
+    onCanvasSave: (
+        state: "saving" | "saved" | "error",
+        detail?: string,
+    ) => void;
 }
 
 export function PreviewPane(p: PreviewProps) {
     const { node } = p;
-    if (!node) return <div className="tfs-empty">Select an entity, shot, workflow or file.</div>;
+    if (!node)
+        return (
+            <div className="tfs-empty">
+                Select an entity, shot, workflow or file.
+            </div>
+        );
     switch (node.kind) {
         case "entity":
             return <EntityView key={node.id} {...p} entityId={node.id} />;
@@ -27,11 +41,31 @@ export function PreviewPane(p: PreviewProps) {
         case "episode":
             return <EpisodeView key={node.id} {...p} episode={node.id} />;
         case "workflow":
-            return <WorkflowView key={node.key ?? node.id} {...p} workflowKey={node.key ?? node.id} />;
+            return (
+                <WorkflowView
+                    key={node.key ?? node.id}
+                    {...p}
+                    workflowKey={node.key ?? node.id}
+                />
+            );
         case "file":
-            return <FileView key={node.key ?? node.id} {...p} fileKey={node.key ?? node.id} />;
+            return (
+                <FileView
+                    key={node.key ?? node.id}
+                    {...p}
+                    fileKey={node.key ?? node.id}
+                />
+            );
         case "folder":
-            if (node.meta?.owner && node.meta?.pass) return <PassView key={node.id} {...p} owner={String(node.meta.owner)} pass={node.meta.pass as Pass} />;
+            if (node.meta?.owner && node.meta?.pass)
+                return (
+                    <PassView
+                        key={node.id}
+                        {...p}
+                        owner={String(node.meta.owner)}
+                        pass={node.meta.pass as Pass}
+                    />
+                );
             return <div className="tfs-empty">{node.label}</div>;
         default:
             return <div className="tfs-empty">{node.label}</div>;
@@ -40,10 +74,25 @@ export function PreviewPane(p: PreviewProps) {
 
 /* ---------------- entity ---------------- */
 
-function EntityView({ pid, entityId, refreshToken, selectedTake, onSelectTake, onChanged }: PreviewProps & { entityId: string }) {
-    const { data, error, reload } = useAsync(() => studio.entity(pid, entityId), [pid, entityId, refreshToken]);
-    const takes = useAsync(() => studio.takes(pid, entityId), [pid, entityId, refreshToken]);
-    const [editing, setEditing] = useState<{ card: string; consistency: string } | undefined>();
+function EntityView({
+    pid,
+    entityId,
+    refreshToken,
+    selectedTake,
+    onSelectTake,
+    onChanged,
+}: PreviewProps & { entityId: string }) {
+    const { data, error, reload } = useAsync(
+        () => studio.entity(pid, entityId),
+        [pid, entityId, refreshToken],
+    );
+    const takes = useAsync(
+        () => studio.takes(pid, entityId),
+        [pid, entityId, refreshToken],
+    );
+    const [editing, setEditing] = useState<
+        { card: string; consistency: string } | undefined
+    >();
     if (error) return <div className="tfs-empty tfs-error">{error}</div>;
     if (!data) return <div className="tfs-empty">…</div>;
     const save = async () => {
@@ -57,8 +106,12 @@ function EntityView({ pid, entityId, refreshToken, selectedTake, onSelectTake, o
         }
         // Replace whole kit: delete keys the user removed.
         const patch: Record<string, unknown> = { ...consistency };
-        for (const k of Object.keys(data.consistency)) if (!(k in consistency)) patch[k] = null;
-        await studio.upsertEntity(pid, entityId, { card: editing.card, consistency: patch });
+        for (const k of Object.keys(data.consistency))
+            if (!(k in consistency)) patch[k] = null;
+        await studio.upsertEntity(pid, entityId, {
+            card: editing.card,
+            consistency: patch,
+        });
         setEditing(undefined);
         reload();
         onChanged();
@@ -67,34 +120,87 @@ function EntityView({ pid, entityId, refreshToken, selectedTake, onSelectTake, o
         <div className="tfs-preview">
             <div className="tfs-preview-head">
                 <h2>
-                    {data.name} <span className="tfs-muted">{data.id} · {data.kind}</span>
+                    {data.name}{" "}
+                    <span className="tfs-muted">
+                        {data.id} · {data.kind}
+                    </span>
                 </h2>
                 <span className="tfs-spacer" />
                 {editing ? (
                     <>
-                        <button className="tfs-btn small primary" onClick={save}>
+                        <button
+                            className="tfs-btn small primary"
+                            onClick={save}
+                        >
                             Save
                         </button>
-                        <button className="tfs-btn small" onClick={() => setEditing(undefined)}>
+                        <button
+                            className="tfs-btn small"
+                            onClick={() => setEditing(undefined)}
+                        >
                             Cancel
                         </button>
                     </>
                 ) : (
-                    <button className="tfs-btn small" onClick={() => setEditing({ card: data.card, consistency: JSON.stringify(data.consistency, null, 2) })}>
+                    <button
+                        className="tfs-btn small"
+                        onClick={() =>
+                            setEditing({
+                                card: data.card,
+                                consistency: JSON.stringify(
+                                    data.consistency,
+                                    null,
+                                    2,
+                                ),
+                            })
+                        }
+                    >
                         Edit
                     </button>
                 )}
             </div>
             <div className="tfs-preview-body">
-                <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10 }}>
+                <div
+                    style={{
+                        display: "grid",
+                        gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)",
+                        gap: 10,
+                    }}
+                >
                     <div className="tfs-card">
                         <h3>card.md</h3>
-                        {editing ? <textarea className="tfs-textarea" style={{ minHeight: 220 }} value={editing.card} onChange={(e) => setEditing({ ...editing, card: e.target.value })} /> : <div className="tfs-md">{data.card || "(empty)"}</div>}
+                        {editing ? (
+                            <textarea
+                                className="tfs-textarea"
+                                style={{ minHeight: 220 }}
+                                value={editing.card}
+                                onChange={(e) =>
+                                    setEditing({
+                                        ...editing,
+                                        card: e.target.value,
+                                    })
+                                }
+                            />
+                        ) : (
+                            <div className="tfs-md">
+                                {data.card || "(empty)"}
+                            </div>
+                        )}
                     </div>
                     <div className="tfs-card">
                         <h3>consistency.json</h3>
                         {editing ? (
-                            <textarea className="tfs-textarea" style={{ minHeight: 220 }} value={editing.consistency} onChange={(e) => setEditing({ ...editing, consistency: e.target.value })} />
+                            <textarea
+                                className="tfs-textarea"
+                                style={{ minHeight: 220 }}
+                                value={editing.consistency}
+                                onChange={(e) =>
+                                    setEditing({
+                                        ...editing,
+                                        consistency: e.target.value,
+                                    })
+                                }
+                            />
                         ) : (
                             <ConsistencyKit kit={data as EntityDetail} />
                         )}
@@ -103,9 +209,17 @@ function EntityView({ pid, entityId, refreshToken, selectedTake, onSelectTake, o
                 {(["REF", "VO"] as Pass[]).map((pass) => (
                     <div className="tfs-card" key={pass}>
                         <h3>
-                            {pass} · {passLabel(pass)} <span className="tfs-muted">tf://{entityId}/{pass}</span>
+                            {pass} · {passLabel(pass)}{" "}
+                            <span className="tfs-muted">
+                                tf://{entityId}/{pass}
+                            </span>
                         </h3>
-                        <TakesGrid pid={pid} takes={takes.data?.[pass] ?? []} selected={selectedTake} onSelect={onSelectTake} />
+                        <TakesGrid
+                            pid={pid}
+                            takes={takes.data?.[pass] ?? []}
+                            selected={selectedTake}
+                            onSelect={onSelectTake}
+                        />
                     </div>
                 ))}
             </div>
@@ -115,8 +229,16 @@ function EntityView({ pid, entityId, refreshToken, selectedTake, onSelectTake, o
 
 function ConsistencyKit({ kit }: { kit: EntityDetail }) {
     const c = kit.consistency;
-    const entries = Object.entries(c).filter(([, v]) => v !== undefined && v !== null && v !== "");
-    if (entries.length === 0) return <div className="tfs-muted">empty — the agent fills promptPrefix / negativePrompt / seed here</div>;
+    const entries = Object.entries(c).filter(
+        ([, v]) => v !== undefined && v !== null && v !== "",
+    );
+    if (entries.length === 0)
+        return (
+            <div className="tfs-muted">
+                empty — the agent fills promptPrefix / negativePrompt / seed
+                here
+            </div>
+        );
     return (
         <dl className="tfs-kv">
             {entries.map(([k, v]) => (
@@ -131,40 +253,78 @@ function ConsistencyKit({ kit }: { kit: EntityDetail }) {
 
 /* ---------------- shot ---------------- */
 
-function ShotView({ pid, shotId, node, refreshToken, selectedTake, onSelectTake }: PreviewProps & { shotId: string }) {
-    const takes = useAsync(() => studio.takes(pid, shotId), [pid, shotId, refreshToken]);
+function ShotView({
+    pid,
+    shotId,
+    node,
+    refreshToken,
+    selectedTake,
+    onSelectTake,
+}: PreviewProps & { shotId: string }) {
+    const takes = useAsync(
+        () => studio.takes(pid, shotId),
+        [pid, shotId, refreshToken],
+    );
     const bd = (node?.meta?.breakdown ?? {}) as Record<string, unknown>;
     return (
         <div className="tfs-preview">
             <div className="tfs-preview-head">
                 <h2>
-                    {shotId} <span className="tfs-muted">{String(bd.size ?? "")} {String(bd.camera ?? "")}</span>
+                    {shotId}{" "}
+                    <span className="tfs-muted">
+                        {String(bd.size ?? "")} {String(bd.camera ?? "")}
+                    </span>
                 </h2>
             </div>
             <div className="tfs-preview-body">
                 <div className="tfs-card">
                     <h3>breakdown</h3>
                     <dl className="tfs-kv">
-                        {(["duration", "characters", "props", "action", "notes"] as const).map((k) =>
+                        {(
+                            [
+                                "duration",
+                                "characters",
+                                "props",
+                                "action",
+                                "notes",
+                            ] as const
+                        ).map((k) =>
                             bd[k] !== undefined ? (
                                 <div key={k} style={{ display: "contents" }}>
                                     <dt>{k}</dt>
-                                    <dd>{Array.isArray(bd[k]) ? (bd[k] as string[]).join(", ") : String(bd[k])}</dd>
+                                    <dd>
+                                        {Array.isArray(bd[k])
+                                            ? (bd[k] as string[]).join(", ")
+                                            : String(bd[k])}
+                                    </dd>
                                 </div>
                             ) : null,
                         )}
                         {Array.isArray(bd.dialogue)
-                            ? (bd.dialogue as { character: string; line: string; direction?: string }[]).map((d, i) => (
+                            ? (
+                                  bd.dialogue as {
+                                      character: string;
+                                      line: string;
+                                      direction?: string;
+                                  }[]
+                              ).map((d, i) => (
                                   <div key={i} style={{ display: "contents" }}>
                                       <dt>dialogue/{i + 1}</dt>
                                       <dd>
-                                          <b>{d.character}</b>: {d.line} {d.direction ? <span className="tfs-muted">({d.direction})</span> : null}
+                                          <b>{d.character}</b>: {d.line}{" "}
+                                          {d.direction ? (
+                                              <span className="tfs-muted">
+                                                  ({d.direction})
+                                              </span>
+                                          ) : null}
                                       </dd>
                                   </div>
                               ))
                             : null}
                         {bd.prompts && typeof bd.prompts === "object"
-                            ? Object.entries(bd.prompts as Record<string, string>).map(([k, v]) => (
+                            ? Object.entries(
+                                  bd.prompts as Record<string, string>,
+                              ).map(([k, v]) => (
                                   <div key={k} style={{ display: "contents" }}>
                                       <dt>prompt/{k}</dt>
                                       <dd>{v}</dd>
@@ -176,9 +336,17 @@ function ShotView({ pid, shotId, node, refreshToken, selectedTake, onSelectTake 
                 {(["SB", "KF", "ANI", "DLG"] as Pass[]).map((pass) => (
                     <div className="tfs-card" key={pass}>
                         <h3>
-                            {pass} · {passLabel(pass)} <span className="tfs-muted">tf://{shotId}/{pass}</span>
+                            {pass} · {passLabel(pass)}{" "}
+                            <span className="tfs-muted">
+                                tf://{shotId}/{pass}
+                            </span>
                         </h3>
-                        <TakesGrid pid={pid} takes={takes.data?.[pass] ?? []} selected={selectedTake} onSelect={onSelectTake} />
+                        <TakesGrid
+                            pid={pid}
+                            takes={takes.data?.[pass] ?? []}
+                            selected={selectedTake}
+                            onSelect={onSelectTake}
+                        />
                     </div>
                 ))}
             </div>
@@ -186,17 +354,33 @@ function ShotView({ pid, shotId, node, refreshToken, selectedTake, onSelectTake 
     );
 }
 
-function PassView({ pid, owner, pass, refreshToken, selectedTake, onSelectTake }: PreviewProps & { owner: string; pass: Pass }) {
-    const takes = useAsync(() => studio.takes(pid, owner), [pid, owner, refreshToken]);
+function PassView({
+    pid,
+    owner,
+    pass,
+    refreshToken,
+    selectedTake,
+    onSelectTake,
+}: PreviewProps & { owner: string; pass: Pass }) {
+    const takes = useAsync(
+        () => studio.takes(pid, owner),
+        [pid, owner, refreshToken],
+    );
     return (
         <div className="tfs-preview">
             <div className="tfs-preview-head">
                 <h2>
-                    {owner} / {pass} <span className="tfs-muted">{passLabel(pass)}</span>
+                    {owner} / {pass}{" "}
+                    <span className="tfs-muted">{passLabel(pass)}</span>
                 </h2>
             </div>
             <div className="tfs-preview-body">
-                <TakesGrid pid={pid} takes={takes.data?.[pass] ?? []} selected={selectedTake} onSelect={onSelectTake} />
+                <TakesGrid
+                    pid={pid}
+                    takes={takes.data?.[pass] ?? []}
+                    selected={selectedTake}
+                    onSelect={onSelectTake}
+                />
             </div>
         </div>
     );
@@ -204,15 +388,28 @@ function PassView({ pid, owner, pass, refreshToken, selectedTake, onSelectTake }
 
 /* ---------------- episode ---------------- */
 
-function EpisodeView({ pid, episode, refreshToken, selectedTake, onSelectTake }: PreviewProps & { episode: string }) {
-    const { data, error } = useAsync(() => studio.breakdown(pid, episode).catch(() => undefined), [pid, episode, refreshToken]);
-    const post = useAsync(() => studio.takes(pid, episode), [pid, episode, refreshToken]);
+function EpisodeView({
+    pid,
+    episode,
+    refreshToken,
+    selectedTake,
+    onSelectTake,
+}: PreviewProps & { episode: string }) {
+    const { data, error } = useAsync(
+        () => studio.breakdown(pid, episode).catch(() => undefined),
+        [pid, episode, refreshToken],
+    );
+    const post = useAsync(
+        () => studio.takes(pid, episode),
+        [pid, episode, refreshToken],
+    );
     const bd = data?.breakdown as EpisodeBreakdown | undefined;
     return (
         <div className="tfs-preview">
             <div className="tfs-preview-head">
                 <h2>
-                    {episode} <span className="tfs-muted">{bd?.title ?? ""}</span>
+                    {episode}{" "}
+                    <span className="tfs-muted">{bd?.title ?? ""}</span>
                 </h2>
             </div>
             <div className="tfs-preview-body">
@@ -235,7 +432,11 @@ function EpisodeView({ pid, episode, refreshToken, selectedTake, onSelectTake }:
                                 {bd.scenes.flatMap((s) => [
                                     <tr key={s.id}>
                                         <td colSpan={5}>
-                                            <b>{s.id}</b> {s.title ?? ""} <span className="tfs-muted">{s.location ?? ""} {s.timeOfDay ?? ""}</span>
+                                            <b>{s.id}</b> {s.title ?? ""}{" "}
+                                            <span className="tfs-muted">
+                                                {s.location ?? ""}{" "}
+                                                {s.timeOfDay ?? ""}
+                                            </span>
                                         </td>
                                     </tr>,
                                     ...s.shots.map((h) => (
@@ -244,7 +445,14 @@ function EpisodeView({ pid, episode, refreshToken, selectedTake, onSelectTake }:
                                             <td>{h.size ?? ""}</td>
                                             <td>{h.duration ?? ""}</td>
                                             <td>{h.action ?? ""}</td>
-                                            <td>{(h.dialogue ?? []).map((d) => `${d.character}: ${d.line}`).join(" / ")}</td>
+                                            <td>
+                                                {(h.dialogue ?? [])
+                                                    .map(
+                                                        (d) =>
+                                                            `${d.character}: ${d.line}`,
+                                                    )
+                                                    .join(" / ")}
+                                            </td>
                                         </tr>
                                     )),
                                 ])}
@@ -252,14 +460,25 @@ function EpisodeView({ pid, episode, refreshToken, selectedTake, onSelectTake }:
                         </table>
                     </div>
                 ) : (
-                    <div className="tfs-muted">no breakdown yet — ask the agent to write one (tongflow_breakdown_set)</div>
+                    <div className="tfs-muted">
+                        no breakdown yet — ask the agent to write one
+                        (tongflow_breakdown_set)
+                    </div>
                 )}
                 {(["MUS", "SFX", "MIX", "CUT"] as Pass[]).map((pass) => (
                     <div className="tfs-card" key={pass}>
                         <h3>
-                            {pass} · {passLabel(pass)} <span className="tfs-muted">tf://{episode}/{pass}</span>
+                            {pass} · {passLabel(pass)}{" "}
+                            <span className="tfs-muted">
+                                tf://{episode}/{pass}
+                            </span>
                         </h3>
-                        <TakesGrid pid={pid} takes={post.data?.[pass] ?? []} selected={selectedTake} onSelect={onSelectTake} />
+                        <TakesGrid
+                            pid={pid}
+                            takes={post.data?.[pass] ?? []}
+                            selected={selectedTake}
+                            onSelect={onSelectTake}
+                        />
                     </div>
                 ))}
             </div>
@@ -269,7 +488,13 @@ function EpisodeView({ pid, episode, refreshToken, selectedTake, onSelectTake }:
 
 /* ---------------- workflow (canvas) ---------------- */
 
-function WorkflowView({ pid, workflowKey, locale, refreshToken, onCanvasSave }: PreviewProps & { workflowKey: string }) {
+function WorkflowView({
+    pid,
+    workflowKey,
+    locale,
+    refreshToken,
+    onCanvasSave,
+}: PreviewProps & { workflowKey: string }) {
     const [state, setState] = useState<string>("");
     return (
         <div className="tfs-preview">
@@ -277,7 +502,12 @@ function WorkflowView({ pid, workflowKey, locale, refreshToken, onCanvasSave }: 
                 <h2>{workflowKey}</h2>
                 <span className="tfs-muted">{state}</span>
                 <span className="tfs-spacer" />
-                <a className="tfs-btn small" href={fileUrl(pid, workflowKey)} target="_blank" rel="noreferrer">
+                <a
+                    className="tfs-btn small"
+                    href={fileUrl(pid, workflowKey)}
+                    target="_blank"
+                    rel="noreferrer"
+                >
                     JSON
                 </a>
             </div>
@@ -287,7 +517,13 @@ function WorkflowView({ pid, workflowKey, locale, refreshToken, onCanvasSave }: 
                 locale={locale}
                 reloadToken={refreshToken}
                 onSaved={(s, detail) => {
-                    setState(s === "saving" ? "saving…" : s === "saved" ? "saved" : `save failed: ${detail ?? ""}`);
+                    setState(
+                        s === "saving"
+                            ? "saving…"
+                            : s === "saved"
+                              ? "saved"
+                              : `save failed: ${detail ?? ""}`,
+                    );
                     onCanvasSave(s, detail);
                 }}
             />
@@ -297,7 +533,13 @@ function WorkflowView({ pid, workflowKey, locale, refreshToken, onCanvasSave }: 
 
 /* ---------------- file ---------------- */
 
-function FileView({ pid, fileKey, node, refreshToken, onChanged }: PreviewProps & { fileKey: string }) {
+function FileView({
+    pid,
+    fileKey,
+    node,
+    refreshToken,
+    onChanged,
+}: PreviewProps & { fileKey: string }) {
     const modality = modalityOfExt(fileKey.split(".").pop() ?? "");
     const url = fileUrl(pid, fileKey);
     const [text, setText] = useState<string | undefined>();
@@ -306,7 +548,11 @@ function FileView({ pid, fileKey, node, refreshToken, onChanged }: PreviewProps 
     useEffect(() => {
         if (modality !== "text") return;
         setText(undefined);
-        studio.readText(pid, fileKey).then(setText, (e: unknown) => setErr(e instanceof Error ? e.message : String(e)));
+        studio
+            .readText(pid, fileKey)
+            .then(setText, (e: unknown) =>
+                setErr(e instanceof Error ? e.message : String(e)),
+            );
     }, [pid, fileKey, modality, refreshToken]);
     const [big, setBig] = useState(false);
     return (
@@ -326,7 +572,12 @@ function FileView({ pid, fileKey, node, refreshToken, onChanged }: PreviewProps 
                         Save
                     </button>
                 ) : null}
-                <a className="tfs-btn small" href={url} target="_blank" rel="noreferrer">
+                <a
+                    className="tfs-btn small"
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                >
                     Open
                 </a>
             </div>
@@ -359,7 +610,9 @@ function FileView({ pid, fileKey, node, refreshToken, onChanged }: PreviewProps 
                         />
                     )
                 ) : (
-                    <div className="tfs-muted">{modality} file — open in a new tab.</div>
+                    <div className="tfs-muted">
+                        {modality} file — open in a new tab.
+                    </div>
                 )}
             </div>
             {big ? (

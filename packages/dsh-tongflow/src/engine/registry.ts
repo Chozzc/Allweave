@@ -117,14 +117,16 @@ export class RegistryManager {
         const python = await this.opts.python();
         const args = ["-m", "tongflow", "scan", "--root", this.opts.pluginsDir];
         if (this.opts.abiPath) args.push("--abi", this.opts.abiPath);
-        const { stdout } = await execFile(python, args, { maxBuffer: 32 * 1024 * 1024 });
+        const { stdout } = await execFile(python, args, {
+            maxBuffer: 32 * 1024 * 1024,
+        });
         const registry = PluginsRegistrySchema.parse(JSON.parse(stdout));
         const meta: Record<string, PluginMeta> = {};
         for (const id of Object.keys(registry.plugins)) {
-            const m = await readJsonOr<{ plugin?: Omit<PluginMeta, "env">; env?: PluginEnvSpec[] }>(
-                join(this.opts.pluginsDir, id, "tongflow.plugin.json"),
-                {},
-            );
+            const m = await readJsonOr<{
+                plugin?: Omit<PluginMeta, "env">;
+                env?: PluginEnvSpec[];
+            }>(join(this.opts.pluginsDir, id, "tongflow.plugin.json"), {});
             meta[id] = { ...(m.plugin ?? {}), env: m.env ?? [] };
             const p = registry.plugins[id] as Record<string, unknown>;
             if (m.plugin?.name) p.name = m.plugin.name;
@@ -137,7 +139,9 @@ export class RegistryManager {
     /** Installed plugin ids (directories under pluginsDir). */
     async installedIds(): Promise<string[]> {
         if (!(await isDir(this.opts.pluginsDir))) return [];
-        const entries = await readdir(this.opts.pluginsDir, { withFileTypes: true });
+        const entries = await readdir(this.opts.pluginsDir, {
+            withFileTypes: true,
+        });
         return entries
             .filter((e) => e.isDirectory() && isPluginId(e.name))
             .map((e) => e.name)
@@ -145,35 +149,54 @@ export class RegistryManager {
     }
 
     gitUrlFor(pluginId: string): string {
-        return this.opts.pluginGitUrls[pluginId] ?? `${this.opts.org.replace(/\/$/, "")}/${pluginId}.git`;
+        return (
+            this.opts.pluginGitUrls[pluginId] ??
+            `${this.opts.org.replace(/\/$/, "")}/${pluginId}.git`
+        );
     }
 
     /** `git clone --depth 1` a plugin (id → official org, or a full git URL). */
-    async install(idOrUrl: string, signal?: AbortSignal): Promise<{ id: string; url: string; alreadyInstalled: boolean }> {
+    async install(
+        idOrUrl: string,
+        signal?: AbortSignal,
+    ): Promise<{ id: string; url: string; alreadyInstalled: boolean }> {
         let id: string;
         let url: string;
         if (/^(https?:\/\/|git@|ssh:\/\/)/.test(idOrUrl)) {
             url = idOrUrl;
-            id = idOrUrl.replace(/\/+$/, "").split("/").pop()!.replace(/\.git$/, "");
+            id = idOrUrl
+                .replace(/\/+$/, "")
+                .split("/")
+                .pop()!
+                .replace(/\.git$/, "");
         } else {
             id = idOrUrl;
             url = this.gitUrlFor(id);
         }
         if (!isPluginId(id)) {
-            throw new Error(`"${id}" is not a TongFlow plugin id (tongflow-modal-*/api-*/router-*/local-*)`);
+            throw new Error(
+                `"${id}" is not a TongFlow plugin id (tongflow-modal-*/api-*/router-*/local-*)`,
+            );
         }
         const dest = join(this.opts.pluginsDir, id);
         if (await exists(dest)) return { id, url, alreadyInstalled: true };
         await mkdir(this.opts.pluginsDir, { recursive: true });
         this.opts.log(`cloning ${url}`);
-        await execFile("git", ["clone", "--depth", "1", "--recursive", url, dest], { signal });
+        await execFile(
+            "git",
+            ["clone", "--depth", "1", "--recursive", url, dest],
+            { signal },
+        );
         this.invalidate();
         return { id, url, alreadyInstalled: false };
     }
 
     async uninstall(id: string): Promise<void> {
         if (!isPluginId(id)) throw new Error(`invalid plugin id "${id}"`);
-        await rm(join(this.opts.pluginsDir, id), { recursive: true, force: true });
+        await rm(join(this.opts.pluginsDir, id), {
+            recursive: true,
+            force: true,
+        });
         this.invalidate();
     }
 
@@ -185,12 +208,24 @@ export class RegistryManager {
             const dir = join(this.opts.pluginsDir, id);
             if (!(await isDir(join(dir, ".git")))) continue;
             try {
-                const before = (await execFile("git", ["-C", dir, "rev-parse", "HEAD"])).stdout.trim();
-                await execFile("git", ["-C", dir, "pull", "--ff-only", "--recurse-submodules"]);
-                const after = (await execFile("git", ["-C", dir, "rev-parse", "HEAD"])).stdout.trim();
+                const before = (
+                    await execFile("git", ["-C", dir, "rev-parse", "HEAD"])
+                ).stdout.trim();
+                await execFile("git", [
+                    "-C",
+                    dir,
+                    "pull",
+                    "--ff-only",
+                    "--recurse-submodules",
+                ]);
+                const after = (
+                    await execFile("git", ["-C", dir, "rev-parse", "HEAD"])
+                ).stdout.trim();
                 if (before !== after) changed.push(id);
             } catch (error) {
-                this.opts.log(`update ${id} failed: ${error instanceof Error ? error.message : String(error)}`);
+                this.opts.log(
+                    `update ${id} failed: ${error instanceof Error ? error.message : String(error)}`,
+                );
             }
         }
         if (changed.length > 0) this.invalidate();

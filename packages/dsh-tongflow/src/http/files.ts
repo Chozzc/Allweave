@@ -32,10 +32,16 @@ const MIME: Record<string, string> = {
 };
 
 export function mimeFor(path: string): string {
-    return MIME[extname(path).slice(1).toLowerCase()] ?? "application/octet-stream";
+    return (
+        MIME[extname(path).slice(1).toLowerCase()] ?? "application/octet-stream"
+    );
 }
 
-export async function serveFile(req: IncomingMessage, res: ServerResponse, path: string): Promise<void> {
+export async function serveFile(
+    req: IncomingMessage,
+    res: ServerResponse,
+    path: string,
+): Promise<void> {
     let st: Awaited<ReturnType<typeof stat>>;
     try {
         st = await stat(path);
@@ -73,7 +79,11 @@ export async function serveFile(req: IncomingMessage, res: ServerResponse, path:
             res.end();
             return;
         }
-        res.writeHead(206, { ...headers, "content-range": `bytes ${start}-${end}/${size}`, "content-length": end - start + 1 });
+        res.writeHead(206, {
+            ...headers,
+            "content-range": `bytes ${start}-${end}/${size}`,
+            "content-length": end - start + 1,
+        });
         if (req.method === "HEAD") {
             res.end();
             return;

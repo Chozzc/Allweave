@@ -1,15 +1,22 @@
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+    chmod,
+    mkdir,
+    mkdtemp,
+    readFile,
+    rm,
+    writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { ExecutableWorkflow } from "tongflow";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Config } from "../src/config.ts";
 import { runEngine } from "../src/engine/runner.ts";
-import { Studio } from "../src/studio.ts";
 import { upsertEntity } from "../src/project/bible.ts";
 import { addTake, listTakes } from "../src/project/takes.ts";
 import { createProject } from "../src/project/templates.ts";
 import { writeWorkflowDocument } from "../src/project/workflow-file.ts";
-import type { ExecutableWorkflow } from "tongflow";
+import { Studio } from "../src/studio.ts";
 
 /**
  * A stand-in for `python -m tongflow engine`: reads the request, echoes a few
@@ -59,7 +66,9 @@ function workflow(): ExecutableWorkflow {
             { name: "prompt", type: "text", required: true, nodeId: "n-in" },
             { name: "ref", type: "image", required: false, nodeId: "n-ref" },
         ],
-        outputs: [{ name: "image", type: "image", nodeId: "n1", field: "image" }],
+        outputs: [
+            { name: "image", type: "image", nodeId: "n1", field: "image" },
+        ],
         dataNodes: [],
         executableNodes: [
             {
@@ -69,7 +78,15 @@ function workflow(): ExecutableWorkflow {
                 pluginId: "tongflow-modal-fake",
                 label: "keyframe",
                 bindings: { text: { kind: "input", inputName: "prompt" } },
-                outputs: [{ sourceField: "image", nodeType: "imageNode", dataField: "fileKeys", expandEach: false, itemValuePath: "file_key" }],
+                outputs: [
+                    {
+                        sourceField: "image",
+                        nodeType: "imageNode",
+                        dataField: "fileKeys",
+                        expandEach: false,
+                        itemValuePath: "file_key",
+                    },
+                ],
                 dependencies: [],
                 level: 0,
             },
@@ -116,14 +133,23 @@ describe("engine bridge", () => {
         });
         expect(result.status).toBe("success");
         expect(result.outputs_by_name.image).toEqual(["out/abc123.png"]);
-        expect(events).toEqual(["workflow_started", "node_started", "plugin_progress", "node_completed", "workflow_completed"]);
+        expect(events).toEqual([
+            "workflow_started",
+            "node_started",
+            "plugin_progress",
+            "node_completed",
+            "workflow_completed",
+        ]);
     });
 
     it("runs a workflow end to end: binds tf:// refs, ingests takes with provenance", async () => {
         const config = Config({ studioRoot, maxConcurrentRuns: 1 });
         const studio = new TestStudio({ config });
         await studio.init();
-        const { id, root } = await createProject(studioRoot, { title: "Demo", template: "manga-drama" });
+        const { id, root } = await createProject(studioRoot, {
+            title: "Demo",
+            template: "manga-drama",
+        });
         await upsertEntity(root, { id: "CHR_MEI", card: "# Mei\n" });
         await mkdir(join(studioRoot, "tmp"), { recursive: true });
         const refSrc = join(studioRoot, "tmp", "ref.png");
@@ -133,7 +159,10 @@ describe("engine bridge", () => {
             name: "kf",
             flow: { nodes: [], edges: [] },
             executable: workflow(),
-            meta: { bindings: { ref: "tf://CHR_MEI/REF" }, target: { owner: "CHR_MEI", pass: "REF" } },
+            meta: {
+                bindings: { ref: "tf://CHR_MEI/REF" },
+                target: { owner: "CHR_MEI", pass: "REF" },
+            },
         });
         const project = await studio.project(id);
         const record = studio.runs.start(project, {
@@ -149,7 +178,10 @@ describe("engine bridge", () => {
         const takes = await listTakes(root, "CHR_MEI", "REF");
         expect(takes).toHaveLength(2);
         const t2 = takes[1];
-        expect(t2.provenance?.bindings).toEqual({ ref: "tf://CHR_MEI/REF", prompt: "a girl on a rooftop" });
+        expect(t2.provenance?.bindings).toEqual({
+            ref: "tf://CHR_MEI/REF",
+            prompt: "a girl on a rooftop",
+        });
         expect(t2.provenance?.resolved.ref[0]).toMatch(/CHR_MEI_REF_T01\.png$/);
         expect(t2.provenance?.note).toBe("smoke");
         expect(t2.provenance?.pluginIds).toEqual(["tongflow-modal-fake"]);
@@ -163,7 +195,10 @@ describe("engine bridge", () => {
         const config = Config({ studioRoot });
         const studio = new TestStudio({ config });
         await studio.init();
-        const { id, root } = await createProject(studioRoot, { title: "Demo", template: "manga-drama" });
+        const { id, root } = await createProject(studioRoot, {
+            title: "Demo",
+            template: "manga-drama",
+        });
         await writeWorkflowDocument(root, "workflows/kf.tongflow.json", {
             name: "kf",
             flow: { nodes: [], edges: [] },
@@ -171,7 +206,10 @@ describe("engine bridge", () => {
             meta: {},
         });
         const project = await studio.project(id);
-        const unbound = studio.runs.start(project, { projectId: id, workflowKey: "workflows/kf.tongflow.json" });
+        const unbound = studio.runs.start(project, {
+            projectId: id,
+            workflowKey: "workflows/kf.tongflow.json",
+        });
         await unbound.done;
         expect(unbound.summary.status).toBe("failed");
         expect(unbound.error).toMatch(/unbound required inputs: prompt/);

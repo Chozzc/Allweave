@@ -1,0 +1,43 @@
+{
+    "name": "Episode music",
+    "description": "Mood prompt → music track (MUS).",
+    "flow": {
+        "nodes": [
+            {
+                "id": "93ee6f8c-dcd8-4497-ad22-d01051ca376b",
+                "type": "textNode",
+                "position": {
+                    "x": 100,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {
+                    "inputName": "prompt"
+                }
+            },
+            {
+                "id": "379610aa-02d1-48e8-ae9c-b9e2074b0e16",
+                "type": "textGenMusicNode",
+                "position": {
+                    "x": 588,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {}
+            }
+        ],
+        "edges": [
+            {
+                "id": "92ccbdb3-1b0a-4fd5-a103-6ed16d5ea72d",
+                "source": "93ee6f8c-dcd8-4497-ad22-d01051ca376b",
+                "target": "379610aa-02d1-48e8-ae9c-b9e2074b0e16",
+                "type": "custom-edge",
+                "sourceHandle": "out:textNode",
+                "targetHandle": "in:lyrics"
+            }
+        ]
+    },
+    "meta": {
+        "purpose": "Bind `prompt` to a mood/tempo description; target {owner: EP01, pass: MUS}."
+    }
+}

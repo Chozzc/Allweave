@@ -4,9 +4,18 @@
  * Every prompt field becomes a static binding; the slot's ABI output routes
  * become workflow outputs keyed by their source field.
  */
-import { type ExecutableWorkflow, getAbiNodeBySlot, getAbiOutputRoutesBySlot } from "tongflow";
+import {
+    type ExecutableWorkflow,
+    getAbiNodeBySlot,
+    getAbiOutputRoutesBySlot,
+} from "tongflow";
+import {
+    expandTemplate,
+    hasTemplateRefs,
+    isTfRef,
+    resolveRef,
+} from "../project/refs.ts";
 import type { WorkflowDocument } from "../project/workflow-file.ts";
-import { expandTemplate, hasTemplateRefs, isTfRef, resolveRef } from "../project/refs.ts";
 
 export interface CanvasTaskBody {
     feature: string;
@@ -17,13 +26,17 @@ export interface CanvasTaskBody {
     workflowId?: number;
 }
 
-export async function singleNodeDocument(projectRoot: string, body: CanvasTaskBody): Promise<WorkflowDocument> {
+export async function singleNodeDocument(
+    projectRoot: string,
+    body: CanvasTaskBody,
+): Promise<WorkflowDocument> {
     const abi = getAbiNodeBySlot(body.feature);
     if (!abi) throw new Error(`unknown ABI slot "${body.feature}"`);
     if (!body.pluginId) throw new Error("pluginId is required");
     const routes = getAbiOutputRoutesBySlot(body.feature);
     const prompt = await resolvePromptRefs(projectRoot, body.prompt ?? {});
-    const bindings: ExecutableWorkflow["executableNodes"][number]["bindings"] = {};
+    const bindings: ExecutableWorkflow["executableNodes"][number]["bindings"] =
+        {};
     for (const [field, value] of Object.entries(prompt)) {
         if (value === undefined || value === null) continue;
         bindings[field] = { kind: "static", value };
@@ -56,7 +69,9 @@ export async function singleNodeDocument(projectRoot: string, body: CanvasTaskBo
                     nodeType: r.nodeType,
                     dataField: r.dataField,
                     expandEach: r.expandEach,
-                    ...(r.itemValuePath ? { itemValuePath: r.itemValuePath } : {}),
+                    ...(r.itemValuePath
+                        ? { itemValuePath: r.itemValuePath }
+                        : {}),
                     ...(r.isArrayOfArrays ? { isArrayOfArrays: true } : {}),
                 })),
                 dependencies: [],
@@ -75,13 +90,21 @@ export async function singleNodeDocument(projectRoot: string, body: CanvasTaskBo
     };
 }
 
-function outputType(nodeType: string): ExecutableWorkflow["outputs"][number]["type"] {
+function outputType(
+    nodeType: string,
+): ExecutableWorkflow["outputs"][number]["type"] {
     if (nodeType === "textNode") return "text";
-    return nodeType.replace(/Node$/, "") as ExecutableWorkflow["outputs"][number]["type"];
+    return nodeType.replace(
+        /Node$/,
+        "",
+    ) as ExecutableWorkflow["outputs"][number]["type"];
 }
 
 /** Deep-walk the prompt: `tf://` strings become absolute paths (files) or text; `/api/uploads/` prefixes are stripped. */
-async function resolvePromptRefs(projectRoot: string, value: unknown): Promise<Record<string, unknown>> {
+async function resolvePromptRefs(
+    projectRoot: string,
+    value: unknown,
+): Promise<Record<string, unknown>> {
     const walk = async (v: unknown): Promise<unknown> => {
         if (typeof v === "string") {
             if (isTfRef(v)) {
@@ -103,7 +126,10 @@ async function resolvePromptRefs(projectRoot: string, value: unknown): Promise<R
         }
         if (v && typeof v === "object") {
             const out: Record<string, unknown> = {};
-            for (const [k, item] of Object.entries(v as Record<string, unknown>)) out[k] = await walk(item);
+            for (const [k, item] of Object.entries(
+                v as Record<string, unknown>,
+            ))
+                out[k] = await walk(item);
             return out;
         }
         return v;

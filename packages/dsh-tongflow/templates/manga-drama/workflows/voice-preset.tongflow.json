@@ -1,0 +1,43 @@
+{
+    "name": "Voice line (preset voice)",
+    "description": "Line → speech with a preset voice (VO reference or DLG when no clone plugin).",
+    "flow": {
+        "nodes": [
+            {
+                "id": "f993d596-b54f-403b-8d20-f72b28f080ed",
+                "type": "textNode",
+                "position": {
+                    "x": 100,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {
+                    "inputName": "text"
+                }
+            },
+            {
+                "id": "19287fb1-48da-40c4-a7f4-e70a6f3519e6",
+                "type": "textGenSpeechPresetNode",
+                "position": {
+                    "x": 568,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {}
+            }
+        ],
+        "edges": [
+            {
+                "id": "bda9035e-d1cd-46ee-9794-346dd13ef7d5",
+                "source": "f993d596-b54f-403b-8d20-f72b28f080ed",
+                "target": "19287fb1-48da-40c4-a7f4-e70a6f3519e6",
+                "type": "custom-edge",
+                "sourceHandle": "out:textNode",
+                "targetHandle": "in:text"
+            }
+        ]
+    },
+    "meta": {
+        "purpose": "Inputs: text ← the line. Set the preset voice in the node config."
+    }
+}

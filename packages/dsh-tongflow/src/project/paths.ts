@@ -4,17 +4,26 @@
  */
 import { homedir } from "node:os";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
-import { isEntityId, isEpisodeId, isShotId, ownerKindOf, type Pass, assertPassForOwner } from "./naming.ts";
+import {
+    assertPassForOwner,
+    isEntityId,
+    isEpisodeId,
+    isShotId,
+    ownerKindOf,
+    type Pass,
+} from "./naming.ts";
 
 /** `$DSH_HOME`, else `~/.dsh` (mirrors dsh's own resolution). */
 export function resolveDshHome(): string {
     const env = process.env.DSH_HOME;
-    return env && env.trim() ? resolve(env) : join(homedir(), ".dsh");
+    return env?.trim() ? resolve(env) : join(homedir(), ".dsh");
 }
 
 /** Studio data root: `<DSH_HOME>/tongflow` unless overridden. */
 export function resolveStudioRoot(configured?: string): string {
-    return configured && configured.trim() ? resolve(configured) : join(resolveDshHome(), "tongflow");
+    return configured?.trim()
+        ? resolve(configured)
+        : join(resolveDshHome(), "tongflow");
 }
 
 export interface StudioPaths {
@@ -124,13 +133,18 @@ export function ownerDir(projectRoot: string, owner: string): string {
 }
 
 /** Folder holding the takes of one pass for one owner. */
-export function passDir(projectRoot: string, owner: string, pass: Pass): string {
+export function passDir(
+    projectRoot: string,
+    owner: string,
+    pass: Pass,
+): string {
     assertPassForOwner(owner, pass);
     return join(ownerDir(projectRoot, owner), pass);
 }
 
 export function entityDir(projectRoot: string, entityId: string): string {
-    if (!isEntityId(entityId)) throw new Error(`invalid entity id "${entityId}"`);
+    if (!isEntityId(entityId))
+        throw new Error(`invalid entity id "${entityId}"`);
     return join(projectRoot, DIRS.bible, entityId);
 }
 
@@ -140,7 +154,8 @@ export function shotDir(projectRoot: string, shot: string): string {
 }
 
 export function breakdownFile(projectRoot: string, episode: string): string {
-    if (!isEpisodeId(episode)) throw new Error(`invalid episode id "${episode}"`);
+    if (!isEpisodeId(episode))
+        throw new Error(`invalid episode id "${episode}"`);
     return join(projectRoot, DIRS.breakdown, episode, SCENES_FILE);
 }
 

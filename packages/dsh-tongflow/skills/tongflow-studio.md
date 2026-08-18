@@ -74,7 +74,8 @@ Every entity's `consistency.json` holds `promptPrefix`, `promptSuffix`, `negativ
 
 Rules of thumb:
 - Patch incrementally; never rebuild a workflow from scratch; never invent node ids. Read the patch result: `ok:false` steps must be fixed before running.
-- Two ways to parameterize: (a) a level-0 data node WITHOUT data becomes an input you bind per run (`tongflow_workflow_bind` / `tongflow_workflow_run inputs`); (b) put `tf://` refs or `{{tf://…}}` templates directly in node data. Both resolve at run time against the circled takes.
+- Two ways to parameterize: (a) a level-0 data node WITHOUT data becomes an input you bind per run (`tongflow_workflow_bind` / `tongflow_workflow_run inputs`) — name it with `data:{inputName:"prompt"}`; (b) put `tf://` refs or `{{tf://…}}` templates directly in node data. Both resolve at run time against the circled takes.
+- The project ships templates under `workflows/` (character-sheet, location-plate, storyboard-panel, shot-keyframe, dub-line, voice-preset, shot-i2v, episode-music, assemble-episode): copy with `tongflow_workflow_new({path, fromTemplate})` instead of building from scratch, then bind.
 - Text you author (script, dialogue, prompts) goes into files / the breakdown, then into workflows **as inputs** — text generation nodes are only for mechanical bulk transforms.
 - One workflow per job type, parameterized by inputs (e.g. `shot-keyframe` reused for every shot with different bindings) — not one workflow per shot.
 - Before running, make sure the plugin for each node is installed (`tongflow_plugins_list`, `tongflow_plugins_install`) and its API keys are configured in the tongflow settings.

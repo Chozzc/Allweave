@@ -5,7 +5,17 @@
 
 export type EntityKind = "character" | "location" | "prop" | "style";
 
-export type Pass = "REF" | "VO" | "SB" | "KF" | "ANI" | "DLG" | "MUS" | "SFX" | "MIX" | "CUT";
+export type Pass =
+    | "REF"
+    | "VO"
+    | "SB"
+    | "KF"
+    | "ANI"
+    | "DLG"
+    | "MUS"
+    | "SFX"
+    | "MIX"
+    | "CUT";
 
 export type OwnerKind = "entity" | "shot" | "episode";
 
@@ -165,13 +175,23 @@ export interface WorkflowSummary {
     name: string;
     description?: string;
     nodeCount: number;
-    inputs: { name: string; type: string; required: boolean; bound?: string | string[] }[];
+    inputs: {
+        name: string;
+        type: string;
+        required: boolean;
+        bound?: string | string[];
+    }[];
     outputs: { name: string; type: string }[];
     meta: WorkflowFileMeta;
     mtime: string;
 }
 
-export type RunStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
+export type RunStatus =
+    | "queued"
+    | "running"
+    | "completed"
+    | "failed"
+    | "cancelled";
 
 export interface RunEvent {
     type:
@@ -211,7 +231,15 @@ export interface RunSummary {
     error?: string;
     takes: TakeInfo[];
     /** Node id → last known state, for canvas overlays. */
-    nodes: Record<string, { status: "running" | "completed" | "failed"; label?: string; message?: string; percent?: number }>;
+    nodes: Record<
+        string,
+        {
+            status: "running" | "completed" | "failed";
+            label?: string;
+            message?: string;
+            percent?: number;
+        }
+    >;
 }
 
 export interface ProjectSummary extends ProjectManifest {
@@ -225,13 +253,24 @@ export interface ProjectSummary extends ProjectManifest {
 export interface TreeNode {
     id: string;
     label: string;
-    kind: "folder" | "file" | "entity" | "shot" | "episode" | "scene" | "workflow" | "take";
+    kind:
+        | "folder"
+        | "file"
+        | "entity"
+        | "shot"
+        | "episode"
+        | "scene"
+        | "workflow"
+        | "take";
     key?: string;
     children?: TreeNode[];
     meta?: Record<string, unknown>;
 }
 
-export const MEDIA_EXT: Record<string, "image" | "video" | "audio" | "text" | "model" | "file"> = {
+export const MEDIA_EXT: Record<
+    string,
+    "image" | "video" | "audio" | "text" | "model" | "file"
+> = {
     png: "image",
     jpg: "image",
     jpeg: "image",
@@ -256,6 +295,8 @@ export const MEDIA_EXT: Record<string, "image" | "video" | "audio" | "text" | "m
     splat: "model",
 };
 
-export function modalityOfExt(ext: string): "image" | "video" | "audio" | "text" | "model" | "file" {
+export function modalityOfExt(
+    ext: string,
+): "image" | "video" | "audio" | "text" | "model" | "file" {
     return MEDIA_EXT[ext.toLowerCase().replace(/^\./, "")] ?? "file";
 }

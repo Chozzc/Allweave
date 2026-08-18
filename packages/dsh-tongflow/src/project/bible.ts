@@ -5,13 +5,24 @@
  */
 import { mkdir, readdir, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
-import type { ConsistencyKit, EntityDetail, EntitySummary } from "../shared/types.ts";
+import type {
+    ConsistencyKit,
+    EntityDetail,
+    EntitySummary,
+} from "../shared/types.ts";
 import { exists, readJsonOr, writeFileAtomic, writeJson } from "../util/fsx.ts";
 import { ENTITY_PASSES, entityKindOf, isEntityId } from "./naming.ts";
-import { CARD_FILE, CONSISTENCY_FILE, entityDir, projectPaths } from "./paths.ts";
+import {
+    CARD_FILE,
+    CONSISTENCY_FILE,
+    entityDir,
+    projectPaths,
+} from "./paths.ts";
 import { takeOverview } from "./takes.ts";
 
-export async function listEntities(projectRoot: string): Promise<EntitySummary[]> {
+export async function listEntities(
+    projectRoot: string,
+): Promise<EntitySummary[]> {
     const bible = projectPaths(projectRoot).bible;
     if (!(await exists(bible))) return [];
     const names = (await readdir(bible, { withFileTypes: true }))
@@ -23,10 +34,17 @@ export async function listEntities(projectRoot: string): Promise<EntitySummary[]
     return out;
 }
 
-async function entitySummary(projectRoot: string, id: string): Promise<EntitySummary> {
+async function entitySummary(
+    projectRoot: string,
+    id: string,
+): Promise<EntitySummary> {
     const dir = entityDir(projectRoot, id);
     const card = await readCard(dir);
-    const { counts, circled } = await takeOverview(projectRoot, id, ENTITY_PASSES);
+    const { counts, circled } = await takeOverview(
+        projectRoot,
+        id,
+        ENTITY_PASSES,
+    );
     return {
         id,
         kind: entityKindOf(id),
@@ -37,13 +55,19 @@ async function entitySummary(projectRoot: string, id: string): Promise<EntitySum
     };
 }
 
-export async function getEntity(projectRoot: string, id: string): Promise<EntityDetail | undefined> {
+export async function getEntity(
+    projectRoot: string,
+    id: string,
+): Promise<EntityDetail | undefined> {
     if (!isEntityId(id)) throw new Error(`invalid entity id "${id}"`);
     const dir = entityDir(projectRoot, id);
     if (!(await exists(dir))) return undefined;
     const summary = await entitySummary(projectRoot, id);
     const card = await readCard(dir);
-    const consistency = await readJsonOr<ConsistencyKit>(join(dir, CONSISTENCY_FILE), {});
+    const consistency = await readJsonOr<ConsistencyKit>(
+        join(dir, CONSISTENCY_FILE),
+        {},
+    );
     return { ...summary, card, consistency };
 }
 
@@ -55,7 +79,10 @@ export interface UpsertEntityInput {
     consistency?: Partial<Record<keyof ConsistencyKit, unknown>>;
 }
 
-export async function upsertEntity(projectRoot: string, input: UpsertEntityInput): Promise<EntityDetail> {
+export async function upsertEntity(
+    projectRoot: string,
+    input: UpsertEntityInput,
+): Promise<EntityDetail> {
     if (!isEntityId(input.id)) {
         throw new Error(
             `invalid entity id "${input.id}" — use CHR_/LOC_/PRP_/STY_ + UPPER_SNAKE (e.g. CHR_MEI, LOC_ROOFTOP)`,
@@ -63,16 +90,23 @@ export async function upsertEntity(projectRoot: string, input: UpsertEntityInput
     }
     const dir = entityDir(projectRoot, input.id);
     await mkdir(dir, { recursive: true });
-    for (const pass of ENTITY_PASSES) await mkdir(join(dir, pass), { recursive: true });
+    for (const pass of ENTITY_PASSES)
+        await mkdir(join(dir, pass), { recursive: true });
     const cardPath = join(dir, CARD_FILE);
     if (input.card !== undefined) {
-        await writeFileAtomic(cardPath, input.card.endsWith("\n") ? input.card : `${input.card}\n`);
+        await writeFileAtomic(
+            cardPath,
+            input.card.endsWith("\n") ? input.card : `${input.card}\n`,
+        );
     } else if (!(await exists(cardPath))) {
         await writeFileAtomic(cardPath, `# ${input.id}\n\n`);
     }
     const consistencyPath = join(dir, CONSISTENCY_FILE);
     if (input.consistency !== undefined) {
-        const current = await readJsonOr<Record<string, unknown>>(consistencyPath, {});
+        const current = await readJsonOr<Record<string, unknown>>(
+            consistencyPath,
+            {},
+        );
         for (const [k, v] of Object.entries(input.consistency)) {
             if (v === null || v === undefined) delete current[k];
             else current[k] = v;
@@ -86,7 +120,10 @@ export async function upsertEntity(projectRoot: string, input: UpsertEntityInput
     return detail;
 }
 
-export async function deleteEntity(projectRoot: string, id: string): Promise<void> {
+export async function deleteEntity(
+    projectRoot: string,
+    id: string,
+): Promise<void> {
     if (!isEntityId(id)) throw new Error(`invalid entity id "${id}"`);
     await rm(entityDir(projectRoot, id), { recursive: true, force: true });
 }

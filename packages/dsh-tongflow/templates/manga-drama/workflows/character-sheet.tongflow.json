@@ -1,0 +1,53 @@
+{
+    "name": "Character sheet",
+    "description": "Text → reference image (REF) for a bible entity.",
+    "flow": {
+        "nodes": [
+            {
+                "id": "bd7d3632-d61b-4c24-9589-d58cf701794e",
+                "type": "textNode",
+                "position": {
+                    "x": 100,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {
+                    "texts": [
+                        "{{tf://STY_MAIN/prompt}}, {{tf://CHR_MEI/prompt}}, full-body character reference sheet, front view and side view, neutral pose, plain white background, no text"
+                    ]
+                }
+            },
+            {
+                "id": "d2267805-6ca7-4ffe-8669-8e8cfb13f165",
+                "type": "textGenImageNode",
+                "position": {
+                    "x": 568,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {
+                    "texts": [
+                        "{{tf://STY_MAIN/prompt}}, {{tf://CHR_MEI/prompt}}, full-body character reference sheet, front view and side view, neutral pose, plain white background, no text"
+                    ]
+                }
+            }
+        ],
+        "edges": [
+            {
+                "id": "437128b9-8286-4411-a826-43cabe6ee628",
+                "source": "bd7d3632-d61b-4c24-9589-d58cf701794e",
+                "target": "d2267805-6ca7-4ffe-8669-8e8cfb13f165",
+                "type": "custom-edge",
+                "sourceHandle": "out:textNode",
+                "targetHandle": "in:text"
+            }
+        ]
+    },
+    "meta": {
+        "purpose": "Bible REF: full-body reference sheet. Edit the character id inside the text.",
+        "target": {
+            "owner": "CHR_MEI",
+            "pass": "REF"
+        }
+    }
+}

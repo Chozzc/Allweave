@@ -139,6 +139,25 @@ export interface ExportOptions {
     includeOriginalFlow?: boolean;
 }
 
+/**
+ * Workflow input name for a level-0 data / add node: an explicit
+ * `data.inputName` (a-z, 0-9, _ , -; set by authors so bindings read
+ * `refs`, `prompt` …) else the legacy `input_<id8>`.
+ */
+export function inputNameFor(
+    nodeId: string,
+    nodeData: Record<string, unknown>,
+): string {
+    const custom = nodeData.inputName;
+    if (
+        typeof custom === "string" &&
+        /^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(custom)
+    ) {
+        return custom;
+    }
+    return `input_${nodeId.substring(0, 8)}`;
+}
+
 export class WorkflowExporter {
     private nodes: Node[];
     private edges: Edge[];
@@ -311,8 +330,8 @@ export class WorkflowExporter {
         const isStartNode = this.parser.getStartNodes().includes(node.id);
         const isInput = isStartNode && !hasStaticData;
 
+        const inputName = inputNameFor(node.id, nodeData);
         if (isInput) {
-            const inputName = `input_${node.id.substring(0, 8)}`;
             inputs.push({
                 name: inputName,
                 type:
@@ -334,7 +353,7 @@ export class WorkflowExporter {
             label,
             comment,
             isInput,
-            inputName: isInput ? `input_${node.id.substring(0, 8)}` : undefined,
+            inputName: isInput ? inputName : undefined,
             staticData: hasStaticData ? { fileKeys, texts } : undefined,
             level,
         };
@@ -425,7 +444,7 @@ export class WorkflowExporter {
                 // This allows the App side to override static data (e.g. user takes a photo or uploads their own image)
                 const isStartNode = level === 0;
                 const isInput = isStartNode; // Add nodes at level=0 are always input nodes
-                const inputName = `input_${node.id.substring(0, 8)}`;
+                const inputName = inputNameFor(node.id, nodeData);
 
                 if (isInput) {
                     inputs.push({

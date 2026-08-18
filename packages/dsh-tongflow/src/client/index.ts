@@ -14,7 +14,9 @@ import type { StudioInjected } from "./studio/StudioView.tsx";
 export const inject = ["slots", "workspaces", "sessions"];
 
 export function apply(ctx: ClientContext): void {
-    const locale = (typeof navigator !== "undefined" ? navigator.language : "en").split("-")[0];
+    const locale = (
+        typeof navigator !== "undefined" ? navigator.language : "en"
+    ).split("-")[0];
     ctx.slots.inject("sidebar.footer.action", () =>
         ctx.slots.register(
             {

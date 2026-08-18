@@ -19,7 +19,11 @@ export interface ToolEnv {
  * session's cwd when it lives under the studio projects dir, else the only
  * project, else an error listing the choices.
  */
-export async function resolveProjectId(env: ToolEnv, exec: ToolRunContext, explicit?: string): Promise<string> {
+export async function resolveProjectId(
+    env: ToolEnv,
+    exec: ToolRunContext,
+    explicit?: string,
+): Promise<string> {
     if (explicit?.trim()) {
         const id = explicit.trim();
         if (!isProjectId(id)) throw new Error(`invalid project id "${id}"`);
@@ -28,7 +32,9 @@ export async function resolveProjectId(env: ToolEnv, exec: ToolRunContext, expli
     }
     const cwd = exec.agent?.session.header.cwd;
     if (cwd && isInsideProject(env.studio.paths.projects, cwd)) {
-        const rel = cwd.slice(env.studio.paths.projects.length).replace(/^[/\\]/, "");
+        const rel = cwd
+            .slice(env.studio.paths.projects.length)
+            .replace(/^[/\\]/, "");
         const id = rel.split(/[/\\]/)[0];
         if (id && isProjectId(id)) {
             try {
@@ -42,7 +48,9 @@ export async function resolveProjectId(env: ToolEnv, exec: ToolRunContext, expli
     const projects = await env.api.listProjects();
     if (projects.length === 1) return projects[0].id;
     if (projects.length === 0) {
-        throw new Error("no studio project yet — create one with tongflow_project_create({ title, template })");
+        throw new Error(
+            "no studio project yet — create one with tongflow_project_create({ title, template })",
+        );
     }
     throw new Error(
         `several projects exist; pass project: one of ${projects.map((p) => p.id).join(", ")} (or open one so the session cwd is its folder)`,
@@ -50,14 +58,23 @@ export async function resolveProjectId(env: ToolEnv, exec: ToolRunContext, expli
 }
 
 export function text(value: unknown): ContentBlock[] {
-    return [{ type: "text", text: typeof value === "string" ? value : JSON.stringify(value, null, 2) }];
+    return [
+        {
+            type: "text",
+            text:
+                typeof value === "string"
+                    ? value
+                    : JSON.stringify(value, null, 2),
+        },
+    ];
 }
 
 /** Trim big JSON so a tool result stays readable for the model, and brand it as a JsonValue. */
 export function compact(value: unknown): JsonValue {
     return JSON.parse(
         JSON.stringify(value, (_k, v) => {
-            if (typeof v === "string" && v.length > 4000) return `${v.slice(0, 4000)}… (${v.length} chars)`;
+            if (typeof v === "string" && v.length > 4000)
+                return `${v.slice(0, 4000)}… (${v.length} chars)`;
             return v;
         }) ?? "null",
     ) as JsonValue;
@@ -65,7 +82,8 @@ export function compact(value: unknown): JsonValue {
 
 export const PROJECT_PARAM = {
     type: "string",
-    description: "Project id. Optional when the session is opened inside a project folder or only one project exists.",
+    description:
+        "Project id. Optional when the session is opened inside a project folder or only one project exists.",
 } as const;
 
 export const OWNER_DESC =

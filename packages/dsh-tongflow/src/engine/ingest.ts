@@ -4,9 +4,9 @@
  * Text outputs are returned as-is (they are not takes).
  */
 import { isAbsolute, resolve } from "node:path";
-import type { Pass, Provenance, TakeInfo } from "../shared/types.ts";
 import { isInsideProject, toProjectKey } from "../project/paths.ts";
 import { addTake } from "../project/takes.ts";
+import type { Pass, Provenance, TakeInfo } from "../shared/types.ts";
 import type { EngineResult } from "./runner.ts";
 
 export interface IngestTarget {
@@ -50,13 +50,21 @@ function collectFileKeys(value: unknown, into: string[]): void {
 }
 
 function looksLikeFile(value: string): boolean {
-    return /\.[A-Za-z0-9]{1,5}$/.test(value) && !/\s/.test(value) && (value.includes("/") || value.startsWith("."));
+    return (
+        /\.[A-Za-z0-9]{1,5}$/.test(value) &&
+        !/\s/.test(value) &&
+        (value.includes("/") || value.startsWith("."))
+    );
 }
 
-export async function ingestOutputs(options: IngestOptions): Promise<IngestOutcome> {
+export async function ingestOutputs(
+    options: IngestOptions,
+): Promise<IngestOutcome> {
     const { projectRoot, result } = options;
     const outcome: IngestOutcome = { takes: [], loose: [], texts: {} };
-    const byName: Record<string, string[]> = { ...(result.outputs_by_name ?? {}) };
+    const byName: Record<string, string[]> = {
+        ...(result.outputs_by_name ?? {}),
+    };
     if (Object.keys(byName).length === 0) {
         // Fall back to scanning raw node outputs for file refs.
         for (const [nodeId, out] of Object.entries(result.outputs ?? {})) {
@@ -69,9 +77,11 @@ export async function ingestOutputs(options: IngestOptions): Promise<IngestOutco
         const target = options.targets?.[output] ?? options.target;
         for (const value of values) {
             const abs = isAbsolute(value) ? value : resolve(projectRoot, value);
-            const isFile = looksLikeFile(value) && isInsideProject(projectRoot, abs);
+            const isFile =
+                looksLikeFile(value) && isInsideProject(projectRoot, abs);
             if (!isFile) {
-                (outcome.texts[output] ??= []).push(value);
+                if (!outcome.texts[output]) outcome.texts[output] = [];
+                outcome.texts[output].push(value);
                 continue;
             }
             const key = toProjectKey(projectRoot, abs);
@@ -79,10 +89,16 @@ export async function ingestOutputs(options: IngestOptions): Promise<IngestOutco
                 outcome.loose.push({ output, key });
                 continue;
             }
-            const take = await addTake(projectRoot, target.owner, target.pass, abs, {
-                move: true,
-                provenance: { ...options.provenance, output },
-            });
+            const take = await addTake(
+                projectRoot,
+                target.owner,
+                target.pass,
+                abs,
+                {
+                    move: true,
+                    provenance: { ...options.provenance, output },
+                },
+            );
             outcome.takes.push(take);
         }
     }

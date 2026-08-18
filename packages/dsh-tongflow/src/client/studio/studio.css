@@ -20,98 +20,432 @@
     font-size: 13px;
     line-height: 1.4;
 }
-.tfs-root * { box-sizing: border-box; }
+.tfs-root * {
+    box-sizing: border-box;
+}
 .tfs-header {
-    display: flex; align-items: center; gap: 8px; padding: 6px 10px;
-    border-bottom: 1px solid var(--tfs-border); background: var(--tfs-bg-1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--tfs-border);
+    background: var(--tfs-bg-1);
     flex: none;
 }
-.tfs-header h1 { font-size: 13px; font-weight: 600; margin: 0 8px 0 0; }
-.tfs-spacer { flex: 1; }
-.tfs-body { display: grid; grid-template-columns: 240px minmax(0, 1fr) 300px; flex: 1; min-height: 0; }
-.tfs-pane { min-height: 0; overflow: auto; border-right: 1px solid var(--tfs-border); }
-.tfs-pane:last-child { border-right: 0; }
-.tfs-pane-title { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--tfs-fg-3); padding: 8px 10px 4px; }
-.tfs-empty { padding: 24px; color: var(--tfs-fg-3); text-align: center; }
+.tfs-header h1 {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0 8px 0 0;
+}
+.tfs-spacer {
+    flex: 1;
+}
+.tfs-body {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr) 300px;
+    flex: 1;
+    min-height: 0;
+}
+.tfs-pane {
+    min-height: 0;
+    overflow: auto;
+    border-right: 1px solid var(--tfs-border);
+}
+.tfs-pane:last-child {
+    border-right: 0;
+}
+.tfs-pane-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--tfs-fg-3);
+    padding: 8px 10px 4px;
+}
+.tfs-empty {
+    padding: 24px;
+    color: var(--tfs-fg-3);
+    text-align: center;
+}
 .tfs-btn {
-    appearance: none; border: 1px solid var(--tfs-border); background: var(--tfs-bg); color: var(--tfs-fg);
-    border-radius: 6px; padding: 4px 10px; font: inherit; cursor: pointer; line-height: 1.3;
+    appearance: none;
+    border: 1px solid var(--tfs-border);
+    background: var(--tfs-bg);
+    color: var(--tfs-fg);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font: inherit;
+    cursor: pointer;
+    line-height: 1.3;
 }
-.tfs-btn:hover { background: var(--tfs-bg-2); }
-.tfs-btn:disabled { opacity: .5; cursor: default; }
-.tfs-btn.primary { background: var(--tfs-accent); border-color: var(--tfs-accent); color: #fff; }
-.tfs-btn.small { padding: 2px 7px; font-size: 12px; }
-.tfs-btn.danger { color: var(--tfs-err); }
-.tfs-select, .tfs-input, .tfs-textarea {
-    font: inherit; color: var(--tfs-fg); background: var(--tfs-bg); border: 1px solid var(--tfs-border);
-    border-radius: 6px; padding: 4px 8px;
+.tfs-btn:hover {
+    background: var(--tfs-bg-2);
 }
-.tfs-textarea { width: 100%; min-height: 80px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
-.tfs-input { width: 100%; }
+.tfs-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+.tfs-btn.primary {
+    background: var(--tfs-accent);
+    border-color: var(--tfs-accent);
+    color: #fff;
+}
+.tfs-btn.small {
+    padding: 2px 7px;
+    font-size: 12px;
+}
+.tfs-btn.danger {
+    color: var(--tfs-err);
+}
+.tfs-select,
+.tfs-input,
+.tfs-textarea {
+    font: inherit;
+    color: var(--tfs-fg);
+    background: var(--tfs-bg);
+    border: 1px solid var(--tfs-border);
+    border-radius: 6px;
+    padding: 4px 8px;
+}
+.tfs-textarea {
+    width: 100%;
+    min-height: 80px;
+    resize: vertical;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+}
+.tfs-input {
+    width: 100%;
+}
 /* tree */
-.tfs-tree { padding: 4px 0 12px; }
-.tfs-tree-row { display: flex; align-items: center; gap: 4px; padding: 2px 6px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; }
-.tfs-tree-row:hover { background: var(--tfs-bg-1); }
-.tfs-tree-row.selected { background: color-mix(in srgb, var(--tfs-accent) 14%, transparent); }
-.tfs-tree-caret { width: 14px; color: var(--tfs-fg-3); font-size: 10px; text-align: center; flex: none; }
-.tfs-tree-icon { width: 16px; text-align: center; flex: none; opacity: .8; }
-.tfs-tree-label { overflow: hidden; text-overflow: ellipsis; }
-.tfs-badge { font-size: 10px; padding: 0 5px; border-radius: 8px; background: var(--tfs-bg-2); color: var(--tfs-fg-2); margin-left: 4px; }
-.tfs-dots { display: inline-flex; gap: 2px; margin-left: 6px; }
-.tfs-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tfs-bg-2); border: 1px solid var(--tfs-border); }
-.tfs-dot.some { background: var(--tfs-warn); border-color: transparent; }
-.tfs-dot.circled { background: var(--tfs-ok); border-color: transparent; }
+.tfs-tree {
+    padding: 4px 0 12px;
+}
+.tfs-tree-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    user-select: none;
+}
+.tfs-tree-row:hover {
+    background: var(--tfs-bg-1);
+}
+.tfs-tree-row.selected {
+    background: color-mix(in srgb, var(--tfs-accent) 14%, transparent);
+}
+.tfs-tree-caret {
+    width: 14px;
+    color: var(--tfs-fg-3);
+    font-size: 10px;
+    text-align: center;
+    flex: none;
+}
+.tfs-tree-icon {
+    width: 16px;
+    text-align: center;
+    flex: none;
+    opacity: 0.8;
+}
+.tfs-tree-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.tfs-badge {
+    font-size: 10px;
+    padding: 0 5px;
+    border-radius: 8px;
+    background: var(--tfs-bg-2);
+    color: var(--tfs-fg-2);
+    margin-left: 4px;
+}
+.tfs-dots {
+    display: inline-flex;
+    gap: 2px;
+    margin-left: 6px;
+}
+.tfs-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--tfs-bg-2);
+    border: 1px solid var(--tfs-border);
+}
+.tfs-dot.some {
+    background: var(--tfs-warn);
+    border-color: transparent;
+}
+.tfs-dot.circled {
+    background: var(--tfs-ok);
+    border-color: transparent;
+}
 /* preview */
-.tfs-preview { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-.tfs-preview-head { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--tfs-border); flex: none; }
-.tfs-preview-head h2 { font-size: 13px; font-weight: 600; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tfs-preview-body { flex: 1; min-height: 0; overflow: auto; padding: 10px; }
-.tfs-media { display: flex; align-items: center; justify-content: center; background: var(--tfs-bg-1); border-radius: 8px; padding: 8px; }
-.tfs-media img, .tfs-media video { max-width: 100%; max-height: 70vh; border-radius: 4px; }
-.tfs-media audio { width: 100%; }
-.tfs-canvas-wrap { position: absolute; inset: 0; }
-.tfs-canvas-host { position: relative; flex: 1; min-height: 0; }
-.tfs-md { max-width: 820px; white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
-.tfs-card { border: 1px solid var(--tfs-border); border-radius: 8px; padding: 10px; margin-bottom: 10px; background: var(--tfs-bg); }
-.tfs-card h3 { margin: 0 0 6px; font-size: 12px; font-weight: 600; color: var(--tfs-fg-2); }
-.tfs-kv { display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; font-size: 12px; }
-.tfs-kv dt { color: var(--tfs-fg-3); }
-.tfs-kv dd { margin: 0; overflow-wrap: anywhere; }
+.tfs-preview {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+.tfs-preview-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--tfs-border);
+    flex: none;
+}
+.tfs-preview-head h2 {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.tfs-preview-body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 10px;
+}
+.tfs-media {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--tfs-bg-1);
+    border-radius: 8px;
+    padding: 8px;
+}
+.tfs-media img,
+.tfs-media video {
+    max-width: 100%;
+    max-height: 70vh;
+    border-radius: 4px;
+}
+.tfs-media audio {
+    width: 100%;
+}
+.tfs-canvas-wrap {
+    position: absolute;
+    inset: 0;
+}
+.tfs-canvas-host {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+}
+.tfs-md {
+    max-width: 820px;
+    white-space: pre-wrap;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+}
+.tfs-card {
+    border: 1px solid var(--tfs-border);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
+    background: var(--tfs-bg);
+}
+.tfs-card h3 {
+    margin: 0 0 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tfs-fg-2);
+}
+.tfs-kv {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 2px 10px;
+    font-size: 12px;
+}
+.tfs-kv dt {
+    color: var(--tfs-fg-3);
+}
+.tfs-kv dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
 /* takes grid */
-.tfs-takes { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
-.tfs-take { border: 1px solid var(--tfs-border); border-radius: 8px; overflow: hidden; background: var(--tfs-bg-1); cursor: pointer; position: relative; }
-.tfs-take.circled { outline: 2px solid var(--tfs-ok); }
-.tfs-take.selected { outline: 2px solid var(--tfs-accent); }
-.tfs-take-thumb { aspect-ratio: 16/10; display: flex; align-items: center; justify-content: center; background: var(--tfs-bg-2); overflow: hidden; }
-.tfs-take-thumb img, .tfs-take-thumb video { width: 100%; height: 100%; object-fit: cover; }
-.tfs-take-thumb .glyph { font-size: 28px; opacity: .6; }
-.tfs-take-foot { display: flex; align-items: center; justify-content: space-between; padding: 3px 6px; font-size: 11px; }
-.tfs-take-foot .circle { color: var(--tfs-ok); font-weight: 600; }
+.tfs-takes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+}
+.tfs-take {
+    border: 1px solid var(--tfs-border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--tfs-bg-1);
+    cursor: pointer;
+    position: relative;
+}
+.tfs-take.circled {
+    outline: 2px solid var(--tfs-ok);
+}
+.tfs-take.selected {
+    outline: 2px solid var(--tfs-accent);
+}
+.tfs-take-thumb {
+    aspect-ratio: 16 / 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--tfs-bg-2);
+    overflow: hidden;
+}
+.tfs-take-thumb img,
+.tfs-take-thumb video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.tfs-take-thumb .glyph {
+    font-size: 28px;
+    opacity: 0.6;
+}
+.tfs-take-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 6px;
+    font-size: 11px;
+}
+.tfs-take-foot .circle {
+    color: var(--tfs-ok);
+    font-weight: 600;
+}
 /* inspector */
-.tfs-inspector { padding: 10px; display: flex; flex-direction: column; gap: 10px; }
-.tfs-log { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; white-space: pre-wrap; max-height: 260px; overflow: auto; background: var(--tfs-bg-1); border-radius: 6px; padding: 6px 8px; }
-.tfs-status { display: inline-block; padding: 1px 6px; border-radius: 6px; font-size: 11px; background: var(--tfs-bg-2); }
-.tfs-status.running { background: color-mix(in srgb, var(--tfs-warn) 25%, transparent); }
-.tfs-status.completed { background: color-mix(in srgb, var(--tfs-ok) 25%, transparent); }
-.tfs-status.failed, .tfs-status.cancelled { background: color-mix(in srgb, var(--tfs-err) 25%, transparent); }
-.tfs-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.tfs-form { display: grid; gap: 6px; }
-.tfs-form label { font-size: 11px; color: var(--tfs-fg-3); }
+.tfs-inspector {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.tfs-log {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    white-space: pre-wrap;
+    max-height: 260px;
+    overflow: auto;
+    background: var(--tfs-bg-1);
+    border-radius: 6px;
+    padding: 6px 8px;
+}
+.tfs-status {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 11px;
+    background: var(--tfs-bg-2);
+}
+.tfs-status.running {
+    background: color-mix(in srgb, var(--tfs-warn) 25%, transparent);
+}
+.tfs-status.completed {
+    background: color-mix(in srgb, var(--tfs-ok) 25%, transparent);
+}
+.tfs-status.failed,
+.tfs-status.cancelled {
+    background: color-mix(in srgb, var(--tfs-err) 25%, transparent);
+}
+.tfs-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.tfs-form {
+    display: grid;
+    gap: 6px;
+}
+.tfs-form label {
+    font-size: 11px;
+    color: var(--tfs-fg-3);
+}
 /* modal */
-.tfs-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.tfs-modal { background: var(--tfs-bg); color: var(--tfs-fg); border: 1px solid var(--tfs-border); border-radius: 10px; width: min(720px, 92vw); max-height: 86vh; overflow: auto; padding: 16px; box-shadow: 0 12px 40px rgba(0,0,0,.25); }
-.tfs-modal h2 { margin: 0 0 10px; font-size: 15px; }
-.tfs-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.tfs-table th, .tfs-table td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--tfs-border); vertical-align: top; }
-.tfs-error { color: var(--tfs-err); font-size: 12px; }
-.tfs-muted { color: var(--tfs-fg-3); }
-.tfs-shot-table td:first-child { white-space: nowrap; font-family: ui-monospace, Menlo, monospace; }
+.tfs-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.tfs-modal {
+    background: var(--tfs-bg);
+    color: var(--tfs-fg);
+    border: 1px solid var(--tfs-border);
+    border-radius: 10px;
+    width: min(720px, 92vw);
+    max-height: 86vh;
+    overflow: auto;
+    padding: 16px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+.tfs-modal h2 {
+    margin: 0 0 10px;
+    font-size: 15px;
+}
+.tfs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+.tfs-table th,
+.tfs-table td {
+    text-align: left;
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--tfs-border);
+    vertical-align: top;
+}
+.tfs-error {
+    color: var(--tfs-err);
+    font-size: 12px;
+}
+.tfs-muted {
+    color: var(--tfs-fg-3);
+}
+.tfs-shot-table td:first-child {
+    white-space: nowrap;
+    font-family: ui-monospace, Menlo, monospace;
+}
 
 /* launcher + overlay */
 .tfs-launch {
-    appearance: none; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer;
-    display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px; opacity: .85;
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    opacity: 0.85;
 }
-.tfs-launch:hover { opacity: 1; background: var(--dsw-alias-interactive-bg-hover, rgba(127,127,127,.12)); }
-.tfs-overlay { position: fixed; inset: 0; z-index: 900; background: var(--dsw-alias-bg-base, #fff); display: flex; flex-direction: column; }
-.tfs-overlay > .tfs-root { flex: 1; min-height: 0; }
+.tfs-launch:hover {
+    opacity: 1;
+    background: var(
+        --dsw-alias-interactive-bg-hover,
+        rgba(127, 127, 127, 0.12)
+    );
+}
+.tfs-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    background: var(--dsw-alias-bg-base, #fff);
+    display: flex;
+    flex-direction: column;
+}
+.tfs-overlay > .tfs-root {
+    flex: 1;
+    min-height: 0;
+}

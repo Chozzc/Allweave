@@ -63,7 +63,11 @@ export function runEngine(options: RunEngineOptions): Promise<EngineResult> {
     return new Promise<EngineResult>((resolve, reject) => {
         const child = spawn(python, ["-m", "tongflow", "engine"], {
             cwd: options.cwd,
-            env: { ...process.env, PYTHONUNBUFFERED: "1", ...(options.env ?? {}) },
+            env: {
+                ...process.env,
+                PYTHONUNBUFFERED: "1",
+                ...(options.env ?? {}),
+            },
             stdio: ["pipe", "pipe", "pipe"],
         });
         let stderr = "";
@@ -108,7 +112,12 @@ export function runEngine(options: RunEngineOptions): Promise<EngineResult> {
         child.on("error", (error) => {
             settled = true;
             signal?.removeEventListener("abort", abort);
-            reject(new EngineError(`failed to start the tongflow engine: ${error.message}`, stderr));
+            reject(
+                new EngineError(
+                    `failed to start the tongflow engine: ${error.message}`,
+                    stderr,
+                ),
+            );
         });
         child.on("close", (code) => {
             settled = true;
@@ -121,8 +130,17 @@ export function runEngine(options: RunEngineOptions): Promise<EngineResult> {
                 resolve(result);
                 return;
             }
-            const reason = fatal ?? (code === 0 ? "engine exited without a result" : `engine exited with code ${code}`);
-            reject(new EngineError(`${reason}${stderr ? `\n${lastLines(stderr, 12)}` : ""}`, stderr));
+            const reason =
+                fatal ??
+                (code === 0
+                    ? "engine exited without a result"
+                    : `engine exited with code ${code}`);
+            reject(
+                new EngineError(
+                    `${reason}${stderr ? `\n${lastLines(stderr, 12)}` : ""}`,
+                    stderr,
+                ),
+            );
         });
         child.stdin.write(JSON.stringify(request));
         child.stdin.end();
@@ -145,7 +163,11 @@ function translateEvent(e: Record<string, unknown>): RunEvent {
     if (typeof e.error === "string") out.error = e.error;
     if (typeof e.totalNodes === "number") out.totalNodes = e.totalNodes;
     if (typeof e.levels === "number") out.levels = e.levels;
-    if (type === "plugin_progress" && !out.nodeId && typeof e.pluginId === "string") {
+    if (
+        type === "plugin_progress" &&
+        !out.nodeId &&
+        typeof e.pluginId === "string"
+    ) {
         out.label = String(e.pluginId);
     }
     if (type === "workflow_failed" && Array.isArray(e.errors) && !out.error) {

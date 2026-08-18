@@ -1,0 +1,53 @@
+{
+    "name": "Location plate",
+    "description": "Text → establishing plate (REF) for a location.",
+    "flow": {
+        "nodes": [
+            {
+                "id": "a9bab6c0-60b3-4f35-a3bb-56b45e390441",
+                "type": "textNode",
+                "position": {
+                    "x": 100,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {
+                    "texts": [
+                        "{{tf://STY_MAIN/prompt}}, {{tf://LOC_ROOFTOP/prompt}}, wide establishing shot, no characters, cinematic lighting, no text"
+                    ]
+                }
+            },
+            {
+                "id": "9cd286d7-6fa1-4c04-9856-8bb4b8df3e87",
+                "type": "textGenImageNode",
+                "position": {
+                    "x": 568,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {
+                    "texts": [
+                        "{{tf://STY_MAIN/prompt}}, {{tf://LOC_ROOFTOP/prompt}}, wide establishing shot, no characters, cinematic lighting, no text"
+                    ]
+                }
+            }
+        ],
+        "edges": [
+            {
+                "id": "7efdeb78-24e8-44e1-b288-22c4f28d29d9",
+                "source": "a9bab6c0-60b3-4f35-a3bb-56b45e390441",
+                "target": "9cd286d7-6fa1-4c04-9856-8bb4b8df3e87",
+                "type": "custom-edge",
+                "sourceHandle": "out:textNode",
+                "targetHandle": "in:text"
+            }
+        ]
+    },
+    "meta": {
+        "purpose": "Bible REF for LOC_ entities.",
+        "target": {
+            "owner": "LOC_ROOFTOP",
+            "pass": "REF"
+        }
+    }
+}

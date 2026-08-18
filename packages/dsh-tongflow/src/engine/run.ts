@@ -5,17 +5,36 @@
 import { mkdir, rm } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import type { ExecutableWorkflow } from "tongflow";
-import type { Pass, Provenance, RunEvent, RunSummary, TakeInfo } from "../shared/types.ts";
 import type { ProjectRef } from "../project/manifest.ts";
 import { assertPassForOwner } from "../project/naming.ts";
-import { fromProjectKey, projectPaths, toProjectKey } from "../project/paths.ts";
-import { expandTemplate, hasTemplateRefs, isTfRef, resolveRef } from "../project/refs.ts";
-import { type WorkflowDocument, readWorkflowFile, workflowHash } from "../project/workflow-file.ts";
+import {
+    fromProjectKey,
+    projectPaths,
+    toProjectKey,
+} from "../project/paths.ts";
+import {
+    expandTemplate,
+    hasTemplateRefs,
+    isTfRef,
+    resolveRef,
+} from "../project/refs.ts";
+import {
+    readWorkflowFile,
+    type WorkflowDocument,
+    workflowHash,
+} from "../project/workflow-file.ts";
+import type {
+    Pass,
+    Provenance,
+    RunEvent,
+    RunSummary,
+    TakeInfo,
+} from "../shared/types.ts";
+import type { Studio } from "../studio.ts";
 import { nowIso } from "../util/fsx.ts";
 import { type IngestTarget, ingestOutputs } from "./ingest.ts";
 import type { EngineRequest, EngineResult } from "./runner.ts";
 import { runEngine } from "./runner.ts";
-import type { Studio } from "../studio.ts";
 
 export interface RunRequest {
     projectId: string;
@@ -55,26 +74,40 @@ export async function executeRun(
 ): Promise<RunOutcome> {
     const startedAt = nowIso();
     const started = Date.now();
-    const doc = request.document ?? (await readWorkflowFile(project.root, request.workflowKey!));
+    const doc =
+        request.document ??
+        (await readWorkflowFile(project.root, request.workflowKey!));
     if (!doc.executable) {
         throw new Error(
             `workflow "${request.workflowKey ?? doc.name}" has no executable graph${doc.exportError ? `: ${doc.exportError}` : " — save it once it validates"}`,
         );
     }
-    if (request.target) assertPassForOwner(request.target.owner, request.target.pass);
-    for (const t of Object.values(request.targets ?? {})) assertPassForOwner(t.owner, t.pass);
+    if (request.target)
+        assertPassForOwner(request.target.owner, request.target.pass);
+    for (const t of Object.values(request.targets ?? {}))
+        assertPassForOwner(t.owner, t.pass);
 
     const workflow = structuredClone(doc.executable) as ExecutableWorkflow;
-    const missingPlugins = workflow.executableNodes.filter((n) => !n.pluginId).map((n) => `${n.label ?? n.id.slice(0, 8)} (${n.feature})`);
+    const missingPlugins = workflow.executableNodes
+        .filter((n) => !n.pluginId)
+        .map((n) => `${n.label ?? n.id.slice(0, 8)} (${n.feature})`);
     if (missingPlugins.length > 0) {
-        throw new Error(`no plugin selected for: ${missingPlugins.join(", ")} — install one with tongflow_plugins_install and re-save the workflow`);
+        throw new Error(
+            `no plugin selected for: ${missingPlugins.join(", ")} — install one with tongflow_plugins_install and re-save the workflow`,
+        );
     }
 
     // 1. Bind inputs.
-    const bindings: Record<string, string | string[]> = { ...(doc.meta.bindings ?? {}) };
+    const bindings: Record<string, string | string[]> = {
+        ...(doc.meta.bindings ?? {}),
+    };
     for (const [k, v] of Object.entries(request.inputs ?? {})) {
         if (v === undefined || v === null) continue;
-        bindings[k] = Array.isArray(v) ? v.map(String) : typeof v === "object" ? JSON.stringify(v) : String(v);
+        bindings[k] = Array.isArray(v)
+            ? v.map(String)
+            : typeof v === "object"
+              ? JSON.stringify(v)
+              : String(v);
     }
     const inputs: Record<string, InputValue> = {};
     const resolved: Record<string, string[]> = {};
@@ -82,7 +115,8 @@ export async function executeRun(
     for (const spec of workflow.inputs) {
         const bound = bindings[spec.name];
         if (bound === undefined) {
-            if (spec.required && spec.defaultValue === undefined) missing.push(`${spec.name} (${spec.type})`);
+            if (spec.required && spec.defaultValue === undefined)
+                missing.push(`${spec.name} (${spec.type})`);
             continue;
         }
         const value = await bindValue(project.root, spec.type, bound);
@@ -126,7 +160,10 @@ export async function executeRun(
         onEvent: emit,
     });
     if (result.status !== "success") {
-        const detail = result.errors.length > 0 ? result.errors.join("; ") : "workflow failed";
+        const detail =
+            result.errors.length > 0
+                ? result.errors.join("; ")
+                : "workflow failed";
         throw new Error(detail);
     }
 
@@ -139,7 +176,9 @@ export async function executeRun(
         workflowName: doc.name,
         bindings,
         resolved,
-        pluginIds: [...new Set(workflow.executableNodes.map((n) => n.pluginId))],
+        pluginIds: [
+            ...new Set(workflow.executableNodes.map((n) => n.pluginId)),
+        ],
         startedAt,
         finishedAt,
         durationMs: Date.now() - started,
@@ -153,10 +192,17 @@ export async function executeRun(
         provenance,
     });
     if (!request.keepRunDir && ingest.loose.length === 0) {
-        await rm(runDir, { recursive: true, force: true }).catch(() => undefined);
+        await rm(runDir, { recursive: true, force: true }).catch(
+            () => undefined,
+        );
     }
     summary.takes = ingest.takes;
-    emit({ type: "ingested", at: nowIso(), takes: ingest.takes, outputs: result.outputs });
+    emit({
+        type: "ingested",
+        at: nowIso(),
+        takes: ingest.takes,
+        outputs: result.outputs,
+    });
     return { summary, result, texts: ingest.texts, loose: ingest.loose };
 }
 
@@ -165,7 +211,11 @@ function emitLog(emit: (e: RunEvent) => void): (line: string) => void {
 }
 
 /** Resolve one bound value into the engine's `{texts}` / `{fileKeys}` input form. */
-async function bindValue(projectRoot: string, type: string, bound: string | string[]): Promise<InputValue> {
+async function bindValue(
+    projectRoot: string,
+    type: string,
+    bound: string | string[],
+): Promise<InputValue> {
     const values = Array.isArray(bound) ? bound : [bound];
     const isText = type === "text" || type === "text[]";
     const texts: string[] = [];
@@ -178,7 +228,9 @@ async function bindValue(projectRoot: string, type: string, bound: string | stri
             continue;
         }
         if (isText) {
-            texts.push(hasTemplateRefs(v) ? await expandTemplate(projectRoot, v) : v);
+            texts.push(
+                hasTemplateRefs(v) ? await expandTemplate(projectRoot, v) : v,
+            );
             continue;
         }
         if (/^(https?:|data:)/.test(v) || isAbsolute(v)) {
@@ -189,13 +241,18 @@ async function bindValue(projectRoot: string, type: string, bound: string | stri
     }
     if (isText) return { texts };
     if (texts.length > 0 && fileKeys.length === 0) {
-        throw new Error(`input of type ${type} was bound to text (${texts.map((t) => t.slice(0, 40)).join(", ")}) — bind a file, project key or tf:// asset ref`);
+        throw new Error(
+            `input of type ${type} was bound to text (${texts.map((t) => t.slice(0, 40)).join(", ")}) — bind a file, project key or tf:// asset ref`,
+        );
     }
     return { fileKeys };
 }
 
 /** Replace `tf://` refs inside static data nodes / static bindings with absolute paths (or texts). */
-async function resolveEmbeddedRefs(projectRoot: string, workflow: ExecutableWorkflow): Promise<void> {
+async function resolveEmbeddedRefs(
+    projectRoot: string,
+    workflow: ExecutableWorkflow,
+): Promise<void> {
     for (const dn of workflow.dataNodes) {
         const sd = dn.staticData;
         if (!sd) continue;
@@ -207,7 +264,10 @@ async function resolveEmbeddedRefs(projectRoot: string, workflow: ExecutableWork
                     continue;
                 }
                 const r = await resolveRef(projectRoot, k);
-                if (r.kind !== "files") throw new Error(`${k} resolves to text but is used as a file`);
+                if (r.kind !== "files")
+                    throw new Error(
+                        `${k} resolves to text but is used as a file`,
+                    );
                 out.push(...r.paths);
             }
             sd.fileKeys = out;
@@ -229,20 +289,32 @@ async function resolveEmbeddedRefs(projectRoot: string, workflow: ExecutableWork
     }
     for (const node of workflow.executableNodes) {
         for (const [field, binding] of Object.entries(node.bindings)) {
-            if (binding.kind !== "static" && binding.kind !== "config") continue;
+            if (binding.kind !== "static" && binding.kind !== "config")
+                continue;
             if (isTfRef(binding.value)) {
                 const r = await resolveRef(projectRoot, binding.value);
                 if (r.kind === "texts") binding.value = r.texts.join("\n");
                 else if (r.paths.length === 1) binding.value = r.paths[0];
-                else throw new Error(`${binding.value} (in ${field}) resolves to ${r.paths.length} files; a config field takes one`);
+                else
+                    throw new Error(
+                        `${binding.value} (in ${field}) resolves to ${r.paths.length} files; a config field takes one`,
+                    );
             } else if (hasTemplateRefs(binding.value)) {
-                binding.value = await expandTemplate(projectRoot, binding.value);
+                binding.value = await expandTemplate(
+                    projectRoot,
+                    binding.value,
+                );
             }
         }
     }
 }
 
-export function newRunSummary(runId: string, projectId: string, workflow: string, target?: IngestTarget): RunSummary {
+export function newRunSummary(
+    runId: string,
+    projectId: string,
+    workflow: string,
+    target?: IngestTarget,
+): RunSummary {
     return {
         runId,
         projectId,

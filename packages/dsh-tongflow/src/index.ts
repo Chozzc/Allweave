@@ -31,7 +31,9 @@ export function apply(ctx: Context, config: Config): void {
     const studio = new Studio({ config, log });
     const api = new StudioApi(studio);
     void studio.init().catch((error: unknown) => {
-        ctx.logger?.warn?.(`dsh-tongflow: studio init failed: ${error instanceof Error ? error.message : String(error)}`);
+        ctx.logger?.warn?.(
+            `dsh-tongflow: studio init failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
     });
 
     registerTools(ctx, { ctx, studio, api });
@@ -50,7 +52,9 @@ export function apply(ctx: Context, config: Config): void {
 
     ctx.inject(["skills"], (skillCtx) => registerSkills(skillCtx));
 
-    ctx.inject(["webServer"], (webCtx) => registerRoutes(webCtx, { studio, api, prefix: config.httpPrefix }));
+    ctx.inject(["webServer"], (webCtx) =>
+        registerRoutes(webCtx, { studio, api, prefix: config.httpPrefix }),
+    );
 }
 
 const SYSTEM_SECTION = `## TongFlow studio

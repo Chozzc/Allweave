@@ -3,15 +3,20 @@
  * bootstrap, the plugin registry and the run manager. Tools, HTTP routes and
  * skills all talk to this instead of to each other.
  */
-import { createRequire } from "node:module";
+
 import { chmod, mkdir } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import type { Config } from "./config.ts";
 import { ensureVenv } from "./engine/bootstrap.ts";
 import { RegistryManager } from "./engine/registry.ts";
 import { RunManager } from "./engine/runs.ts";
-import { type ProjectRef, loadProject } from "./project/manifest.ts";
-import { type StudioPaths, resolveStudioRoot, studioPaths } from "./project/paths.ts";
+import { loadProject, type ProjectRef } from "./project/manifest.ts";
+import {
+    resolveStudioRoot,
+    type StudioPaths,
+    studioPaths,
+} from "./project/paths.ts";
 import { readJsonOr, writeJson } from "./util/fsx.ts";
 
 export type Logger = (line: string) => void;
@@ -30,7 +35,9 @@ export class Studio {
     readonly registry: RegistryManager;
     readonly runs: RunManager;
     readonly log: Logger;
-    private readonly resolveEnv: (() => Promise<Record<string, string>>) | undefined;
+    private readonly resolveEnv:
+        | (() => Promise<Record<string, string>>)
+        | undefined;
     private pythonPromise: Promise<string> | undefined;
 
     constructor(options: StudioOptions) {
@@ -90,10 +97,13 @@ export class Studio {
     }
 
     /** Merge updates into env.json (`null` deletes); file is created 0600. */
-    async updateEnvFile(patch: Record<string, string | null>): Promise<Record<string, string>> {
+    async updateEnvFile(
+        patch: Record<string, string | null>,
+    ): Promise<Record<string, string>> {
         const current = await this.readEnvFile();
         for (const [k, v] of Object.entries(patch)) {
-            if (!/^[A-Z][A-Z0-9_]*$/.test(k)) throw new Error(`invalid env key "${k}"`);
+            if (!/^[A-Z][A-Z0-9_]*$/.test(k))
+                throw new Error(`invalid env key "${k}"`);
             if (v === null || v === "") delete current[k];
             else current[k] = v;
         }

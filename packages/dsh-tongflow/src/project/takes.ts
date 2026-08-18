@@ -4,23 +4,58 @@
  * directory records which take is "circled" (the one downstream references
  * resolve to by default).
  */
-import { copyFile, mkdir, readdir, rename, stat, unlink } from "node:fs/promises";
+import {
+    copyFile,
+    mkdir,
+    readdir,
+    rename,
+    stat,
+    unlink,
+} from "node:fs/promises";
 import { extname, join } from "node:path";
-import type { Pass, Provenance, TakeInfo, TakesManifest } from "../shared/types.ts";
+import type {
+    Pass,
+    Provenance,
+    TakeInfo,
+    TakesManifest,
+} from "../shared/types.ts";
 import { exists, readJsonOr, writeJson } from "../util/fsx.ts";
-import { assertPassForOwner, parseTakeFileName, provenanceFileName, takeFileName, takeId } from "./naming.ts";
-import { TAKES_MANIFEST, ownerDir, passDir, toProjectKey } from "./paths.ts";
+import {
+    assertPassForOwner,
+    parseTakeFileName,
+    provenanceFileName,
+    takeFileName,
+    takeId,
+} from "./naming.ts";
+import { ownerDir, passDir, TAKES_MANIFEST, toProjectKey } from "./paths.ts";
 
-export async function readTakesManifest(projectRoot: string, owner: string): Promise<TakesManifest> {
-    return readJsonOr<TakesManifest>(join(ownerDir(projectRoot, owner), TAKES_MANIFEST), { circled: {} });
+export async function readTakesManifest(
+    projectRoot: string,
+    owner: string,
+): Promise<TakesManifest> {
+    return readJsonOr<TakesManifest>(
+        join(ownerDir(projectRoot, owner), TAKES_MANIFEST),
+        { circled: {} },
+    );
 }
 
-export async function writeTakesManifest(projectRoot: string, owner: string, manifest: TakesManifest): Promise<void> {
-    await writeJson(join(ownerDir(projectRoot, owner), TAKES_MANIFEST), manifest);
+export async function writeTakesManifest(
+    projectRoot: string,
+    owner: string,
+    manifest: TakesManifest,
+): Promise<void> {
+    await writeJson(
+        join(ownerDir(projectRoot, owner), TAKES_MANIFEST),
+        manifest,
+    );
 }
 
 /** All takes of one pass, ascending by take number, with sidecar provenance when present. */
-export async function listTakes(projectRoot: string, owner: string, pass: Pass): Promise<TakeInfo[]> {
+export async function listTakes(
+    projectRoot: string,
+    owner: string,
+    pass: Pass,
+): Promise<TakeInfo[]> {
     assertPassForOwner(owner, pass);
     const dir = passDir(projectRoot, owner, pass);
     if (!(await exists(dir))) return [];
@@ -60,7 +95,10 @@ export async function takeOverview(
     projectRoot: string,
     owner: string,
     passes: readonly Pass[],
-): Promise<{ counts: Partial<Record<Pass, number>>; circled: Partial<Record<Pass, string>> }> {
+): Promise<{
+    counts: Partial<Record<Pass, number>>;
+    circled: Partial<Record<Pass, string>>;
+}> {
     const manifest = await readTakesManifest(projectRoot, owner);
     const counts: Partial<Record<Pass, number>> = {};
     for (const pass of passes) {
@@ -88,7 +126,11 @@ export async function resolveTake(
     return takes.find((t) => t.circled) ?? takes[takes.length - 1];
 }
 
-export async function nextTakeNumber(projectRoot: string, owner: string, pass: Pass): Promise<number> {
+export async function nextTakeNumber(
+    projectRoot: string,
+    owner: string,
+    pass: Pass,
+): Promise<number> {
     const takes = await listTakes(projectRoot, owner, pass);
     const max = takes.reduce((m, t) => Math.max(m, t.takeNo), 0);
     if (max >= 99) throw new Error(`${owner}/${pass} already has 99 takes`);
@@ -129,7 +171,10 @@ export async function addTake(
         await copyFile(sourcePath, dest);
     }
     if (options.provenance) {
-        await writeJson(join(dir, provenanceFileName(owner, pass, take)), options.provenance);
+        await writeJson(
+            join(dir, provenanceFileName(owner, pass, take)),
+            options.provenance,
+        );
     }
     const manifest = await readTakesManifest(projectRoot, owner);
     const shouldCircle = options.circle ?? manifest.circled[pass] === undefined;
@@ -137,12 +182,19 @@ export async function addTake(
         manifest.circled[pass] = take;
         await writeTakesManifest(projectRoot, owner, manifest);
     }
-    const info = (await listTakes(projectRoot, owner, pass)).find((t) => t.take === take);
+    const info = (await listTakes(projectRoot, owner, pass)).find(
+        (t) => t.take === take,
+    );
     if (!info) throw new Error(`take ${take} vanished after ingest`);
     return info;
 }
 
-export async function circleTake(projectRoot: string, owner: string, pass: Pass, take: string): Promise<TakeInfo> {
+export async function circleTake(
+    projectRoot: string,
+    owner: string,
+    pass: Pass,
+    take: string,
+): Promise<TakeInfo> {
     const takes = await listTakes(projectRoot, owner, pass);
     const found = takes.find((t) => t.take === take);
     if (!found) throw new Error(`${owner}/${pass}/${take} does not exist`);
@@ -152,17 +204,25 @@ export async function circleTake(projectRoot: string, owner: string, pass: Pass,
     return { ...found, circled: true };
 }
 
-export async function deleteTake(projectRoot: string, owner: string, pass: Pass, take: string): Promise<void> {
+export async function deleteTake(
+    projectRoot: string,
+    owner: string,
+    pass: Pass,
+    take: string,
+): Promise<void> {
     const takes = await listTakes(projectRoot, owner, pass);
     const found = takes.find((t) => t.take === take);
     if (!found) throw new Error(`${owner}/${pass}/${take} does not exist`);
     const dir = passDir(projectRoot, owner, pass);
     await unlink(join(dir, found.fileName));
-    await unlink(join(dir, provenanceFileName(owner, pass, take))).catch(() => undefined);
+    await unlink(join(dir, provenanceFileName(owner, pass, take))).catch(
+        () => undefined,
+    );
     const manifest = await readTakesManifest(projectRoot, owner);
     if (manifest.circled[pass] === take) {
         const remaining = takes.filter((t) => t.take !== take);
-        if (remaining.length > 0) manifest.circled[pass] = remaining[remaining.length - 1].take;
+        if (remaining.length > 0)
+            manifest.circled[pass] = remaining[remaining.length - 1].take;
         else delete manifest.circled[pass];
         await writeTakesManifest(projectRoot, owner, manifest);
     }

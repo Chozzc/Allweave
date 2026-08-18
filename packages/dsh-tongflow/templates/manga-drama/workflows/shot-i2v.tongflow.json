@@ -1,0 +1,63 @@
+{
+    "name": "Shot image-to-video",
+    "description": "Keyframe + motion prompt → animation (ANI). Bind `image` and `prompt` per shot.",
+    "flow": {
+        "nodes": [
+            {
+                "id": "b4df60f0-e91c-4df9-96f9-d6a0a3ec0b18",
+                "type": "imageNode",
+                "position": {
+                    "x": 100,
+                    "y": 22
+                },
+                "origin": [0.5, 0.5],
+                "data": {
+                    "inputName": "image"
+                }
+            },
+            {
+                "id": "3ea11850-c3a5-44f4-8567-641f93b1ab59",
+                "type": "textNode",
+                "position": {
+                    "x": 100,
+                    "y": 282
+                },
+                "origin": [0.5, 0.5],
+                "data": {
+                    "inputName": "prompt"
+                }
+            },
+            {
+                "id": "1c7cbd55-85c3-4b60-86fa-d2e691390c6b",
+                "type": "imageGenVideoComposeNode",
+                "position": {
+                    "x": 568,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {}
+            }
+        ],
+        "edges": [
+            {
+                "id": "b65f28de-ed23-4952-a384-b339fd9fbdd3",
+                "source": "b4df60f0-e91c-4df9-96f9-d6a0a3ec0b18",
+                "target": "1c7cbd55-85c3-4b60-86fa-d2e691390c6b",
+                "type": "custom-edge",
+                "sourceHandle": "out:imageNode",
+                "targetHandle": "in:image"
+            },
+            {
+                "id": "154f278c-20a5-4a6a-8abc-06771f080b95",
+                "source": "3ea11850-c3a5-44f4-8567-641f93b1ab59",
+                "target": "1c7cbd55-85c3-4b60-86fa-d2e691390c6b",
+                "type": "custom-edge",
+                "sourceHandle": "out:textNode",
+                "targetHandle": "in:text"
+            }
+        ]
+    },
+    "meta": {
+        "purpose": "Per-shot ANI. Inputs: image ← tf://<SHOT>/KF, prompt ← tf://<SHOT>/prompt/ANI. Set duration in the node."
+    }
+}

@@ -5,15 +5,32 @@
  */
 import { mkdir, readdir } from "node:fs/promises";
 import { join } from "node:path";
-import type { EpisodeBreakdown, SceneBreakdown, ShotBreakdown } from "../shared/types.ts";
+import type {
+    EpisodeBreakdown,
+    SceneBreakdown,
+    ShotBreakdown,
+} from "../shared/types.ts";
 import { exists, readJsonOr, writeJson } from "../util/fsx.ts";
 import { loadProject, saveManifest } from "./manifest.ts";
-import { SHOT_PASSES, isEntityId, isEpisodeId, isSceneId, isShotId, parseShotId, sceneId, shotId } from "./naming.ts";
+import {
+    isEntityId,
+    isEpisodeId,
+    isSceneId,
+    isShotId,
+    parseShotId,
+    SHOT_PASSES,
+    sceneId,
+    shotId,
+} from "./naming.ts";
 import { breakdownFile, projectPaths, shotDir } from "./paths.ts";
 import { takeOverview } from "./takes.ts";
 
-export async function readBreakdown(projectRoot: string, episode: string): Promise<EpisodeBreakdown | undefined> {
-    if (!isEpisodeId(episode)) throw new Error(`invalid episode id "${episode}"`);
+export async function readBreakdown(
+    projectRoot: string,
+    episode: string,
+): Promise<EpisodeBreakdown | undefined> {
+    if (!isEpisodeId(episode))
+        throw new Error(`invalid episode id "${episode}"`);
     const path = breakdownFile(projectRoot, episode);
     return readJsonOr<EpisodeBreakdown | undefined>(path, undefined);
 }
@@ -41,7 +58,10 @@ export async function writeBreakdown(
 ): Promise<EpisodeBreakdown> {
     const ref = await loadProject(studioRoot, projectId);
     const episode = input.episode;
-    if (!isEpisodeId(episode)) throw new Error(`invalid episode id "${episode}" (expected EP01, EP02, …)`);
+    if (!isEpisodeId(episode))
+        throw new Error(
+            `invalid episode id "${episode}" (expected EP01, EP02, …)`,
+        );
     const normalized = normalizeBreakdown(input, shotStep);
     await validateEntityRefs(ref.root, normalized);
     await writeJson(breakdownFile(ref.root, episode), normalized);
@@ -49,7 +69,8 @@ export async function writeBreakdown(
         for (const shot of scene.shots) {
             const dir = shotDir(ref.root, shot.id);
             await mkdir(dir, { recursive: true });
-            for (const pass of SHOT_PASSES) await mkdir(join(dir, pass), { recursive: true });
+            for (const pass of SHOT_PASSES)
+                await mkdir(join(dir, pass), { recursive: true });
         }
     }
     if (!ref.manifest.episodes.includes(episode)) {
@@ -60,20 +81,31 @@ export async function writeBreakdown(
     return normalized;
 }
 
-export function normalizeBreakdown(input: EpisodeBreakdown, shotStep: number): EpisodeBreakdown {
+export function normalizeBreakdown(
+    input: EpisodeBreakdown,
+    shotStep: number,
+): EpisodeBreakdown {
     const episode = input.episode;
     const scenes: SceneBreakdown[] = [];
     const seenScene = new Set<string>();
     input.scenes.forEach((scene, si) => {
-        const id = scene.id && isSceneId(scene.id) ? scene.id : sceneId(episode, si + 1);
-        if (!id.startsWith(`${episode}_`)) throw new Error(`scene ${id} does not belong to ${episode}`);
+        const id =
+            scene.id && isSceneId(scene.id)
+                ? scene.id
+                : sceneId(episode, si + 1);
+        if (!id.startsWith(`${episode}_`))
+            throw new Error(`scene ${id} does not belong to ${episode}`);
         if (seenScene.has(id)) throw new Error(`duplicate scene id ${id}`);
         seenScene.add(id);
         const shots: ShotBreakdown[] = [];
         const seenShot = new Set<string>();
         scene.shots.forEach((shot, hi) => {
-            const sid = shot.id && isShotId(shot.id) ? shot.id : shotId(id, (hi + 1) * shotStep);
-            if (parseShotId(sid).scene !== id) throw new Error(`shot ${sid} does not belong to scene ${id}`);
+            const sid =
+                shot.id && isShotId(shot.id)
+                    ? shot.id
+                    : shotId(id, (hi + 1) * shotStep);
+            if (parseShotId(sid).scene !== id)
+                throw new Error(`shot ${sid} does not belong to scene ${id}`);
             if (seenShot.has(sid)) throw new Error(`duplicate shot id ${sid}`);
             seenShot.add(sid);
             shots.push({ ...shot, id: sid });
@@ -83,11 +115,15 @@ export function normalizeBreakdown(input: EpisodeBreakdown, shotStep: number): E
     return { ...input, episode, scenes };
 }
 
-async function validateEntityRefs(projectRoot: string, breakdown: EpisodeBreakdown): Promise<void> {
+async function validateEntityRefs(
+    projectRoot: string,
+    breakdown: EpisodeBreakdown,
+): Promise<void> {
     const problems: string[] = [];
     const check = (where: string, ids: string[] | undefined) => {
         for (const id of ids ?? []) {
-            if (!isEntityId(id)) problems.push(`${where}: "${id}" is not an entity id`);
+            if (!isEntityId(id))
+                problems.push(`${where}: "${id}" is not an entity id`);
         }
     };
     for (const scene of breakdown.scenes) {
@@ -96,7 +132,8 @@ async function validateEntityRefs(projectRoot: string, breakdown: EpisodeBreakdo
         for (const shot of scene.shots) {
             check(shot.id, shot.characters);
             check(shot.id, shot.props);
-            for (const line of shot.dialogue ?? []) check(`${shot.id} dialogue`, [line.character]);
+            for (const line of shot.dialogue ?? [])
+                check(`${shot.id} dialogue`, [line.character]);
         }
     }
     if (problems.length > 0) throw new Error(problems.join("; "));
@@ -114,14 +151,27 @@ export interface ShotStatus {
     takeCounts: Partial<Record<(typeof SHOT_PASSES)[number], number>>;
 }
 
-export async function shotStatuses(projectRoot: string, episode: string): Promise<ShotStatus[]> {
+export async function shotStatuses(
+    projectRoot: string,
+    episode: string,
+): Promise<ShotStatus[]> {
     const bd = await readBreakdown(projectRoot, episode);
     if (!bd) return [];
     const out: ShotStatus[] = [];
     for (const scene of bd.scenes) {
         for (const shot of scene.shots) {
-            const { counts, circled } = await takeOverview(projectRoot, shot.id, SHOT_PASSES);
-            out.push({ id: shot.id, scene: scene.id, breakdown: shot, circled, takeCounts: counts });
+            const { counts, circled } = await takeOverview(
+                projectRoot,
+                shot.id,
+                SHOT_PASSES,
+            );
+            out.push({
+                id: shot.id,
+                scene: scene.id,
+                breakdown: shot,
+                circled,
+                takeCounts: counts,
+            });
         }
     }
     return out;
@@ -131,7 +181,10 @@ export async function shotStatuses(projectRoot: string, episode: string): Promis
 export async function findShot(
     projectRoot: string,
     shot: string,
-): Promise<{ episode: EpisodeBreakdown; scene: SceneBreakdown; shot: ShotBreakdown } | undefined> {
+): Promise<
+    | { episode: EpisodeBreakdown; scene: SceneBreakdown; shot: ShotBreakdown }
+    | undefined
+> {
     const parts = parseShotId(shot);
     const bd = await readBreakdown(projectRoot, parts.episode);
     if (!bd) return undefined;

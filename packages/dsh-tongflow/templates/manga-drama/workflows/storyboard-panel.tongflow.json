@@ -1,0 +1,43 @@
+{
+    "name": "Storyboard panel",
+    "description": "Prompt input → storyboard panel (SB). Bind `prompt` per shot.",
+    "flow": {
+        "nodes": [
+            {
+                "id": "4ac56cef-07df-4228-8807-f24b257c957c",
+                "type": "textNode",
+                "position": {
+                    "x": 100,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {
+                    "inputName": "prompt"
+                }
+            },
+            {
+                "id": "585636d3-50c6-4164-8963-625ddf85eee9",
+                "type": "textGenImageNode",
+                "position": {
+                    "x": 568,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {}
+            }
+        ],
+        "edges": [
+            {
+                "id": "50967365-8e78-4467-a467-4f0dda3ba208",
+                "source": "4ac56cef-07df-4228-8807-f24b257c957c",
+                "target": "585636d3-50c6-4164-8963-625ddf85eee9",
+                "type": "custom-edge",
+                "sourceHandle": "out:textNode",
+                "targetHandle": "in:text"
+            }
+        ]
+    },
+    "meta": {
+        "purpose": "Cheap composition check per shot. Input `prompt` ← \"{{tf://STY_MAIN/prompt}}, storyboard sketch, {{tf://<SHOT>/prompt/KF}}\"."
+    }
+}

@@ -13,7 +13,11 @@ export class HttpError extends Error {
     }
 }
 
-export function sendJson(res: ServerResponse, status: number, body: unknown): void {
+export function sendJson(
+    res: ServerResponse,
+    status: number,
+    body: unknown,
+): void {
     const payload = JSON.stringify(body ?? null);
     res.writeHead(status, {
         "content-type": "application/json; charset=utf-8",
@@ -25,15 +29,25 @@ export function sendJson(res: ServerResponse, status: number, body: unknown): vo
 
 export function sendError(res: ServerResponse, error: unknown): void {
     if (error instanceof HttpError) {
-        sendJson(res, error.status, { error: error.message, ...(error.code ? { code: error.code } : {}) });
+        sendJson(res, error.status, {
+            error: error.message,
+            ...(error.code ? { code: error.code } : {}),
+        });
         return;
     }
     const message = error instanceof Error ? error.message : String(error);
-    const status = /not found|does not exist|no such/i.test(message) ? 404 : /invalid|required|unknown|escapes|not a/i.test(message) ? 400 : 500;
+    const status = /not found|does not exist|no such/i.test(message)
+        ? 404
+        : /invalid|required|unknown|escapes|not a/i.test(message)
+          ? 400
+          : 500;
     sendJson(res, status, { error: message });
 }
 
-export async function readBody(req: IncomingMessage, limit = 64 * 1024 * 1024): Promise<Buffer> {
+export async function readBody(
+    req: IncomingMessage,
+    limit = 64 * 1024 * 1024,
+): Promise<Buffer> {
     const chunks: Buffer[] = [];
     let total = 0;
     for await (const chunk of req) {
@@ -45,7 +59,9 @@ export async function readBody(req: IncomingMessage, limit = 64 * 1024 * 1024): 
     return Buffer.concat(chunks);
 }
 
-export async function readJson<T = Record<string, unknown>>(req: IncomingMessage): Promise<T> {
+export async function readJson<T = Record<string, unknown>>(
+    req: IncomingMessage,
+): Promise<T> {
     const buf = await readBody(req);
     if (buf.length === 0) return {} as T;
     try {
@@ -101,7 +117,12 @@ export interface RouteContext {
     rest: string;
 }
 
-export function compileRoute(route: Route): { route: Route; match: (path: string) => { params: Record<string, string>; rest: string } | undefined } {
+export function compileRoute(route: Route): {
+    route: Route;
+    match: (
+        path: string,
+    ) => { params: Record<string, string>; rest: string } | undefined;
+} {
     const parts = route.pattern.split("/").filter(Boolean);
     const wildcard = parts[parts.length - 1] === "*";
     const fixed = wildcard ? parts.slice(0, -1) : parts;
@@ -109,14 +130,22 @@ export function compileRoute(route: Route): { route: Route; match: (path: string
         route,
         match(path: string) {
             const segs = path.split("/").filter(Boolean);
-            if (wildcard ? segs.length < fixed.length : segs.length !== fixed.length) return undefined;
+            if (
+                wildcard
+                    ? segs.length < fixed.length
+                    : segs.length !== fixed.length
+            )
+                return undefined;
             const params: Record<string, string> = {};
             for (let i = 0; i < fixed.length; i++) {
                 const p = fixed[i];
-                if (p.startsWith(":")) params[p.slice(1)] = decodeURIComponent(segs[i]);
+                if (p.startsWith(":"))
+                    params[p.slice(1)] = decodeURIComponent(segs[i]);
                 else if (p !== segs[i]) return undefined;
             }
-            const rest = wildcard ? segs.slice(fixed.length).map(decodeURIComponent).join("/") : "";
+            const rest = wildcard
+                ? segs.slice(fixed.length).map(decodeURIComponent).join("/")
+                : "";
             return { params, rest };
         },
     };

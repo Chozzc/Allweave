@@ -9,10 +9,15 @@ import "@xyflow/react/dist/style.css";
 import "tongflow/canvas.css";
 import { ReactFlowProvider } from "@xyflow/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CanvasProvider, FlowCanvas, type FlowCanvasHandle, useFlow } from "tongflow/canvas";
+import {
+    CanvasProvider,
+    FlowCanvas,
+    type FlowCanvasHandle,
+    useFlow,
+} from "tongflow/canvas";
 import { canvasMessages, isCanvasLocale } from "tongflow/canvas/messages";
 import { IntlProvider } from "use-intl";
-import { PREFIX, type WorkflowDoc, fileUrl, studio } from "../api.ts";
+import { fileUrl, PREFIX, studio, type WorkflowDoc } from "../api.ts";
 
 export interface CanvasPaneProps {
     pid: string;
@@ -25,7 +30,13 @@ export interface CanvasPaneProps {
 
 const SAVE_DEBOUNCE_MS = 1000;
 
-export function CanvasPane({ pid, workflowKey, locale, reloadToken, onSaved }: CanvasPaneProps) {
+export function CanvasPane({
+    pid,
+    workflowKey,
+    locale,
+    reloadToken,
+    onSaved,
+}: CanvasPaneProps) {
     const handle = useRef<FlowCanvasHandle>(null);
     const [doc, setDoc] = useState<WorkflowDoc | undefined>();
     const [error, setError] = useState<string | undefined>();
@@ -33,7 +44,10 @@ export function CanvasPane({ pid, workflowKey, locale, reloadToken, onSaved }: C
     const suppressSave = useRef(false);
     const lang = isCanvasLocale(locale) ? locale : "en";
     const messages = useMemo(() => canvasMessages[lang], [lang]);
-    const resolveAssetUrl = useCallback((fileKey: string) => fileUrl(pid, fileKey), [pid]);
+    const resolveAssetUrl = useCallback(
+        (fileKey: string) => fileUrl(pid, fileKey),
+        [pid],
+    );
 
     // Load the file into the (singleton) canvas store.
     useEffect(() => {
@@ -48,7 +62,10 @@ export function CanvasPane({ pid, workflowKey, locale, reloadToken, onSaved }: C
                 st.setNodes(d.flow.nodes as never);
                 st.setEdges(d.flow.edges as never);
                 st.setWorkflowName(d.name);
-                if (d.description !== undefined) useFlow.setState({ workflowDescription: d.description } as never);
+                if (d.description !== undefined)
+                    useFlow.setState({
+                        workflowDescription: d.description,
+                    } as never);
                 loadedKey.current = workflowKey;
                 setDoc(d);
                 setTimeout(() => {
@@ -56,7 +73,11 @@ export function CanvasPane({ pid, workflowKey, locale, reloadToken, onSaved }: C
                     handle.current?.fitView();
                 }, 50);
             })
-            .catch((e: unknown) => alive && setError(e instanceof Error ? e.message : String(e)));
+            .catch(
+                (e: unknown) =>
+                    alive &&
+                    setError(e instanceof Error ? e.message : String(e)),
+            );
         return () => {
             alive = false;
         };
@@ -71,20 +92,36 @@ export function CanvasPane({ pid, workflowKey, locale, reloadToken, onSaved }: C
     onSavedRef.current = onSaved;
     useEffect(() => {
         const unsub = useFlow.subscribe((state, prev) => {
-            if (suppressSave.current || loadedKey.current !== workflowKey) return;
-            if (state.nodes === prev.nodes && state.edges === prev.edges && state.workflowName === prev.workflowName) return;
+            if (suppressSave.current || loadedKey.current !== workflowKey)
+                return;
+            if (
+                state.nodes === prev.nodes &&
+                state.edges === prev.edges &&
+                state.workflowName === prev.workflowName
+            )
+                return;
             if (!dirty.current) onSavedRef.current?.("saving");
             dirty.current = true;
         });
         const flush = () => {
-            if (!dirty.current || saving.current || loadedKey.current !== workflowKey) return;
+            if (
+                !dirty.current ||
+                saving.current ||
+                loadedKey.current !== workflowKey
+            )
+                return;
             dirty.current = false;
             saving.current = true;
             const s = useFlow.getState();
             const next: WorkflowDoc = {
                 name: s.workflowName || doc?.name || workflowKey,
-                ...(s.workflowDescription ? { description: s.workflowDescription } : {}),
-                flow: { nodes: s.nodes as unknown[], edges: s.edges as unknown[] },
+                ...(s.workflowDescription
+                    ? { description: s.workflowDescription }
+                    : {}),
+                flow: {
+                    nodes: s.nodes as unknown[],
+                    edges: s.edges as unknown[],
+                },
                 meta: doc?.meta ?? {},
             };
             studio
@@ -92,7 +129,12 @@ export function CanvasPane({ pid, workflowKey, locale, reloadToken, onSaved }: C
                 .then(() => {
                     if (!dirty.current) onSavedRef.current?.("saved");
                 })
-                .catch((e: unknown) => onSavedRef.current?.("error", e instanceof Error ? e.message : String(e)))
+                .catch((e: unknown) =>
+                    onSavedRef.current?.(
+                        "error",
+                        e instanceof Error ? e.message : String(e),
+                    ),
+                )
                 .finally(() => {
                     saving.current = false;
                 });
@@ -110,7 +152,11 @@ export function CanvasPane({ pid, workflowKey, locale, reloadToken, onSaved }: C
         <div className="tfs-canvas-host">
             <div className="tfs-canvas-wrap">
                 <IntlProvider locale={lang} messages={messages}>
-                    <CanvasProvider apiBaseUrl={`${PREFIX}/p/${pid}`} resolveAssetUrl={resolveAssetUrl} locale={lang}>
+                    <CanvasProvider
+                        apiBaseUrl={`${PREFIX}/p/${pid}`}
+                        resolveAssetUrl={resolveAssetUrl}
+                        locale={lang}
+                    >
                         <ReactFlowProvider>
                             <FlowCanvas ref={handle} />
                         </ReactFlowProvider>

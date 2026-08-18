@@ -38,10 +38,14 @@ const PLATFORM_MODULES = [
 /** Documented temporary exemption the loader also answers natively. */
 const RUNTIME_STORE_EXEMPTION = "@deepseek-ai/dsh-client-runtime/client";
 
-const CLIENT_EXTERNALS: readonly string[] = [...PLATFORM_MODULES, RUNTIME_STORE_EXEMPTION];
+const CLIENT_EXTERNALS: readonly string[] = [
+    ...PLATFORM_MODULES,
+    RUNTIME_STORE_EXEMPTION,
+];
 
 /** Browser-safe dsh wire/type layers a bundle may inline (no shared runtime identity). */
-const INLINE_SAFE = /^@deepseek-ai\/dsh-(host-apiproxy|session|llm|tools|brand)(\/|$)/;
+const INLINE_SAFE =
+    /^@deepseek-ai\/dsh-(host-apiproxy|session|llm|tools|brand)(\/|$)/;
 const VENDORED_LIBRARY = /^@deepseek-ai\/(cosmokit|schemastery)(\/|$)/;
 
 const CSS_VIRTUAL_PREFIX = "\0dsh-tongflow-css:";
@@ -60,7 +64,9 @@ function dedupePlugin(names: readonly string[]) {
     return {
         name: "dsh-tongflow-dedupe",
         resolveId(source: string) {
-            const hit = names.find((n) => source === n || source.startsWith(`${n}/`));
+            const hit = names.find(
+                (n) => source === n || source.startsWith(`${n}/`),
+            );
             if (!hit) return null;
             return fileURLToPath(import.meta.resolve(source));
         },
@@ -80,15 +86,23 @@ function cssInjectPlugin() {
             if (!source.endsWith(".css")) return null;
             let abs: string;
             if (source.startsWith(".") || source.startsWith("/")) {
-                abs = importer ? resolvePath(dirname(importer), source) : source;
+                abs = importer
+                    ? resolvePath(dirname(importer), source)
+                    : source;
             } else {
                 abs = require.resolve(source);
             }
             return CSS_VIRTUAL_PREFIX + abs + CSS_VIRTUAL_SUFFIX;
         },
-        async load(this: { addWatchFile(id: string): void }, virtualId: string) {
+        async load(
+            this: { addWatchFile(id: string): void },
+            virtualId: string,
+        ) {
             if (!virtualId.startsWith(CSS_VIRTUAL_PREFIX)) return null;
-            const fileId = virtualId.slice(CSS_VIRTUAL_PREFIX.length, -CSS_VIRTUAL_SUFFIX.length);
+            const fileId = virtualId.slice(
+                CSS_VIRTUAL_PREFIX.length,
+                -CSS_VIRTUAL_SUFFIX.length,
+            );
             this.addWatchFile(fileId);
             const css = await readFile(fileId, "utf8");
             const tagId = `${PACKAGE_ID}/${fileId.split("/").slice(-2).join("/")}`;
@@ -145,7 +159,10 @@ const client: UserConfig = {
     // uuid's exports map picks the Node build under rolldown's default
     // conditions; force the browser build (no node:crypto).
     alias: {
-        uuid: resolvePath(dirname(require.resolve("uuid/package.json")), "dist/index.js"),
+        uuid: resolvePath(
+            dirname(require.resolve("uuid/package.json")),
+            "dist/index.js",
+        ),
     },
     // zustand / immer read process.env.NODE_ENV; zustand's esm build probes
     // import.meta.env.MODE which a CJS output cannot carry.
@@ -155,7 +172,8 @@ const client: UserConfig = {
         "import.meta.env": JSON.stringify({ MODE: nodeEnv }),
     },
     // Anything not in the loader module table must be inlined.
-    noExternal: (id: string) => (CLIENT_EXTERNALS.includes(id) ? undefined : true),
+    noExternal: (id: string) =>
+        CLIENT_EXTERNALS.includes(id) ? undefined : true,
     plugins: [
         {
             name: "dsh-tongflow-bundle-purity",
@@ -171,7 +189,12 @@ const client: UserConfig = {
             },
         },
         cssInjectPlugin(),
-        dedupePlugin(["use-intl", "@xyflow/react", "zustand", "react-hot-toast"]),
+        dedupePlugin([
+            "use-intl",
+            "@xyflow/react",
+            "zustand",
+            "react-hot-toast",
+        ]),
     ],
     outputOptions: {
         entryFileNames: "client.js",

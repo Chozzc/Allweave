@@ -6,7 +6,11 @@ import { readdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Context } from "@deepseek-ai/cordis";
-import type { SkillCandidate, SkillDefinition, SkillProvider } from "@deepseek-ai/dsh-skill";
+import type {
+    SkillCandidate,
+    SkillDefinition,
+    SkillProvider,
+} from "@deepseek-ai/dsh-skill";
 import { isDir } from "../util/fsx.ts";
 
 const PROVIDER = "dsh-tongflow";
@@ -15,7 +19,10 @@ const RANK = 620;
 
 async function skillsRoot(): Promise<string> {
     const here = dirname(fileURLToPath(import.meta.url));
-    for (const candidate of [join(here, "..", "skills"), join(here, "..", "..", "skills")]) {
+    for (const candidate of [
+        join(here, "..", "skills"),
+        join(here, "..", "..", "skills"),
+    ]) {
         if (await isDir(candidate)) return candidate;
     }
     throw new Error("dsh-tongflow: skills directory not found");
@@ -36,14 +43,24 @@ function parseFront(text: string): { front: Front; body: string } {
         const kv = /^([A-Za-z_-]+):\s*(.*)$/.exec(line);
         if (kv) front[kv[1]] = kv[2].replace(/^["']|["']$/g, "");
     }
-    if (!front.name || !front.description) throw new Error("skill front matter needs name and description");
-    return { front: { name: front.name, description: front.description, ...(front.whenToUse ? { whenToUse: front.whenToUse } : {}) }, body: text.slice(m[0].length) };
+    if (!front.name || !front.description)
+        throw new Error("skill front matter needs name and description");
+    return {
+        front: {
+            name: front.name,
+            description: front.description,
+            ...(front.whenToUse ? { whenToUse: front.whenToUse } : {}),
+        },
+        body: text.slice(m[0].length),
+    };
 }
 
 async function candidates(): Promise<SkillCandidate[]> {
     const root = await skillsRoot();
     const out: SkillCandidate[] = [];
-    for (const name of (await readdir(root)).filter((n) => n.endsWith(".md")).sort()) {
+    for (const name of (await readdir(root))
+        .filter((n) => n.endsWith(".md"))
+        .sort()) {
         const path = join(root, name);
         const { front } = parseFront(await readFile(path, "utf8"));
         out.push({
@@ -70,8 +87,16 @@ export function registerSkills(ctx: Context): void {
             const path = candidate.locator;
             if (typeof path !== "string") return undefined;
             const { front, body } = parseFront(await readFile(path, "utf8"));
-            return { ...candidate, name: front.name, description: front.description, content: body };
+            return {
+                ...candidate,
+                name: front.name,
+                description: front.description,
+                content: body,
+            };
         },
     };
-    ctx.effect(() => ctx.skills.registerProvider(() => provider), "dsh-tongflow: skills");
+    ctx.effect(
+        () => ctx.skills.registerProvider(() => provider),
+        "dsh-tongflow: skills",
+    );
 }

@@ -17,7 +17,14 @@ export const DEFAULT_TONGFLOW_SDK_VERSION = "0.3.0";
 
 export const MIN_PYTHON: [number, number] = [3, 10];
 
-const CANDIDATES = ["python3.13", "python3.12", "python3.11", "python3.10", "python3", "python"];
+const CANDIDATES = [
+    "python3.13",
+    "python3.12",
+    "python3.11",
+    "python3.10",
+    "python3",
+    "python",
+];
 
 export interface PythonInfo {
     path: string;
@@ -39,7 +46,10 @@ async function probe(path: string): Promise<PythonInfo | undefined> {
 }
 
 function meetsMin(v: [number, number, number]): boolean {
-    return v[0] > MIN_PYTHON[0] || (v[0] === MIN_PYTHON[0] && v[1] >= MIN_PYTHON[1]);
+    return (
+        v[0] > MIN_PYTHON[0] ||
+        (v[0] === MIN_PYTHON[0] && v[1] >= MIN_PYTHON[1])
+    );
 }
 
 /** Locate a usable interpreter: explicit path first, then PATH candidates, then `uv python find`. */
@@ -60,7 +70,11 @@ export async function findPython(explicit?: string): Promise<PythonInfo> {
         tried.push(c);
     }
     try {
-        const { stdout } = await execFile("uv", ["python", "find", `>=${MIN_PYTHON.join(".")}`]);
+        const { stdout } = await execFile("uv", [
+            "python",
+            "find",
+            `>=${MIN_PYTHON.join(".")}`,
+        ]);
         const info = await probe(stdout.trim());
         if (info && meetsMin(info.version)) return info;
     } catch {
@@ -82,25 +96,44 @@ export interface EnsureVenvOptions {
 }
 
 export function venvPython(venvDir: string): string {
-    return process.platform === "win32" ? join(venvDir, "Scripts", "python.exe") : join(venvDir, "bin", "python");
+    return process.platform === "win32"
+        ? join(venvDir, "Scripts", "python.exe")
+        : join(venvDir, "bin", "python");
 }
 
 /** Create the studio venv if needed and make sure the requested SDK spec is installed. Returns the venv python. */
 export async function ensureVenv(options: EnsureVenvOptions): Promise<string> {
     const { venvDir, log = () => undefined } = options;
-    const spec = options.sdkSpec?.trim() || `tongflow==${DEFAULT_TONGFLOW_SDK_VERSION}`;
+    const spec =
+        options.sdkSpec?.trim() || `tongflow==${DEFAULT_TONGFLOW_SDK_VERSION}`;
     const py = venvPython(venvDir);
     const marker = join(venvDir, ".tongflow-sdk-spec");
     if (await exists(py)) {
-        const installed = (await readFile(marker, "utf8").catch(() => "")).trim();
+        const installed = (
+            await readFile(marker, "utf8").catch(() => "")
+        ).trim();
         if (installed === spec) return py;
     } else {
         const base = await findPython(options.pythonPath);
-        log(`creating studio venv with ${base.path} (Python ${base.version.join(".")})`);
+        log(
+            `creating studio venv with ${base.path} (Python ${base.version.join(".")})`,
+        );
         await run(base.path, ["-m", "venv", venvDir], log, options.signal);
     }
     log(`installing ${spec} into the studio venv`);
-    await run(py, ["-m", "pip", "install", "--disable-pip-version-check", "--upgrade", ...specArgs(spec)], log, options.signal);
+    await run(
+        py,
+        [
+            "-m",
+            "pip",
+            "install",
+            "--disable-pip-version-check",
+            "--upgrade",
+            ...specArgs(spec),
+        ],
+        log,
+        options.signal,
+    );
     await writeFileAtomic(marker, `${spec}\n`);
     return py;
 }
@@ -110,21 +143,35 @@ function specArgs(spec: string): string[] {
     return spec.split(/\s+/).filter(Boolean);
 }
 
-function run(cmd: string, args: string[], log: (line: string) => void, signal?: AbortSignal): Promise<void> {
+function run(
+    cmd: string,
+    args: string[],
+    log: (line: string) => void,
+    signal?: AbortSignal,
+): Promise<void> {
     return new Promise((resolve, reject) => {
-        const child = spawn(cmd, args, { stdio: ["ignore", "pipe", "pipe"], signal });
+        const child = spawn(cmd, args, {
+            stdio: ["ignore", "pipe", "pipe"],
+            signal,
+        });
         let tail = "";
         const onData = (chunk: Buffer) => {
             const text = chunk.toString();
             tail = (tail + text).slice(-4000);
-            for (const line of text.split(/\r?\n/)) if (line.trim()) log(line.trim());
+            for (const line of text.split(/\r?\n/))
+                if (line.trim()) log(line.trim());
         };
         child.stdout.on("data", onData);
         child.stderr.on("data", onData);
         child.on("error", reject);
         child.on("close", (code) => {
             if (code === 0) resolve();
-            else reject(new Error(`${cmd} ${args.join(" ")} exited with ${code}\n${tail}`));
+            else
+                reject(
+                    new Error(
+                        `${cmd} ${args.join(" ")} exited with ${code}\n${tail}`,
+                    ),
+                );
         });
     });
 }

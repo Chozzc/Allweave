@@ -12,6 +12,9 @@ export function allTools(env: ToolEnv): ToolDefinition[] {
 
 export function registerTools(ctx: Context, env: ToolEnv): void {
     for (const tool of allTools(env)) {
-        ctx.effect(() => ctx.tools.register(tool), `dsh-tongflow: tool ${tool.name}`);
+        ctx.effect(
+            () => ctx.tools.register(tool),
+            `dsh-tongflow: tool ${tool.name}`,
+        );
     }
 }

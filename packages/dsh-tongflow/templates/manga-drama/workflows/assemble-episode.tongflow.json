@@ -1,0 +1,43 @@
+{
+    "name": "Assemble episode",
+    "description": "Concatenate the circled ANI takes of an episode into a cut (CUT). Bind `clips` ← tf://EP01/ANI.",
+    "flow": {
+        "nodes": [
+            {
+                "id": "7bec5d63-784f-411a-9879-79747d5e5c0a",
+                "type": "videoNode",
+                "position": {
+                    "x": 100,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {
+                    "inputName": "clips"
+                }
+            },
+            {
+                "id": "86eb689e-7ec8-4c1d-86f6-e69a46651f60",
+                "type": "concatVideoComposeNode",
+                "position": {
+                    "x": 568,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {}
+            }
+        ],
+        "edges": [
+            {
+                "id": "9da10a31-25fd-41fc-a26e-57e27dbe32a9",
+                "source": "7bec5d63-784f-411a-9879-79747d5e5c0a",
+                "target": "86eb689e-7ec8-4c1d-86f6-e69a46651f60",
+                "type": "custom-edge",
+                "sourceHandle": "out:videoNode",
+                "targetHandle": "in:videos"
+            }
+        ]
+    },
+    "meta": {
+        "purpose": "Inputs: clips ← tf://EP01/ANI (shooting order). Target {owner: EP01, pass: CUT}."
+    }
+}

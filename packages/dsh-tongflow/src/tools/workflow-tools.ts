@@ -8,15 +8,25 @@
 import type { JsonValue } from "@deepseek-ai/dsh-session";
 import { defineTool, type ToolDefinition } from "@deepseek-ai/dsh-tools";
 import type { Pass, WorkflowFileMeta } from "../shared/types.ts";
-import { OWNER_DESC, PASS_DESC, PROJECT_PARAM, type ToolEnv, compact, resolveProjectId, text } from "./support.ts";
+import {
+    compact,
+    OWNER_DESC,
+    PASS_DESC,
+    PROJECT_PARAM,
+    resolveProjectId,
+    type ToolEnv,
+    text,
+} from "./support.ts";
 
 const WORKFLOW_PARAM = {
     type: "string",
     required: true,
-    description: "Workflow file, e.g. 'character-sheet' or 'workflows/character-sheet.tongflow.json' (project-relative).",
+    description:
+        "Workflow file, e.g. 'character-sheet' or 'workflows/character-sheet.tongflow.json' (project-relative).",
 } as const;
 
-const NODE_REF = "A node reference: an alias declared in this patch's add_nodes, or an existing node's short id (8 chars, as shown by tongflow_workflow_read).";
+const NODE_REF =
+    "A node reference: an alias declared in this patch's add_nodes, or an existing node's short id (8 chars, as shown by tongflow_workflow_read).";
 
 const TARGET_PARAM = {
     type: "object",
@@ -25,7 +35,8 @@ const TARGET_PARAM = {
         owner: { type: "string", required: true, description: OWNER_DESC },
         pass: { type: "string", required: true, description: PASS_DESC },
     },
-    description: "Where the outputs land as takes: { owner, pass }. Omit to use the workflow's meta.target.",
+    description:
+        "Where the outputs land as takes: { owner, pass }. Omit to use the workflow's meta.target.",
 } as const;
 
 export function workflowTools(env: ToolEnv): ToolDefinition[] {
@@ -38,24 +49,47 @@ export function workflowTools(env: ToolEnv): ToolDefinition[] {
                 "Media generation ALWAYS goes through a workflow file: create → patch nodes → bind inputs to tf:// refs → run. Never overwrite an existing file; patch it instead.",
             parameters: {
                 project: PROJECT_PARAM,
-                path: { type: "string", required: true, description: "New file name, e.g. 'shot-keyframe' → workflows/shot-keyframe.tongflow.json." },
-                fromTemplate: { type: "string", description: "Existing workflow file to copy (graph + meta)." },
+                path: {
+                    type: "string",
+                    required: true,
+                    description:
+                        "New file name, e.g. 'shot-keyframe' → workflows/shot-keyframe.tongflow.json.",
+                },
+                fromTemplate: {
+                    type: "string",
+                    description:
+                        "Existing workflow file to copy (graph + meta).",
+                },
                 name: { type: "string", description: "Display name." },
-                description: { type: "string", description: "What this workflow is for." },
+                description: {
+                    type: "string",
+                    description: "What this workflow is for.",
+                },
                 target: TARGET_PARAM,
-                purpose: { type: "string", description: "Free-form purpose recorded in meta." },
+                purpose: {
+                    type: "string",
+                    description: "Free-form purpose recorded in meta.",
+                },
             },
             output: { schema: { type: "json" }, render: (_a, v) => text(v) },
             async execute(args, exec) {
                 const pid = await resolveProjectId(env, exec, args.project);
                 const meta: WorkflowFileMeta = {};
-                if (args.target) meta.target = { owner: args.target.owner, pass: args.target.pass as Pass };
+                if (args.target)
+                    meta.target = {
+                        owner: args.target.owner,
+                        pass: args.target.pass as Pass,
+                    };
                 if (args.purpose) meta.purpose = args.purpose;
                 return compact(
                     await api.newWorkflow(pid, args.path, {
-                        ...(args.fromTemplate ? { fromTemplate: args.fromTemplate } : {}),
+                        ...(args.fromTemplate
+                            ? { fromTemplate: args.fromTemplate }
+                            : {}),
                         ...(args.name ? { name: args.name } : {}),
-                        ...(args.description ? { description: args.description } : {}),
+                        ...(args.description
+                            ? { description: args.description }
+                            : {}),
                         meta,
                     }),
                 );
@@ -69,57 +103,107 @@ export function workflowTools(env: ToolEnv): ToolDefinition[] {
                 "Graph grammar: data node (textNode / imageNode / audioNode / videoNode …) → executable node → its output data nodes are created automatically. " +
                 "For a data node use data:{texts:[…]} or data:{fileKeys:['tf://CHR_MEI/REF']} (tf:// refs are resolved at run time). " +
                 "Compose prompts with {{tf://…}} placeholders inside ONE text, e.g. texts:['{{tf://STY_MAIN/prompt}}, {{tf://CHR_MEI/prompt}}, full-body reference sheet'] — never chain text-combining nodes for that. " +
-                "A level-0 data node WITHOUT static data becomes a workflow INPUT you bind later with tongflow_workflow_bind. " +
+                "A level-0 data node WITHOUT static data becomes a workflow INPUT you bind later with tongflow_workflow_bind — give it a readable name with data:{inputName:'prompt'} (else it is input_<id>). " +
                 "Use tongflow_node_catalog / tongflow_node_describe to see node types, their wires and config fields.",
             parameters: {
                 project: PROJECT_PARAM,
                 workflow: WORKFLOW_PARAM,
                 add_nodes: {
                     type: "array",
-                    description: "Nodes to create. Layout is automatic — never supply coordinates.",
+                    description:
+                        "Nodes to create. Layout is automatic — never supply coordinates.",
                     items: {
                         type: "object",
                         additionalProperties: false,
                         properties: {
-                            alias: { type: "string", required: true, description: "Short local name (e.g. 't1', 'gen1') used in add_edges within this patch." },
-                            type: { type: "string", required: true, description: "Canvas node type from the catalog (e.g. 'textNode', 'textGenImageNode', 'imageGenVideoNode')." },
+                            alias: {
+                                type: "string",
+                                required: true,
+                                description:
+                                    "Short local name (e.g. 't1', 'gen1') used in add_edges within this patch.",
+                            },
+                            type: {
+                                type: "string",
+                                required: true,
+                                description:
+                                    "Canvas node type from the catalog (e.g. 'textNode', 'textGenImageNode', 'imageGenVideoNode').",
+                            },
                             data: {
                                 type: "object",
                                 additionalProperties: true,
-                                description: "Initial data. textNode: {texts:[…]}; imageNode etc.: {fileKeys:[…]} (may be tf:// refs); executable node: its config fields (e.g. {aspect_ratio:'16:9', duration:5}). Never set 'prompt'.",
+                                description:
+                                    "Initial data. textNode: {texts:[…]}; imageNode etc.: {fileKeys:[…]} (may be tf:// refs); executable node: its config fields (e.g. {aspect_ratio:'16:9', duration:5}). Never set 'prompt'.",
                             },
-                            pluginId: { type: "string", description: "Explicit plugin for an executable node (see catalog). Omit to use the installed default." },
-                            pluginModel: { type: "string", description: "Model id, only for plugins that advertise models." },
+                            pluginId: {
+                                type: "string",
+                                description:
+                                    "Explicit plugin for an executable node (see catalog). Omit to use the installed default.",
+                            },
+                            pluginModel: {
+                                type: "string",
+                                description:
+                                    "Model id, only for plugins that advertise models.",
+                            },
                         },
                     },
                 },
                 add_edges: {
                     type: "array",
-                    description: "Edges to draw. Handles are derived automatically; supply them only to disambiguate (e.g. several images into 'in:images').",
+                    description:
+                        "Edges to draw. Handles are derived automatically; supply them only to disambiguate (e.g. several images into 'in:images').",
                     items: {
                         type: "object",
                         additionalProperties: false,
                         properties: {
-                            from: { type: "string", required: true, description: NODE_REF },
-                            to: { type: "string", required: true, description: NODE_REF },
-                            fromHandle: { type: "string", description: "Optional source handle, e.g. 'out:image'." },
-                            toHandle: { type: "string", description: "Optional target handle, e.g. 'in:images'." },
+                            from: {
+                                type: "string",
+                                required: true,
+                                description: NODE_REF,
+                            },
+                            to: {
+                                type: "string",
+                                required: true,
+                                description: NODE_REF,
+                            },
+                            fromHandle: {
+                                type: "string",
+                                description:
+                                    "Optional source handle, e.g. 'out:image'.",
+                            },
+                            toHandle: {
+                                type: "string",
+                                description:
+                                    "Optional target handle, e.g. 'in:images'.",
+                            },
                         },
                     },
                 },
                 update_nodes: {
                     type: "array",
-                    description: "Change params on existing nodes. Merged into current data — send only the keys you are changing.",
+                    description:
+                        "Change params on existing nodes. Merged into current data — send only the keys you are changing.",
                     items: {
                         type: "object",
                         additionalProperties: false,
                         properties: {
-                            id: { type: "string", required: true, description: NODE_REF },
-                            data: { type: "object", additionalProperties: true, required: true },
+                            id: {
+                                type: "string",
+                                required: true,
+                                description: NODE_REF,
+                            },
+                            data: {
+                                type: "object",
+                                additionalProperties: true,
+                                required: true,
+                            },
                         },
                     },
                 },
-                remove_nodes: { type: "array", description: "Node references to delete.", items: { type: "string" } },
+                remove_nodes: {
+                    type: "array",
+                    description: "Node references to delete.",
+                    items: { type: "string" },
+                },
             },
             output: { schema: { type: "json" }, render: (_a, v) => text(v) },
             async execute(args, exec) {
@@ -129,7 +213,14 @@ export function workflowTools(env: ToolEnv): ToolDefinition[] {
                 if (args.add_edges) patch.add_edges = args.add_edges;
                 if (args.update_nodes) patch.update_nodes = args.update_nodes;
                 if (args.remove_nodes) patch.remove_nodes = args.remove_nodes;
-                return compact(await api.graphTool(pid, args.workflow, "apply_graph_patch", patch));
+                return compact(
+                    await api.graphTool(
+                        pid,
+                        args.workflow,
+                        "apply_graph_patch",
+                        patch,
+                    ),
+                );
             },
         }),
         defineTool({
@@ -146,7 +237,8 @@ export function workflowTools(env: ToolEnv): ToolDefinition[] {
         }),
         defineTool({
             name: "tongflow_workflow_list",
-            description: "List the project's workflow files with their inputs, bindings and targets.",
+            description:
+                "List the project's workflow files with their inputs, bindings and targets.",
             parameters: { project: PROJECT_PARAM },
             output: { schema: { type: "json" }, render: (_a, v) => text(v) },
             async execute(args, exec) {
@@ -156,12 +248,20 @@ export function workflowTools(env: ToolEnv): ToolDefinition[] {
         }),
         defineTool({
             name: "tongflow_workflow_validate",
-            description: "Health-check a workflow: cycles, unconnected required inputs, empty required config, missing / uninstalled plugins. Run it before executing.",
+            description:
+                "Health-check a workflow: cycles, unconnected required inputs, empty required config, missing / uninstalled plugins. Run it before executing.",
             parameters: { project: PROJECT_PARAM, workflow: WORKFLOW_PARAM },
             output: { schema: { type: "json" }, render: (_a, v) => text(v) },
             async execute(args, exec) {
                 const pid = await resolveProjectId(env, exec, args.project);
-                return compact(await api.graphTool(pid, args.workflow, "validate_workflow", {}));
+                return compact(
+                    await api.graphTool(
+                        pid,
+                        args.workflow,
+                        "validate_workflow",
+                        {},
+                    ),
+                );
             },
         }),
         defineTool({
@@ -172,25 +272,46 @@ export function workflowTools(env: ToolEnv): ToolDefinition[] {
             parameters: {
                 project: PROJECT_PARAM,
                 workflow: WORKFLOW_PARAM,
-                bindings: { type: "object", additionalProperties: true, description: "input name → tf:// ref | project key | text | array of those." },
-                unbind: { type: "array", items: { type: "string" }, description: "Input names to remove bindings for." },
+                bindings: {
+                    type: "object",
+                    additionalProperties: true,
+                    description:
+                        "input name → tf:// ref | project key | text | array of those.",
+                },
+                unbind: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Input names to remove bindings for.",
+                },
                 target: TARGET_PARAM,
                 purpose: { type: "string" },
             },
             output: { schema: { type: "json" }, render: (_a, v) => text(v) },
             async execute(args, exec) {
                 const pid = await resolveProjectId(env, exec, args.project);
-                const patch: Partial<WorkflowFileMeta> & { unbind?: string[] } = {};
-                if (args.bindings) patch.bindings = args.bindings as Record<string, string | string[]>;
+                const patch: Partial<WorkflowFileMeta> & { unbind?: string[] } =
+                    {};
+                if (args.bindings)
+                    patch.bindings = args.bindings as Record<
+                        string,
+                        string | string[]
+                    >;
                 if (args.unbind) patch.unbind = args.unbind;
-                if (args.target) patch.target = { owner: args.target.owner, pass: args.target.pass as Pass };
+                if (args.target)
+                    patch.target = {
+                        owner: args.target.owner,
+                        pass: args.target.pass as Pass,
+                    };
                 if (args.purpose !== undefined) patch.purpose = args.purpose;
-                return compact(await api.bindWorkflow(pid, args.workflow, patch));
+                return compact(
+                    await api.bindWorkflow(pid, args.workflow, patch),
+                );
             },
         }),
         defineTool({
             name: "tongflow_node_catalog",
-            description: "One line per canvas node type: ABI slot, wires (inputs from other nodes; * = required), config fields, outputs, and which installed plugins implement it. Consult before patching.",
+            description:
+                "One line per canvas node type: ABI slot, wires (inputs from other nodes; * = required), config fields, outputs, and which installed plugins implement it. Consult before patching.",
             parameters: {},
             output: { schema: { type: "string" }, render: (_a, v) => text(v) },
             async execute() {
@@ -199,8 +320,15 @@ export function workflowTools(env: ToolEnv): ToolDefinition[] {
         }),
         defineTool({
             name: "tongflow_node_describe",
-            description: "Full config schema for one node type (enums, ranges, defaults) — more detail than the catalog line. Use before setting an unfamiliar param.",
-            parameters: { type: { type: "string", required: true, description: "Canvas node type, e.g. 'imageGenVideoNode'." } },
+            description:
+                "Full config schema for one node type (enums, ranges, defaults) — more detail than the catalog line. Use before setting an unfamiliar param.",
+            parameters: {
+                type: {
+                    type: "string",
+                    required: true,
+                    description: "Canvas node type, e.g. 'imageGenVideoNode'.",
+                },
+            },
             output: { schema: { type: "json" }, render: (_a, v) => text(v) },
             async execute(args, exec) {
                 // describe_node_type does not need a file; reuse any project (or none).
