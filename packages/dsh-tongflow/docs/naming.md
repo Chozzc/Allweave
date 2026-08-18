@@ -22,7 +22,7 @@ Single source of truth: [`src/project/naming.ts`](../src/project/naming.ts), [`s
 | episode | `MUS` music · `SFX` · `MIX` · `CUT` |
 
 Files: `<owner>_<PASS>_<take>.<ext>` + `<owner>_<PASS>_<take>.provenance.json`, under `<ownerDir>/<PASS>/`.
-Owner dirs: entity → `02_PREPRO/bible/<ID>`, shot → `03_PROD/shots/<SHOT>`, episode → `04_POST/<EP>`.
+Owner dirs: entity → `world/<ID>`, shot → `shots/<SHOT>`, episode → `episodes/<EP>`.
 `takes.json` in the owner dir records `circled: { PASS: "T02" }`.
 
 ## `tf://` references

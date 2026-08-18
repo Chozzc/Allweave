@@ -1,6 +1,6 @@
 /**
  * The bible: characters, locations, props and style entities. Each lives in
- * `02_PREPRO/bible/<ID>/` with a human `card.md`, a machine `consistency.json`
+ * `world/<ID>/` with a human `card.md`, a machine `consistency.json`
  * and its REF / VO take folders.
  */
 import { mkdir, readdir, readFile, rm } from "node:fs/promises";

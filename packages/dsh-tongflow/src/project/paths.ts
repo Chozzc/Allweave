@@ -60,18 +60,26 @@ export const CARD_FILE = "card.md";
 export const SCENES_FILE = "scenes.json";
 export const WORKFLOW_EXT = ".tongflow.json";
 
+/**
+ * On-disk layout — plain words, stable across UI languages (the UI shows
+ * localized labels; agents and workflows rely on these names).
+ *
+ *   story/        treatment, outline, script
+ *   world/        CHR_ / LOC_ / PRP_ / STY_ entities (card, consistency kit, REF/, VO/)
+ *   episodes/EP01 scenes.json (shot breakdown) + MUS/ SFX/ MIX/ CUT/
+ *   shots/<SHOT>  SB/ KF/ ANI/ DLG/
+ *   inbox/        user drops · workflows/ · notes/ (review notes) · export/ (deliverables)
+ */
 export const DIRS = {
-    dev: "01_DEV",
-    prepro: "02_PREPRO",
-    bible: "02_PREPRO/bible",
-    breakdown: "02_PREPRO/breakdown",
-    inbox: "02_PREPRO/inbox",
-    prod: "03_PROD",
-    shots: "03_PROD/shots",
-    post: "04_POST",
-    delivery: "05_DELIVERY",
+    dev: "story",
+    bible: "world",
+    breakdown: "episodes",
+    inbox: "inbox",
+    shots: "shots",
+    post: "episodes",
+    delivery: "export",
     workflows: "workflows",
-    dailies: "dailies",
+    dailies: "notes",
     runs: ".runs",
 } as const;
 
@@ -119,7 +127,7 @@ export function projectPaths(root: string): ProjectPaths {
     };
 }
 
-/** Directory of an owner (entity → bible/<id>, shot → shots/<id>, episode → 04_POST). */
+/** Directory of an owner (entity → world/<id>, shot → shots/<id>, episode → episodes/<EP>). */
 export function ownerDir(projectRoot: string, owner: string): string {
     const kind = ownerKindOf(owner);
     switch (kind) {

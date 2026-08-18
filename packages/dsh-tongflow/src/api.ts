@@ -250,7 +250,7 @@ export class StudioApi {
         );
     }
 
-    /** Append a dated review note under dailies/. */
+    /** Append a dated review note under notes/. */
     async addNote(
         projectId: string,
         subject: string,

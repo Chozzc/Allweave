@@ -108,7 +108,7 @@ export interface SceneBreakdown {
     shots: ShotBreakdown[];
 }
 
-/** `02_PREPRO/breakdown/<EP>/scenes.json`. */
+/** `episodes/<EP>/scenes.json`. */
 export interface EpisodeBreakdown {
     episode: string;
     title?: string;

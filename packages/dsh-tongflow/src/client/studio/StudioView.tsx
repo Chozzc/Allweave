@@ -177,6 +177,35 @@ function StudioBody(props: StudioViewProps) {
     }, [tree.reload]);
     const activeRuns = useActiveRuns(pid ?? "", refresh);
 
+    // Follow the project the session's agent is working in (its tool calls set it).
+    const sessionId = props.sessionId;
+    useEffect(() => {
+        if (!sessionId) return;
+        let alive = true;
+        const check = () =>
+            studio
+                .sessionProject(sessionId)
+                .then((r) => {
+                    if (!alive || !r.project) return;
+                    setPid((cur) => {
+                        if (cur === r.project) return cur;
+                        setSelected(undefined);
+                        setDrawer(undefined);
+                        projects.reload();
+                        return r.project ?? cur;
+                    });
+                })
+                .catch(() => undefined);
+        check();
+        const timer = setInterval(() => {
+            if (document.visibilityState === "visible") check();
+        }, 3000);
+        return () => {
+            alive = false;
+            clearInterval(timer);
+        };
+    }, [sessionId, projects.reload]);
+
     const onSelect = (n: TreeNode) => {
         setSelected(n);
         if (drawer?.kind === "take") setDrawer(undefined);

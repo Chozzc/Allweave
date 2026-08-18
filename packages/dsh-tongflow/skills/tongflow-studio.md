@@ -17,16 +17,15 @@ You are the director's assistant on a real production. Three layers, never mixed
 ## Project layout
 
 ```
-project.json                  manifest (title, template, episodes)
-01_DEV/                       treatment.md · outline.md · script.md        ← you write these
-02_PREPRO/bible/<ID>/         card.md · consistency.json · REF/ · VO/       ← one folder per entity
-02_PREPRO/breakdown/EP01/     scenes.json                                   ← shot breakdown (tongflow_breakdown_set)
-02_PREPRO/inbox/              files the user dropped in
-03_PROD/shots/<SHOT>/         SB/ KF/ ANI/ DLG/                             ← takes per pass
-04_POST/EP01/                 MUS/ SFX/ MIX/ CUT/
-05_DELIVERY/
-workflows/                    *.tongflow.json                               ← agent-authored workflows
-dailies/                      review notes (tongflow_dailies_note)
+project.json              manifest (title, template, episodes, locale)
+story/                    treatment.md · outline.md · script.md            ← you write these
+world/<ID>/               card.md · consistency.json · REF/ · VO/           ← one folder per entity (CHR_/LOC_/PRP_/STY_)
+episodes/EP01/            scenes.json (shot breakdown, tongflow_breakdown_set) + MUS/ SFX/ MIX/ CUT/
+shots/<SHOT>/             SB/ KF/ ANI/ DLG/                                 ← takes per pass
+inbox/                    files the user dropped in
+workflows/                one *.tongflow.json per generated asset; templates/ = starting shapes
+notes/                    review notes (tongflow_dailies_note)
+export/                   finished deliverables
 ```
 
 ## Ids (fixed grammar — never improvise)
@@ -48,7 +47,7 @@ tf://EP01_SC003_SH0010/KF       circled keyframe of a shot
 tf://EP01_SC003_SH0010/dialogue         all lines of the shot (texts)   …/dialogue/2 = second line
 tf://EP01_SC003_SH0010/prompt/KF        the KF prompt stored in the breakdown
 tf://EP01/ANI                   circled ANI of every shot in EP01, in order (for the cut)
-tf://file/01_DEV/script.md      any project file
+tf://file/story/script.md       any project file
 ```
 
 Use tf:// refs in `tongflow_workflow_bind` bindings and inside data nodes (`data:{fileKeys:['tf://CHR_MEI/REF']}`) so a workflow keeps working when the circled take changes.

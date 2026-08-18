@@ -18,6 +18,7 @@ import type { StudioApi } from "../api.ts";
 import type { RunRecord } from "../engine/runs.ts";
 import type { CanvasTaskBody } from "../engine/single-node.ts";
 import { DIRS, fromProjectKey, toProjectKey } from "../project/paths.ts";
+import { getSessionProject } from "../session-projects.ts";
 import type {
     EpisodeBreakdown,
     Pass,
@@ -192,6 +193,14 @@ function buildRoutes(env: RouteEnv): Route[] {
                 const saved = await studio.updateEnvFile(body);
                 json(c, { keys: Object.keys(saved) });
             },
+        },
+
+        /** The project the given dsh session's agent is working in (set by its tool calls). */
+        {
+            method: "GET",
+            pattern: "/session/:sid/project",
+            handler: async (c) =>
+                json(c, { project: getSessionProject(c.params.sid) ?? null }),
         },
 
         /* ---------------- projects ---------------- */

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Pass, TreeNode } from "../../shared/types.ts";
-import { useT } from "./common.tsx";
+import type { T } from "../i18n.ts";
+import { passLabel, useT } from "./common.tsx";
 
 const ICONS: Record<TreeNode["kind"], string> = {
     folder: "📁",
@@ -51,6 +52,30 @@ function Dots({ meta }: { meta?: Record<string, unknown> }) {
     );
 }
 
+/** Localized row label: pass folders read "REF · 参考图", templates folder is translated, entities show their kind. */
+function rowLabel(t: T, node: TreeNode): string {
+    if (node.kind === "folder" && node.meta?.owner && node.meta?.pass) {
+        const pass = node.meta.pass as Pass;
+        return `${pass} · ${passLabel(t, pass)}`;
+    }
+    if (node.id === "workflows/templates") return t("templates");
+    if (node.kind === "entity") {
+        const kind = String(node.meta?.kind ?? "");
+        const key =
+            kind === "character"
+                ? "kindCharacter"
+                : kind === "location"
+                  ? "kindLocation"
+                  : kind === "prop"
+                    ? "kindProp"
+                    : kind === "style"
+                      ? "kindStyle"
+                      : undefined;
+        return key ? `${node.label} · ${t(key)}` : node.label;
+    }
+    return node.label;
+}
+
 function Row({
     node,
     depth,
@@ -66,6 +91,7 @@ function Row({
     defaultOpen: boolean;
     label?: string;
 }) {
+    const t = useT();
     const [open, setOpen] = useState(defaultOpen);
     const hasChildren = (node.children?.length ?? 0) > 0;
     const isPassFolder = node.kind === "folder" && Boolean(node.meta?.owner);
@@ -88,7 +114,9 @@ function Row({
                 <span className="tfs-tree-icon">
                     {isPassFolder ? "▫" : ICONS[node.kind]}
                 </span>
-                <span className="tfs-tree-label">{label ?? node.label}</span>
+                <span className="tfs-tree-label">
+                    {label ?? rowLabel(t, node)}
+                </span>
                 {isPassFolder ? null : <Dots meta={node.meta} />}
                 {node.kind === "folder" && !isPassFolder && hasChildren ? (
                     <span className="tfs-badge">{node.children!.length}</span>

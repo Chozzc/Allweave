@@ -167,7 +167,7 @@ describe("project model", () => {
         expect(t2.take).toBe("T02");
         expect(t1.circled).toBe(true);
         expect(t2.circled).toBe(false);
-        expect(t1.key).toBe("02_PREPRO/bible/CHR_MEI/REF/CHR_MEI_REF_T01.png");
+        expect(t1.key).toBe("world/CHR_MEI/REF/CHR_MEI_REF_T01.png");
 
         let r = await resolveRef(root, "tf://CHR_MEI/REF");
         expect(r.kind === "files" && r.keys).toEqual([t1.key]);
@@ -248,9 +248,9 @@ describe("project model", () => {
         expect(d.kind === "texts" && d.texts).toEqual(["one", "two"]);
         const d2 = await resolveRef(root, "tf://EP01_SC002_SH0010/dialogue/2");
         expect(d2.kind === "texts" && d2.texts).toEqual(["two"]);
-        const f = await resolveRef(root, "tf://file/01_DEV/script.md");
+        const f = await resolveRef(root, "tf://file/story/script.md");
         expect(f.kind === "files" && f.paths[0]).toBe(
-            fromProjectKey(root, "01_DEV/script.md"),
+            fromProjectKey(root, "story/script.md"),
         );
     });
 });
@@ -336,5 +336,68 @@ describe("per-asset workflows", () => {
         await expect(
             stat(`${root}/workflows/templates/shot-keyframe.tongflow.json`),
         ).resolves.toBeTruthy();
+    });
+});
+
+describe("legacy layout migration", () => {
+    it("moves 01_DEV / 02_PREPRO / 03_PROD / 04_POST / 05_DELIVERY / dailies into the plain layout", async () => {
+        const fs = await import("node:fs/promises");
+        const legacy = join(studio, "projects", "legacy");
+        await fs.mkdir(join(legacy, "02_PREPRO/bible/CHR_OLD/REF"), {
+            recursive: true,
+        });
+        await fs.mkdir(join(legacy, "02_PREPRO/breakdown/EP01"), {
+            recursive: true,
+        });
+        await fs.mkdir(join(legacy, "03_PROD/shots/EP01_SC001_SH0010/KF"), {
+            recursive: true,
+        });
+        await fs.mkdir(join(legacy, "04_POST/EP01/CUT"), { recursive: true });
+        await fs.mkdir(join(legacy, "01_DEV"), { recursive: true });
+        await fs.mkdir(join(legacy, "dailies"), { recursive: true });
+        await fs.writeFile(join(legacy, "01_DEV/script.md"), "# s");
+        await fs.writeFile(
+            join(legacy, "02_PREPRO/bible/CHR_OLD/card.md"),
+            "# Old",
+        );
+        await fs.writeFile(
+            join(legacy, "02_PREPRO/breakdown/EP01/scenes.json"),
+            JSON.stringify({ episode: "EP01", scenes: [] }),
+        );
+        await fs.writeFile(
+            join(legacy, "project.json"),
+            JSON.stringify({
+                id: "legacy",
+                title: "L",
+                template: "manga-drama",
+                createdAt: "",
+                updatedAt: "",
+                naming: { shotStep: 10 },
+                defaults: {},
+                episodes: ["EP01"],
+            }),
+        );
+        const ref = await loadProject(studio, "legacy");
+        expect(ref.root).toBe(legacy);
+        await expect(
+            fs.stat(join(legacy, "world/CHR_OLD/card.md")),
+        ).resolves.toBeTruthy();
+        await expect(
+            fs.stat(join(legacy, "episodes/EP01/scenes.json")),
+        ).resolves.toBeTruthy();
+        await expect(
+            fs.stat(join(legacy, "episodes/EP01/CUT")),
+        ).resolves.toBeTruthy();
+        await expect(
+            fs.stat(join(legacy, "shots/EP01_SC001_SH0010/KF")),
+        ).resolves.toBeTruthy();
+        await expect(
+            fs.stat(join(legacy, "story/script.md")),
+        ).resolves.toBeTruthy();
+        await expect(fs.stat(join(legacy, "notes"))).resolves.toBeTruthy();
+        await expect(fs.stat(join(legacy, "02_PREPRO"))).rejects.toThrow();
+        expect((await listEntities(legacy)).map((e) => e.id)).toEqual([
+            "CHR_OLD",
+        ]);
     });
 });

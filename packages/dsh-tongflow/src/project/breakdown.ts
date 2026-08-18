@@ -1,5 +1,5 @@
 /**
- * Shot breakdown: `02_PREPRO/breakdown/<EP>/scenes.json` — the crew's
+ * Shot breakdown: `episodes/<EP>/scenes.json` — the crew's
  * shooting script. Scenes → shots, each shot carrying the entities it uses,
  * its dialogue and the prompts the passes should render from.
  */

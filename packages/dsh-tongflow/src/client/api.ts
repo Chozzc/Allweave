@@ -75,6 +75,11 @@ export interface WorkflowDoc {
 
 export const studio = {
     health: () => call<Health>("GET", "/health"),
+    sessionProject: (sid: string) =>
+        call<{ project: string | null }>(
+            "GET",
+            `/session/${encodeURIComponent(sid)}/project`,
+        ),
     templates: (locale?: string) =>
         call<TemplateInfo[]>(
             "GET",

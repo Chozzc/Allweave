@@ -6,6 +6,7 @@ import {
     OWNER_DESC,
     PASS_DESC,
     PROJECT_PARAM,
+    rememberSessionProject,
     resolveProjectId,
     type ToolEnv,
     text,
@@ -47,7 +48,7 @@ export function projectTools(env: ToolEnv): ToolDefinition[] {
                 },
             },
             output: { schema: { type: "json" }, render: (_a, v) => text(v) },
-            async execute(args) {
+            async execute(args, exec) {
                 const summary = await api.createProject({
                     title: args.title,
                     template: args.template,
@@ -55,6 +56,7 @@ export function projectTools(env: ToolEnv): ToolDefinition[] {
                     ...(args.id ? { id: args.id } : {}),
                     ...(args.locale ? { locale: args.locale } : {}),
                 });
+                rememberSessionProject(exec, summary.id);
                 return compact({
                     ok: true,
                     project: summary.id,
@@ -62,6 +64,24 @@ export function projectTools(env: ToolEnv): ToolDefinition[] {
                     template: summary.template,
                     hint: "Open the project in the Studio tab (or start a session in that folder) so file tools work relative to it.",
                 });
+            },
+        }),
+        defineTool({
+            name: "tongflow_project_open",
+            description:
+                "Make a project the working project of this session (the Studio panel follows it) and return its crew board. Use when the user names a project or several exist.",
+            parameters: {
+                project: {
+                    type: "string",
+                    required: true,
+                    description: "Project id (see tongflow_project_list).",
+                },
+            },
+            output: { schema: { type: "json" }, render: (_a, v) => text(v) },
+            async execute(args, exec) {
+                const id = await resolveProjectId(env, exec, args.project);
+                rememberSessionProject(exec, id);
+                return compact(await api.status(id));
             },
         }),
         defineTool({
@@ -340,7 +360,7 @@ export function projectTools(env: ToolEnv): ToolDefinition[] {
         defineTool({
             name: "tongflow_dailies_note",
             description:
-                "Append a dated review note (QC findings, decisions, what to redo) under dailies/. Use after inspecting takes with tongflow_look / tongflow_perceive.",
+                "Append a dated review note (QC findings, decisions, what to redo) under notes/. Use after inspecting takes with tongflow_look / tongflow_perceive.",
             parameters: {
                 project: PROJECT_PARAM,
                 subject: {

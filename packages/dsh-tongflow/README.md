@@ -49,15 +49,14 @@ Video and audio are reviewed through TongFlow's own describe / transcribe slots 
 ```
 ~/.dsh/tongflow/projects/<id>/
   project.json
-  01_DEV/                       treatment.md · outline.md · script.md        ← agent-written text
-  02_PREPRO/bible/<ID>/         card.md · consistency.json · REF/ · VO/       ← CHR_ LOC_ PRP_ STY_ entities
-  02_PREPRO/breakdown/EP01/     scenes.json                                   ← shot breakdown
-  02_PREPRO/inbox/              user drops
-  03_PROD/shots/<SHOT>/         SB/ KF/ ANI/ DLG/                             ← numbered takes per pass
-  04_POST/EP01/                 MUS/ SFX/ MIX/ CUT/
-  05_DELIVERY/
-  workflows/                    *.tongflow.json (templates + agent-authored)
-  dailies/                      review notes
+  story/                treatment.md · outline.md · script.md            ← agent-written text
+  world/<ID>/           card.md · consistency.json · REF/ · VO/           ← CHR_ LOC_ PRP_ STY_ entities
+  episodes/EP01/        scenes.json (shot breakdown) + MUS/ SFX/ MIX/ CUT/
+  shots/<SHOT>/         SB/ KF/ ANI/ DLG/                                 ← numbered takes per pass
+  inbox/                user drops
+  workflows/            one *.tongflow.json per generated asset; templates/ = starting shapes
+  notes/                review notes
+  export/               deliverables
 ```
 
 - Ids: `EP01` · `EP01_SC003` · `EP01_SC003_SH0010` (shots step by 10) · `CHR_MEI` · takes `T01…`. One take per pass is **circled**; every take carries a `provenance.json` (workflow hash, bindings, plugins, duration).

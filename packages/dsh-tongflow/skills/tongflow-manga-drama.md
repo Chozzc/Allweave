@@ -12,11 +12,11 @@ Work stage by stage. Each stage has an artifact, a tool, and an acceptance check
 
 - `tongflow_project_status`. If empty: confirm title, tone, target length (a manga-drama episode is 60–180 s, 8–25 shots), aspect ratio (9:16 vertical is common; 16:9 for widescreen), language of dialogue.
 - `tongflow_plugins_list`; make sure at least one plugin is installed for `image-gen` / `image-edit`, `text-gen-speech-*` (or voice clone), `image-gen-video`, and a video/audio describe slot for QC. Ask the user for API keys when a plugin needs them.
-- Read `02_PREPRO/bible/STY_MAIN/card.md` and `consistency.json`; refine the style prefix with the user (medium, line, palette, lighting, camera grammar). Everything visual inherits `tf://STY_MAIN/prompt`.
+- Read `world/STY_MAIN/card.md` and `consistency.json`; refine the style prefix with the user (medium, line, palette, lighting, camera grammar). Everything visual inherits `tf://STY_MAIN/prompt`.
 
 ## 1. Development (text — you write it)
 
-- `01_DEV/treatment.md`: premise, characters, arc, tone. `01_DEV/outline.md`: episode beats. `01_DEV/script.md`: the screenplay (scene headings, action, dialogue). Plain markdown via file tools.
+- `story/treatment.md`: premise, characters, arc, tone. `story/outline.md`: episode beats. `story/script.md`: the screenplay (scene headings, action, dialogue). Plain markdown via file tools.
 - Acceptance: the user approves the script (or you were told to proceed autonomously).
 
 ## 2. Bible (entities + consistency kit)
@@ -56,7 +56,7 @@ For every character, key location, hero prop:
 ## 8. Music, mix, cut
 
 - `EP01_MUS` from `episode-music` with a mood prompt in its text node.
-- `EP01_CUT` from `assemble-episode` (concat / video-edit nodes): video node `tf://EP01/ANI` (already in shooting order), plus `tf://EP01/DLG` / `tf://EP01/MUS` where the plugin takes them. Review with `tongflow_look` + `tongflow_perceive`; write the dailies note; circle. Copy the final into `05_DELIVERY/` when the user signs off.
+- `EP01_CUT` from `assemble-episode` (concat / video-edit nodes): video node `tf://EP01/ANI` (already in shooting order), plus `tf://EP01/DLG` / `tf://EP01/MUS` where the plugin takes them. Review with `tongflow_look` + `tongflow_perceive`; write the dailies note; circle. Copy the final into `export/` when the user signs off.
 
 ## Working style
 

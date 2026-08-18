@@ -6,6 +6,7 @@ import type { ToolRunContext } from "@deepseek-ai/dsh-tools";
 import type { StudioApi } from "../api.ts";
 import { isProjectId } from "../project/naming.ts";
 import { isInsideProject } from "../project/paths.ts";
+import { getSessionProject, setSessionProject } from "../session-projects.ts";
 import type { Studio } from "../studio.ts";
 
 export interface ToolEnv {
@@ -24,11 +25,26 @@ export async function resolveProjectId(
     exec: ToolRunContext,
     explicit?: string,
 ): Promise<string> {
+    const sessionId = exec.agent?.id ? String(exec.agent.id) : undefined;
+    const remember = (id: string) => {
+        if (sessionId) setSessionProject(sessionId, id);
+        return id;
+    };
     if (explicit?.trim()) {
         const id = explicit.trim();
         if (!isProjectId(id)) throw new Error(`invalid project id "${id}"`);
         await env.api.project(id);
-        return id;
+        return remember(id);
+    }
+    // The project this session already worked in.
+    const memo = sessionId ? getSessionProject(sessionId) : undefined;
+    if (memo) {
+        try {
+            await env.api.project(memo);
+            return memo;
+        } catch {
+            // deleted meanwhile — fall through
+        }
     }
     const cwd = exec.agent?.session.header.cwd;
     if (cwd && isInsideProject(env.studio.paths.projects, cwd)) {
@@ -39,22 +55,30 @@ export async function resolveProjectId(
         if (id && isProjectId(id)) {
             try {
                 await env.api.project(id);
-                return id;
+                return remember(id);
             } catch {
                 // fall through
             }
         }
     }
     const projects = await env.api.listProjects();
-    if (projects.length === 1) return projects[0].id;
+    if (projects.length === 1) return remember(projects[0].id);
     if (projects.length === 0) {
         throw new Error(
             "no studio project yet — create one with tongflow_project_create({ title, template })",
         );
     }
     throw new Error(
-        `several projects exist; pass project: one of ${projects.map((p) => p.id).join(", ")} (or open one so the session cwd is its folder)`,
+        `several projects exist; pass project: one of ${projects.map((p) => p.id).join(", ")} (or open one with tongflow_project_open)`,
     );
+}
+
+/** Mark a project as the session's working project (project_create / project_open). */
+export function rememberSessionProject(
+    exec: ToolRunContext,
+    projectId: string,
+): void {
+    if (exec.agent?.id) setSessionProject(String(exec.agent.id), projectId);
 }
 
 export function text(value: unknown): ContentBlock[] {
