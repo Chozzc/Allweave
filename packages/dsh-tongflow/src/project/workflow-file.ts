@@ -22,6 +22,13 @@ import {
 import type { WorkflowFileMeta, WorkflowSummary } from "../shared/types.ts";
 import { exists, writeFileAtomic } from "../util/fsx.ts";
 import {
+    assertPassForOwner,
+    isPass,
+    ownerKindOf,
+    type Pass,
+} from "./naming.ts";
+import {
+    DIRS,
     fromProjectKey,
     projectPaths,
     toProjectKey,
@@ -45,20 +52,60 @@ export function isWorkflowKey(key: string): boolean {
     return key.endsWith(WORKFLOW_EXT);
 }
 
-/** Normalize a user/agent supplied workflow path to a project key under workflows/. */
+/** Project-relative directory of an owner (mirrors paths.ownerDir). */
+function ownerKey(owner: string): string {
+    switch (ownerKindOf(owner)) {
+        case "entity":
+            return `${DIRS.bible}/${owner}`;
+        case "shot":
+            return `${DIRS.shots}/${owner}`;
+        case "episode":
+            return `${DIRS.post}/${owner}`;
+    }
+}
+
+/** `<OWNER>_<PASS>[_suffix]` → { owner, pass }, else undefined. */
+export function parseAssetWorkflowName(
+    name: string,
+): { owner: string; pass: Pass } | undefined {
+    const m = /^(.+)_([A-Z]+)(?:_[a-z0-9-]+)?$/.exec(name);
+    if (!m) return undefined;
+    const [, owner, pass] = m;
+    if (!isPass(pass)) return undefined;
+    try {
+        assertPassForOwner(owner, pass);
+        return { owner, pass };
+    } catch {
+        return undefined;
+    }
+}
+
+/**
+ * Normalize a user/agent supplied workflow path to a project key.
+ *  - a bare asset name (`EP01_SC001_SH0010_KF`, `CHR_MEI_REF_wide`) lives next
+ *    to its takes: `<ownerDir>/<PASS>/<name>.tongflow.json`;
+ *  - any other bare name goes under `workflows/`;
+ *  - a path with slashes is taken as given.
+ */
 export function normalizeWorkflowKey(input: string): string {
     let key = input
         .trim()
         .replace(/\\/g, "/")
         .replace(/^\.?\//, "");
     if (!key) throw new Error("workflow path is required");
-    if (!key.includes("/")) key = `workflows/${key}`;
+    if (key.includes("..")) throw new Error(`invalid workflow path "${input}"`);
     if (!key.endsWith(WORKFLOW_EXT)) {
         key = key.endsWith(".json")
             ? key.slice(0, -".json".length) + WORKFLOW_EXT
             : key + WORKFLOW_EXT;
     }
-    if (key.includes("..")) throw new Error(`invalid workflow path "${input}"`);
+    if (!key.includes("/")) {
+        const name = basename(key, WORKFLOW_EXT);
+        const asset = parseAssetWorkflowName(name);
+        key = asset
+            ? `${ownerKey(asset.owner)}/${asset.pass}/${key}`
+            : `${DIRS.workflows}/${key}`;
+    }
     return key;
 }
 
@@ -306,26 +353,46 @@ export async function summarizeWorkflow(
     };
 }
 
-/** Every workflow file under workflows/ (non-recursive), newest first. */
+/** Every workflow file in the project: next to takes (world, shots, episodes → owner → PASS) and under workflows/ (non-recursive). */
 export async function listWorkflows(
     projectRoot: string,
 ): Promise<WorkflowSummary[]> {
-    const dir = projectPaths(projectRoot).workflows;
-    if (!(await exists(dir))) return [];
-    const names = (await readdir(dir))
-        .filter((n) => n.endsWith(WORKFLOW_EXT))
-        .sort();
+    const dirs: string[] = [];
+    const p = projectPaths(projectRoot);
+    const collect = async (parent: string) => {
+        if (!(await exists(parent))) return;
+        for (const owner of await readdir(parent, { withFileTypes: true })) {
+            if (!owner.isDirectory()) continue;
+            const ownerDir = join(parent, owner.name);
+            for (const pass of await readdir(ownerDir, {
+                withFileTypes: true,
+            })) {
+                if (pass.isDirectory() && isPass(pass.name))
+                    dirs.push(join(ownerDir, pass.name));
+            }
+        }
+    };
+    await collect(p.bible);
+    await collect(p.shots);
+    await collect(p.post);
+    dirs.push(p.workflows);
     const out: WorkflowSummary[] = [];
-    for (const name of names) {
-        try {
-            out.push(
-                await summarizeWorkflow(
-                    projectRoot,
-                    toProjectKey(projectRoot, join(dir, name)),
-                ),
-            );
-        } catch {
-            // unreadable file: skip
+    for (const dir of dirs) {
+        if (!(await exists(dir))) continue;
+        const names = (await readdir(dir))
+            .filter((n) => n.endsWith(WORKFLOW_EXT))
+            .sort();
+        for (const name of names) {
+            try {
+                out.push(
+                    await summarizeWorkflow(
+                        projectRoot,
+                        toProjectKey(projectRoot, join(dir, name)),
+                    ),
+                );
+            } catch {
+                // unreadable file: skip
+            }
         }
     }
     return out;

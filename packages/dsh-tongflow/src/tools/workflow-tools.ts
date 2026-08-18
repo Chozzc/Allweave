@@ -53,7 +53,7 @@ export function workflowTools(env: ToolEnv): ToolDefinition[] {
                     type: "string",
                     required: true,
                     description:
-                        "New file name = target, e.g. 'EP01_SC001_SH0010_KF' → workflows/EP01_SC001_SH0010_KF.tongflow.json.",
+                        "New file name = target, e.g. 'EP01_SC001_SH0010_KF' — stored next to its takes (shots/EP01_SC001_SH0010/KF/…); non-asset names go under workflows/.",
                 },
                 fromTemplate: {
                     type: "string",

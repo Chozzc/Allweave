@@ -41,11 +41,9 @@ import {
     summarize,
 } from "./project/manifest.ts";
 import {
-    assertPassForOwner,
     ENTITY_PASSES,
     EPISODE_PASSES,
     isEpisodeId,
-    isPass,
     ownerKindOf,
     type Pass,
     passesFor,
@@ -54,6 +52,7 @@ import {
 import {
     DIRS,
     fromProjectKey,
+    ownerDir,
     projectPaths,
     toProjectKey,
     WORKFLOW_EXT,
@@ -76,6 +75,7 @@ import {
     isWorkflowKey,
     listWorkflows,
     normalizeWorkflowKey,
+    parseAssetWorkflowName,
     readWorkflowFile,
     saveWorkflowFile,
     summarizeWorkflow,
@@ -650,6 +650,44 @@ export class StudioApi {
             listEpisodes(ref.root),
             listWorkflows(ref.root),
         ]);
+        // A pass folder lists the asset workflow(s) that live next to its takes.
+        const workflowsByDir = new Map<string, WorkflowSummary[]>();
+        for (const w of workflows) {
+            const dir = w.key.slice(0, w.key.lastIndexOf("/"));
+            const arr = workflowsByDir.get(dir) ?? [];
+            arr.push(w);
+            workflowsByDir.set(dir, arr);
+        }
+        const ownerKey = (owner: string) =>
+            toProjectKey(ref.root, ownerDir(ref.root, owner));
+        const passNodes = (
+            owner: string,
+            passes: readonly Pass[],
+        ): TreeNode[] =>
+            passes.map((pass) => {
+                const dirKey = `${ownerKey(owner)}/${pass}`;
+                const wfs = workflowsByDir.get(dirKey) ?? [];
+                return {
+                    id: `${owner}/${pass}`,
+                    label: pass,
+                    kind: "folder",
+                    meta: { owner, pass },
+                    ...(wfs.length > 0
+                        ? {
+                              children: wfs.map((w) => ({
+                                  id: w.key,
+                                  label: w.name,
+                                  kind: "workflow" as const,
+                                  key: w.key,
+                                  meta: {
+                                      inputs: w.inputs,
+                                      target: { owner, pass },
+                                  },
+                              })),
+                          }
+                        : {}),
+                };
+            });
         const nodes: TreeNode[] = [];
         nodes.push({
             id: "dev",
@@ -670,12 +708,7 @@ export class StudioApi {
                     circled: e.circled,
                     takeCounts: e.takeCounts,
                 },
-                children: ENTITY_PASSES.map((pass) => ({
-                    id: `${e.id}/${pass}`,
-                    label: pass,
-                    kind: "folder",
-                    meta: { owner: e.id, pass },
-                })),
+                children: passNodes(e.id, ENTITY_PASSES),
             })),
         });
         const shotsChildren: TreeNode[] = [];
@@ -699,12 +732,7 @@ export class StudioApi {
                             circled: ov.circled,
                             takeCounts: ov.counts,
                         },
-                        children: SHOT_PASSES.map((pass) => ({
-                            id: `${shot.id}/${pass}`,
-                            label: pass,
-                            kind: "folder",
-                            meta: { owner: shot.id, pass },
-                        })),
+                        children: passNodes(shot.id, SHOT_PASSES),
                     });
                 }
                 scenes.push({
@@ -729,12 +757,7 @@ export class StudioApi {
                         id: `${ep}/post`,
                         label: "Post",
                         kind: "folder",
-                        children: EPISODE_PASSES.map((pass) => ({
-                            id: `${ep}/${pass}`,
-                            label: pass,
-                            kind: "folder",
-                            meta: { owner: ep, pass },
-                        })),
+                        children: passNodes(ep, EPISODE_PASSES),
                     },
                 ],
             });
@@ -745,17 +768,43 @@ export class StudioApi {
             kind: "folder",
             children: shotsChildren,
         });
+        // Asset workflows live next to their takes (rendered inside the pass
+        // folders above); this root lists the loose ones plus the templates.
+        const misc = workflows.filter(
+            (w) =>
+                w.key.startsWith(`${DIRS.workflows}/`) &&
+                !w.key.startsWith(`${DIRS.workflows}/templates/`),
+        );
+        const templateNodes = (
+            await this.dirTree(
+                ref.root,
+                join(p.workflows, "templates"),
+                `${DIRS.workflows}/templates`,
+            )
+        ).filter((n) => n.kind === "workflow");
         nodes.push({
             id: "workflows",
             label: "Workflows",
             kind: "folder",
-            children: workflows.map((w) => ({
-                id: w.key,
-                label: w.name,
-                kind: "workflow",
-                key: w.key,
-                meta: { inputs: w.inputs, target: w.meta.target },
-            })),
+            children: [
+                ...misc.map((w) => ({
+                    id: w.key,
+                    label: w.name,
+                    kind: "workflow" as const,
+                    key: w.key,
+                    meta: { inputs: w.inputs, target: w.meta.target },
+                })),
+                ...(templateNodes.length > 0
+                    ? [
+                          {
+                              id: "workflows/templates",
+                              label: "templates",
+                              kind: "folder" as const,
+                              children: templateNodes,
+                          },
+                      ]
+                    : []),
+            ],
         });
         nodes.push({
             id: "inbox",
@@ -825,17 +874,7 @@ export class StudioApi {
 export function targetFromWorkflowKey(
     key: string,
 ): { owner: string; pass: Pass } | undefined {
-    const name = basename(key, WORKFLOW_EXT);
-    const m = /^(.+)_([A-Z]+)(?:_[a-z0-9-]+)?$/.exec(name);
-    if (!m) return undefined;
-    const [, owner, pass] = m;
-    try {
-        if (!isPass(pass)) return undefined;
-        assertPassForOwner(owner, pass);
-        return { owner, pass };
-    } catch {
-        return undefined;
-    }
+    return parseAssetWorkflowName(basename(key, WORKFLOW_EXT));
 }
 
 export { isEpisodeId };

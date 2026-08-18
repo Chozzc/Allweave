@@ -401,3 +401,28 @@ describe("legacy layout migration", () => {
         ]);
     });
 });
+
+describe("workflow placement", () => {
+    it("puts asset workflows next to their takes and everything else under workflows/", async () => {
+        const { normalizeWorkflowKey } = await import(
+            "../src/project/workflow-file.ts"
+        );
+        expect(normalizeWorkflowKey("EP01_SC001_SH0010_KF")).toBe(
+            "shots/EP01_SC001_SH0010/KF/EP01_SC001_SH0010_KF.tongflow.json",
+        );
+        expect(normalizeWorkflowKey("CHR_MEI_REF_wide")).toBe(
+            "world/CHR_MEI/REF/CHR_MEI_REF_wide.tongflow.json",
+        );
+        expect(normalizeWorkflowKey("EP01_CUT")).toBe(
+            "episodes/EP01/CUT/EP01_CUT.tongflow.json",
+        );
+        expect(normalizeWorkflowKey("character-sheet")).toBe(
+            "workflows/character-sheet.tongflow.json",
+        );
+        expect(
+            normalizeWorkflowKey(
+                "workflows/templates/shot-keyframe.tongflow.json",
+            ),
+        ).toBe("workflows/templates/shot-keyframe.tongflow.json");
+    });
+});

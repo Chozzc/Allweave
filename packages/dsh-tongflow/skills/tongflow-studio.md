@@ -23,7 +23,7 @@ world/<ID>/               card.md · consistency.json · REF/ · VO/           �
 episodes/EP01/            scenes.json (shot breakdown, tongflow_breakdown_set) + MUS/ SFX/ MIX/ CUT/
 shots/<SHOT>/             SB/ KF/ ANI/ DLG/                                 ← takes per pass
 inbox/                    files the user dropped in
-workflows/                one *.tongflow.json per generated asset; templates/ = starting shapes
+workflows/                templates/ (starting shapes) + loose workflows; asset workflows live next to their takes
 notes/                    review notes (tongflow_dailies_note)
 export/                   finished deliverables
 ```
@@ -64,6 +64,10 @@ That is the standard shape for every image / video prompt: style prefix, entity 
 
 Every entity's `consistency.json` holds `promptPrefix`, `promptSuffix`, `negativePrompt`, `seed`, `pluginId`, `model`. Fill it when you create the entity (`tongflow_bible_upsert`) and **always** feed it into workflows that render the entity: bind character `REF` images as image inputs and compose prompts as `<STY_MAIN prefix>, <CHR prefix>, <shot-specific text>`. Never re-describe a character from memory when a REF exists.
 
+## Research first
+
+When a production starts (or the user asks for something you know little about — a genre, a real place, a period, a visual style), do background research before writing: use `web_search` / `web_fetch` when they are available in this session, and record what matters in `story/research.md` (references, conventions, do's and don'ts, links). Keep it short and cite sources. Skip this when the user already gave the material or asked you not to browse.
+
 ## The loop for any media
 
 1. `tongflow_project_status` — see what exists; `tongflow_node_catalog` — see node types and installed plugins.
@@ -78,7 +82,7 @@ Rules of thumb:
 - Two ways to parameterize: (a) a level-0 data node WITHOUT data becomes an input you bind per run (`tongflow_workflow_bind` / `tongflow_workflow_run inputs`) — name it with `data:{inputName:"prompt"}`; (b) put `tf://` refs or `{{tf://…}}` templates directly in node data. Both resolve at run time against the circled takes.
 - Templates live under `workflows/templates/` (character-sheet, location-plate, storyboard-panel, shot-keyframe, dub-line, voice-preset, shot-i2v, episode-music, assemble-episode). They are starting shapes only: copy one per asset with `tongflow_workflow_new({ path: '<OWNER>_<PASS>', fromTemplate: '<template>' })`, then patch its nodes with the concrete text and refs (a template's inputs may stay as inputs bound in `meta.bindings`, but prefer writing values into the nodes).
 - Text you author (script, dialogue, prompts) goes into files / the breakdown, then into workflows **as inputs** — text generation nodes are only for mechanical bulk transforms.
-- **One workflow file per generated asset.** Every image / audio / video gets its *own* `.tongflow.json`, named after its target: `CHR_MEI_REF`, `LOC_ROOFTOP_REF`, `EP01_SC001_SH0010_SB|KF|ANI|DLG`, `EP01_MUS`, `EP01_CUT` (add a suffix for variants: `EP01_SC001_SH0010_KF_wide`). Start from a template (`tongflow_workflow_new({ path: 'EP01_SC001_SH0010_KF', fromTemplate: 'shot-keyframe' })`), then **patch the concrete prompt / `tf://` refs / params into the nodes** so the file is self-contained: opening it on the canvas shows exactly what made that take, and re-running it reproduces it. Do not keep shared parameterized workflows that you re-bind per shot. A file named `<OWNER>_<PASS>` needs no explicit target — it is inferred.
+- **One workflow file per generated asset.** Every image / audio / video gets its *own* `.tongflow.json`, named after its target: `CHR_MEI_REF`, `LOC_ROOFTOP_REF`, `EP01_SC001_SH0010_SB|KF|ANI|DLG`, `EP01_MUS`, `EP01_CUT` (add a suffix for variants: `EP01_SC001_SH0010_KF_wide`). Such a file is stored **next to its takes** automatically (`shots/EP01_SC001_SH0010/KF/EP01_SC001_SH0010_KF.tongflow.json`, `world/CHR_MEI/REF/CHR_MEI_REF.tongflow.json`) — just pass the bare name as `path`. Start from a template (`tongflow_workflow_new({ path: 'EP01_SC001_SH0010_KF', fromTemplate: 'shot-keyframe' })`), then **patch the concrete prompt / `tf://` refs / params into the nodes** so the file is self-contained: opening it on the canvas shows exactly what made that take, and re-running it reproduces it. Do not keep shared parameterized workflows that you re-bind per shot. A file named `<OWNER>_<PASS>` needs no explicit target — it is inferred.
 - The take's provenance points at its workflow; when a take is off, fix *that* workflow (or the bible / breakdown it draws from) and run it again — the next take lands beside the old one.
 - Before running, make sure the plugin for each node is installed (`tongflow_plugins_list`, `tongflow_plugins_install`) and its API keys are configured in the tongflow settings.
 - If the user edited a workflow on the canvas, `tongflow_workflow_read` it again before patching.

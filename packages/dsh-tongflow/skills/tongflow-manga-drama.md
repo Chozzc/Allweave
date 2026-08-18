@@ -16,6 +16,7 @@ Work stage by stage. Each stage has an artifact, a tool, and an acceptance check
 
 ## 1. Development (text — you write it)
 
+- Research first when the brief touches things you should not improvise (a real city or era, a subgenre's conventions, a target platform's format): `web_search` / `web_fetch` if available → `story/research.md` (short, with links). Then write.
 - `story/treatment.md`: premise, characters, arc, tone. `story/outline.md`: episode beats. `story/script.md`: the screenplay (scene headings, action, dialogue). Plain markdown via file tools.
 - Acceptance: the user approves the script (or you were told to proceed autonomously).
 
