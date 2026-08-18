@@ -9,7 +9,7 @@ import type {
 import { modalityOfExt } from "../../shared/types.ts";
 import { fileUrl, studio } from "../api.ts";
 import { CanvasPane } from "./CanvasPane.tsx";
-import { Modal, passLabel, TakesGrid, useAsync } from "./common.tsx";
+import { Modal, passLabel, TakesGrid, useAsync, useT } from "./common.tsx";
 
 export interface PreviewProps {
     pid: string;
@@ -23,16 +23,14 @@ export interface PreviewProps {
         state: "saving" | "saved" | "error",
         detail?: string,
     ) => void;
+    /** Open the run drawer for the current workflow. */
+    onRun: (workflowKey: string) => void;
 }
 
 export function PreviewPane(p: PreviewProps) {
+    const t = useT();
     const { node } = p;
-    if (!node)
-        return (
-            <div className="tfs-empty">
-                Select an entity, shot, workflow or file.
-            </div>
-        );
+    if (!node) return <div className="tfs-empty">{t("selectHint")}</div>;
     switch (node.kind) {
         case "entity":
             return <EntityView key={node.id} {...p} entityId={node.id} />;
@@ -82,6 +80,7 @@ function EntityView({
     onSelectTake,
     onChanged,
 }: PreviewProps & { entityId: string }) {
+    const t = useT();
     const { data, error, reload } = useAsync(
         () => studio.entity(pid, entityId),
         [pid, entityId, refreshToken],
@@ -104,7 +103,6 @@ function EntityView({
             alert("consistency.json is not valid JSON");
             return;
         }
-        // Replace whole kit: delete keys the user removed.
         const patch: Record<string, unknown> = { ...consistency };
         for (const k of Object.keys(data.consistency))
             if (!(k in consistency)) patch[k] = null;
@@ -132,13 +130,13 @@ function EntityView({
                             className="tfs-btn small primary"
                             onClick={save}
                         >
-                            Save
+                            {t("save")}
                         </button>
                         <button
                             className="tfs-btn small"
                             onClick={() => setEditing(undefined)}
                         >
-                            Cancel
+                            {t("cancel")}
                         </button>
                     </>
                 ) : (
@@ -155,18 +153,12 @@ function EntityView({
                             })
                         }
                     >
-                        Edit
+                        {t("edit")}
                     </button>
                 )}
             </div>
             <div className="tfs-preview-body">
-                <div
-                    style={{
-                        display: "grid",
-                        gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)",
-                        gap: 10,
-                    }}
-                >
+                <div className="tfs-two-col">
                     <div className="tfs-card">
                         <h3>card.md</h3>
                         {editing ? (
@@ -209,7 +201,7 @@ function EntityView({
                 {(["REF", "VO"] as Pass[]).map((pass) => (
                     <div className="tfs-card" key={pass}>
                         <h3>
-                            {pass} · {passLabel(pass)}{" "}
+                            {pass} · {passLabel(t, pass)}{" "}
                             <span className="tfs-muted">
                                 tf://{entityId}/{pass}
                             </span>
@@ -228,17 +220,12 @@ function EntityView({
 }
 
 function ConsistencyKit({ kit }: { kit: EntityDetail }) {
-    const c = kit.consistency;
-    const entries = Object.entries(c).filter(
+    const t = useT();
+    const entries = Object.entries(kit.consistency).filter(
         ([, v]) => v !== undefined && v !== null && v !== "",
     );
     if (entries.length === 0)
-        return (
-            <div className="tfs-muted">
-                empty — the agent fills promptPrefix / negativePrompt / seed
-                here
-            </div>
-        );
+        return <div className="tfs-muted">{t("kitEmpty")}</div>;
     return (
         <dl className="tfs-kv">
             {entries.map(([k, v]) => (
@@ -261,6 +248,7 @@ function ShotView({
     selectedTake,
     onSelectTake,
 }: PreviewProps & { shotId: string }) {
+    const t = useT();
     const takes = useAsync(
         () => studio.takes(pid, shotId),
         [pid, shotId, refreshToken],
@@ -278,7 +266,7 @@ function ShotView({
             </div>
             <div className="tfs-preview-body">
                 <div className="tfs-card">
-                    <h3>breakdown</h3>
+                    <h3>{t("breakdown")}</h3>
                     <dl className="tfs-kv">
                         {(
                             [
@@ -309,7 +297,9 @@ function ShotView({
                                   }[]
                               ).map((d, i) => (
                                   <div key={i} style={{ display: "contents" }}>
-                                      <dt>dialogue/{i + 1}</dt>
+                                      <dt>
+                                          {t("dialogue")}/{i + 1}
+                                      </dt>
                                       <dd>
                                           <b>{d.character}</b>: {d.line}{" "}
                                           {d.direction ? (
@@ -326,7 +316,9 @@ function ShotView({
                                   bd.prompts as Record<string, string>,
                               ).map(([k, v]) => (
                                   <div key={k} style={{ display: "contents" }}>
-                                      <dt>prompt/{k}</dt>
+                                      <dt>
+                                          {t("prompt")}/{k}
+                                      </dt>
                                       <dd>{v}</dd>
                                   </div>
                               ))
@@ -336,7 +328,7 @@ function ShotView({
                 {(["SB", "KF", "ANI", "DLG"] as Pass[]).map((pass) => (
                     <div className="tfs-card" key={pass}>
                         <h3>
-                            {pass} · {passLabel(pass)}{" "}
+                            {pass} · {passLabel(t, pass)}{" "}
                             <span className="tfs-muted">
                                 tf://{shotId}/{pass}
                             </span>
@@ -362,6 +354,7 @@ function PassView({
     selectedTake,
     onSelectTake,
 }: PreviewProps & { owner: string; pass: Pass }) {
+    const t = useT();
     const takes = useAsync(
         () => studio.takes(pid, owner),
         [pid, owner, refreshToken],
@@ -371,7 +364,7 @@ function PassView({
             <div className="tfs-preview-head">
                 <h2>
                     {owner} / {pass}{" "}
-                    <span className="tfs-muted">{passLabel(pass)}</span>
+                    <span className="tfs-muted">{passLabel(t, pass)}</span>
                 </h2>
             </div>
             <div className="tfs-preview-body">
@@ -395,6 +388,7 @@ function EpisodeView({
     selectedTake,
     onSelectTake,
 }: PreviewProps & { episode: string }) {
+    const t = useT();
     const { data, error } = useAsync(
         () => studio.breakdown(pid, episode).catch(() => undefined),
         [pid, episode, refreshToken],
@@ -416,7 +410,7 @@ function EpisodeView({
                 {error ? <div className="tfs-error">{error}</div> : null}
                 {bd ? (
                     <div className="tfs-card">
-                        <h3>shot breakdown</h3>
+                        <h3>{t("shotBreakdown")}</h3>
                         {bd.synopsis ? <p>{bd.synopsis}</p> : null}
                         <table className="tfs-table tfs-shot-table">
                             <thead>
@@ -425,7 +419,7 @@ function EpisodeView({
                                     <th>size</th>
                                     <th>dur</th>
                                     <th>action</th>
-                                    <th>dialogue</th>
+                                    <th>{t("dialogue")}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -460,15 +454,12 @@ function EpisodeView({
                         </table>
                     </div>
                 ) : (
-                    <div className="tfs-muted">
-                        no breakdown yet — ask the agent to write one
-                        (tongflow_breakdown_set)
-                    </div>
+                    <div className="tfs-muted">{t("noBreakdown")}</div>
                 )}
                 {(["MUS", "SFX", "MIX", "CUT"] as Pass[]).map((pass) => (
                     <div className="tfs-card" key={pass}>
                         <h3>
-                            {pass} · {passLabel(pass)}{" "}
+                            {pass} · {passLabel(t, pass)}{" "}
                             <span className="tfs-muted">
                                 tf://{episode}/{pass}
                             </span>
@@ -494,21 +485,29 @@ function WorkflowView({
     locale,
     refreshToken,
     onCanvasSave,
+    onRun,
 }: PreviewProps & { workflowKey: string }) {
+    const t = useT();
     const [state, setState] = useState<string>("");
     return (
         <div className="tfs-preview">
             <div className="tfs-preview-head">
-                <h2>{workflowKey}</h2>
+                <h2>{workflowKey.replace(/^workflows\//, "")}</h2>
                 <span className="tfs-muted">{state}</span>
                 <span className="tfs-spacer" />
+                <button
+                    className="tfs-btn primary small"
+                    onClick={() => onRun(workflowKey)}
+                >
+                    {t("run")}
+                </button>
                 <a
                     className="tfs-btn small"
                     href={fileUrl(pid, workflowKey)}
                     target="_blank"
                     rel="noreferrer"
                 >
-                    JSON
+                    {t("json")}
                 </a>
             </div>
             <CanvasPane
@@ -519,10 +518,10 @@ function WorkflowView({
                 onSaved={(s, detail) => {
                     setState(
                         s === "saving"
-                            ? "saving…"
+                            ? t("saving")
                             : s === "saved"
-                              ? "saved"
-                              : `save failed: ${detail ?? ""}`,
+                              ? t("saved")
+                              : `${t("saveFailed")}: ${detail ?? ""}`,
                     );
                     onCanvasSave(s, detail);
                 }}
@@ -540,6 +539,7 @@ function FileView({
     refreshToken,
     onChanged,
 }: PreviewProps & { fileKey: string }) {
+    const t = useT();
     const modality = modalityOfExt(fileKey.split(".").pop() ?? "");
     const url = fileUrl(pid, fileKey);
     const [text, setText] = useState<string | undefined>();
@@ -569,7 +569,7 @@ function FileView({
                             onChanged();
                         }}
                     >
-                        Save
+                        {t("save")}
                     </button>
                 ) : null}
                 <a
@@ -578,7 +578,7 @@ function FileView({
                     target="_blank"
                     rel="noreferrer"
                 >
-                    Open
+                    {t("open")}
                 </a>
             </div>
             <div className="tfs-preview-body">
@@ -611,12 +611,12 @@ function FileView({
                     )
                 ) : (
                     <div className="tfs-muted">
-                        {modality} file — open in a new tab.
+                        {t("modality", { modality })}
                     </div>
                 )}
             </div>
             {big ? (
-                <Modal title={fileKey} onClose={() => setBig(false)}>
+                <Modal title={fileKey} onClose={() => setBig(false)} wide>
                     <img src={url} alt={fileKey} style={{ maxWidth: "100%" }} />
                 </Modal>
             ) : null}

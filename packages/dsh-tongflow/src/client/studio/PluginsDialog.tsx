@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { studio } from "../api.ts";
-import { Modal, useAsync } from "./common.tsx";
+import { Modal, useAsync, useT } from "./common.tsx";
 
 interface EnvRow {
     key: string;
@@ -29,6 +29,7 @@ async function putEnv(patch: Record<string, string | null>): Promise<void> {
 }
 
 export function PluginsDialog({ onClose }: { onClose: () => void }) {
+    const t = useT();
     const plugins = useAsync(() => studio.plugins(), []);
     const env = useAsync(getEnv, []);
     const [installing, setInstalling] = useState("");
@@ -43,11 +44,11 @@ export function PluginsDialog({ onClose }: { onClose: () => void }) {
             (id) => !plugins.data?.registry.plugins[id],
         ) ?? [];
     return (
-        <Modal title="TongFlow plugins & API keys" onClose={onClose}>
+        <Modal title={t("pluginsTitle")} onClose={onClose} wide>
             {err ? <div className="tfs-error">{err}</div> : null}
-            <h3 style={{ margin: "8px 0 4px" }}>Installed</h3>
+            <h3 style={{ margin: "8px 0 4px" }}>{t("installed")}</h3>
             {installed.length === 0 ? (
-                <div className="tfs-muted">none — install one below</div>
+                <div className="tfs-muted">{t("noneInstall")}</div>
             ) : null}
             <table className="tfs-table">
                 <tbody>
@@ -69,7 +70,11 @@ export function PluginsDialog({ onClose }: { onClose: () => void }) {
                                         className="tfs-btn small danger"
                                         disabled={busy}
                                         onClick={async () => {
-                                            if (!confirm(`Remove ${id}?`))
+                                            if (
+                                                !confirm(
+                                                    t("removeConfirm", { id }),
+                                                )
+                                            )
                                                 return;
                                             setBusy(true);
                                             try {
@@ -83,7 +88,7 @@ export function PluginsDialog({ onClose }: { onClose: () => void }) {
                                             }
                                         }}
                                     >
-                                        Remove
+                                        {t("remove")}
                                     </button>
                                 </td>
                             </tr>
@@ -91,14 +96,14 @@ export function PluginsDialog({ onClose }: { onClose: () => void }) {
                     })}
                 </tbody>
             </table>
-            <h3 style={{ margin: "12px 0 4px" }}>Install</h3>
+            <h3 style={{ margin: "12px 0 4px" }}>{t("install")}</h3>
             <div className="tfs-row">
                 <select
                     className="tfs-select"
                     value={installing}
                     onChange={(e) => setInstalling(e.target.value)}
                 >
-                    <option value="">official plugin…</option>
+                    <option value="">{t("officialPlugin")}</option>
                     {official.map((id) => (
                         <option key={id} value={id}>
                             {id}
@@ -108,7 +113,7 @@ export function PluginsDialog({ onClose }: { onClose: () => void }) {
                 <input
                     className="tfs-input"
                     style={{ flex: 1 }}
-                    placeholder="or a git URL"
+                    placeholder={t("orGitUrl")}
                     value={installing.startsWith("http") ? installing : ""}
                     onChange={(e) => setInstalling(e.target.value)}
                 />
@@ -130,14 +135,12 @@ export function PluginsDialog({ onClose }: { onClose: () => void }) {
                         }
                     }}
                 >
-                    {busy ? "…" : "Install"}
+                    {busy ? "…" : t("install")}
                 </button>
             </div>
-            <h3 style={{ margin: "12px 0 4px" }}>API keys / tokens</h3>
+            <h3 style={{ margin: "12px 0 4px" }}>{t("apiKeys")}</h3>
             <div className="tfs-muted" style={{ marginBottom: 6 }}>
-                Stored in the studio's env.json (0600) and passed to plugin
-                processes. Keys already present in the dsh process environment
-                or cordis config count as set.
+                {t("apiKeysHint")}
             </div>
             <table className="tfs-table">
                 <tbody>
@@ -159,7 +162,7 @@ export function PluginsDialog({ onClose }: { onClose: () => void }) {
                                             target="_blank"
                                             rel="noreferrer"
                                         >
-                                            get key
+                                            {t("getKey")}
                                         </a>
                                     ) : null}
                                 </div>
@@ -167,10 +170,12 @@ export function PluginsDialog({ onClose }: { onClose: () => void }) {
                             <td style={{ width: 90 }}>
                                 {k.set ? (
                                     <span style={{ color: "var(--tfs-ok)" }}>
-                                        set ({k.source})
+                                        {t("set")} ({k.source})
                                     </span>
                                 ) : (
-                                    <span className="tfs-muted">not set</span>
+                                    <span className="tfs-muted">
+                                        {t("notSet")}
+                                    </span>
                                 )}
                             </td>
                             <td style={{ width: 260 }}>
@@ -240,7 +245,7 @@ export function PluginsDialog({ onClose }: { onClose: () => void }) {
                         }
                     }}
                 >
-                    Save keys
+                    {t("saveKeys")}
                 </button>
             </div>
         </Modal>

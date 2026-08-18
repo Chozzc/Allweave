@@ -99,8 +99,8 @@ export class StudioApi {
 
     /* ---------------- projects ---------------- */
 
-    listTemplates() {
-        return listTemplates();
+    listTemplates(locale?: string) {
+        return listTemplates(locale ?? this.studio.config.locale);
     }
 
     listProjects(): Promise<ProjectSummary[]> {
@@ -108,7 +108,10 @@ export class StudioApi {
     }
 
     async createProject(input: CreateProjectInput): Promise<ProjectSummary> {
-        const { id } = await createProject(this.studio.paths.root, input);
+        const { id } = await createProject(this.studio.paths.root, {
+            locale: this.studio.config.locale,
+            ...input,
+        });
         return summarize(await this.project(id));
     }
 

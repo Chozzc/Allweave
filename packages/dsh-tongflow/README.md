@@ -22,7 +22,7 @@ npx @deepseek-ai/dsh@next web
 
 Requirements: dsh ≥ 0.1.0-rc.7 (Node ≥ 22.19), **Python ≥ 3.10** on `PATH` (or `pythonPath` in the plugin config), `git`, and `ffmpeg` for video contact sheets. On first use the plugin creates `~/.dsh/tongflow/venv` with the `tongflow` SDK; TongFlow plugins are cloned into `~/.dsh/tongflow/plugins` on demand.
 
-Open the **🎬 Studio** button in the sidebar footer: create a project (template **manga-drama** ships), install TongFlow plugins and paste API keys under **Plugins & keys**, then talk to the agent — or click a workflow and use the canvas directly.
+Start a session whose **first message begins with `@tongflow`** — that session becomes a studio session: the conversation view turns into the Studio (chat column · project tree · preview / canvas · drawers for takes, runs and details, all in the UI language of your browser), and the agent gets the `tongflow_*` tools and skills. Any other session is untouched dsh. In the Studio: create a project (template **manga-drama** ships, with English / Chinese starter files), install TongFlow plugins and paste API keys under **Plugins & keys**, then talk to the agent — or click a workflow and use the canvas directly.
 
 ### Chat model
 

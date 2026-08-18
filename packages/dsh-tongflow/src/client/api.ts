@@ -75,12 +75,17 @@ export interface WorkflowDoc {
 
 export const studio = {
     health: () => call<Health>("GET", "/health"),
-    templates: () => call<TemplateInfo[]>("GET", "/templates"),
+    templates: (locale?: string) =>
+        call<TemplateInfo[]>(
+            "GET",
+            `/templates${locale ? `?locale=${encodeURIComponent(locale)}` : ""}`,
+        ),
     projects: () => call<ProjectSummary[]>("GET", "/projects"),
     createProject: (body: {
         title: string;
         template: string;
         logline?: string;
+        locale?: string;
     }) => call<ProjectSummary>("POST", "/projects", body),
     project: (pid: string) => call<ProjectSummary>("GET", `/p/${pid}`),
     tree: (pid: string) => call<TreeNode[]>("GET", `/p/${pid}/tree`),

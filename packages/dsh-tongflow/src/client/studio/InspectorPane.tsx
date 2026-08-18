@@ -4,56 +4,37 @@ import type {
     RunEvent,
     RunSummary,
     TakeInfo,
-    TreeNode,
-    WorkflowSummary,
 } from "../../shared/types.ts";
 import { fileUrl, studio, subscribeRun } from "../api.ts";
-import { fmtBytes, fmtTime, useAsync } from "./common.tsx";
-
-export interface InspectorProps {
-    pid: string;
-    node: TreeNode | undefined;
-    selectedTake: TakeInfo | undefined;
-    refreshToken: number;
-    onChanged: () => void;
-    onOpenTake: (take: TakeInfo) => void;
-}
-
-export function InspectorPane(p: InspectorProps) {
-    return (
-        <div className="tfs-inspector">
-            {p.selectedTake ? <TakeCard {...p} take={p.selectedTake} /> : null}
-            {p.node?.kind === "workflow" ? (
-                <RunPanel {...p} workflowKey={p.node.key ?? p.node.id} />
-            ) : null}
-            <RecentRuns
-                pid={p.pid}
-                refreshToken={p.refreshToken}
-                onChanged={p.onChanged}
-            />
-        </div>
-    );
-}
+import { fmtBytes, fmtTime, useAsync, useT } from "./common.tsx";
 
 /* ---------------- take card ---------------- */
 
-function TakeCard({
+export function TakeCard({
     pid,
     take,
     onChanged,
     onOpenTake,
-}: InspectorProps & { take: TakeInfo }) {
+}: {
+    pid: string;
+    take: TakeInfo;
+    onChanged: () => void;
+    onOpenTake: (t: TakeInfo) => void;
+}) {
+    const t = useT();
     const prov = take.provenance;
     return (
         <div className="tfs-card">
             <h3>
                 {take.owner} / {take.pass} / {take.take}{" "}
                 {take.circled ? (
-                    <span style={{ color: "var(--tfs-ok)" }}>● circled</span>
+                    <span style={{ color: "var(--tfs-ok)" }}>
+                        {t("circled")}
+                    </span>
                 ) : null}
             </h3>
             <dl className="tfs-kv">
-                <dt>file</dt>
+                <dt>{t("file")}</dt>
                 <dd>
                     <a
                         href={fileUrl(pid, take.key)}
@@ -64,24 +45,24 @@ function TakeCard({
                     </a>{" "}
                     <span className="tfs-muted">{fmtBytes(take.size)}</span>
                 </dd>
-                <dt>ref</dt>
+                <dt>{t("ref")}</dt>
                 <dd>
                     tf://{take.owner}/{take.pass}/{take.take}
                 </dd>
-                <dt>made</dt>
+                <dt>{t("made")}</dt>
                 <dd>{fmtTime(take.mtime)}</dd>
                 {prov ? (
                     <>
-                        <dt>workflow</dt>
+                        <dt>{t("workflow")}</dt>
                         <dd>
                             {prov.workflow}{" "}
                             <span className="tfs-muted">
                                 #{prov.workflowHash.slice(0, 8)}
                             </span>
                         </dd>
-                        <dt>plugins</dt>
+                        <dt>{t("plugins")}</dt>
                         <dd>{prov.pluginIds.join(", ")}</dd>
-                        <dt>bindings</dt>
+                        <dt>{t("bindings")}</dt>
                         <dd>
                             {Object.entries(prov.bindings).map(([k, v]) => (
                                 <div key={k}>
@@ -90,21 +71,21 @@ function TakeCard({
                                 </div>
                             ))}
                         </dd>
-                        <dt>took</dt>
+                        <dt>{t("took")}</dt>
                         <dd>{(prov.durationMs / 1000).toFixed(1)} s</dd>
                         {prov.note ? (
                             <>
-                                <dt>note</dt>
+                                <dt>{t("note")}</dt>
                                 <dd>{prov.note}</dd>
                             </>
                         ) : null}
                     </>
                 ) : null}
             </dl>
-            <div className="tfs-row" style={{ marginTop: 8 }}>
+            <div className="tfs-row" style={{ marginTop: 10 }}>
                 {!take.circled ? (
                     <button
-                        className="tfs-btn small primary"
+                        className="tfs-btn primary"
                         onClick={async () => {
                             await studio.circle(
                                 pid,
@@ -115,19 +96,21 @@ function TakeCard({
                             onChanged();
                         }}
                     >
-                        Circle this take
+                        {t("circleTake")}
                     </button>
                 ) : null}
-                <button
-                    className="tfs-btn small"
-                    onClick={() => onOpenTake(take)}
-                >
-                    Preview
+                <button className="tfs-btn" onClick={() => onOpenTake(take)}>
+                    {t("preview")}
                 </button>
                 <button
-                    className="tfs-btn small danger"
+                    className="tfs-btn danger"
                     onClick={async () => {
-                        if (!confirm(`Delete ${take.fileName}?`)) return;
+                        if (
+                            !confirm(
+                                t("deleteConfirm", { name: take.fileName }),
+                            )
+                        )
+                            return;
                         await studio.deleteTake(
                             pid,
                             take.owner,
@@ -137,7 +120,7 @@ function TakeCard({
                         onChanged();
                     }}
                 >
-                    Delete
+                    {t("delete")}
                 </button>
             </div>
         </div>
@@ -159,12 +142,18 @@ const PASSES: Pass[] = [
     "CUT",
 ];
 
-function RunPanel({
+export function RunPanel({
     pid,
     workflowKey,
     refreshToken,
     onChanged,
-}: InspectorProps & { workflowKey: string }) {
+}: {
+    pid: string;
+    workflowKey: string;
+    refreshToken: number;
+    onChanged: () => void;
+}) {
+    const t = useT();
     const {
         data: summary,
         error,
@@ -238,9 +227,9 @@ function RunPanel({
     if (!summary) return <div className="tfs-card tfs-muted">…</div>;
     return (
         <div className="tfs-card">
-            <h3>Run · {summary.name}</h3>
+            <h3>{t("runTitle", { name: summary.name })}</h3>
             {summary.inputs.length === 0 ? (
-                <div className="tfs-muted">no inputs (static graph)</div>
+                <div className="tfs-muted">{t("noInputs")}</div>
             ) : null}
             <div className="tfs-form">
                 {summary.inputs.map((i) => (
@@ -249,12 +238,12 @@ function RunPanel({
                             {i.name}{" "}
                             <span className="tfs-muted">
                                 ({i.type}
-                                {i.required ? ", required" : ""})
+                                {i.required ? `, ${t("required")}` : ""})
                             </span>
                         </div>
                         <input
                             className="tfs-input"
-                            placeholder="tf://CHR_MEI/REF · project key · text"
+                            placeholder={t("inputPlaceholder")}
                             value={bindings[i.name] ?? ""}
                             onChange={(e) =>
                                 setBindings({
@@ -267,17 +256,16 @@ function RunPanel({
                 ))}
                 <div className="tfs-row">
                     <div style={{ flex: 1 }}>
-                        <div className="tfs-label">target owner</div>
+                        <div className="tfs-label">{t("targetOwner")}</div>
                         <input
                             className="tfs-input"
-                            placeholder="CHR_MEI · EP01_SC001_SH0010 · EP01"
+                            placeholder={t("ownerPlaceholder")}
                             value={owner}
                             onChange={(e) => setOwner(e.target.value.trim())}
                         />
                     </div>
                     <div>
-                        <div className="tfs-label">pass</div>
-                        <br />
+                        <div className="tfs-label">{t("pass")}</div>
                         <select
                             className="tfs-select"
                             value={pass}
@@ -293,12 +281,12 @@ function RunPanel({
                     </div>
                 </div>
                 <div>
-                    <div className="tfs-label">note</div>
+                    <div className="tfs-label">{t("note")}</div>
                     <input
                         className="tfs-input"
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
-                        placeholder="what changed / why"
+                        placeholder={t("notePlaceholder")}
                     />
                 </div>
                 <div className="tfs-row">
@@ -310,7 +298,7 @@ function RunPanel({
                             run?.status === "queued"
                         }
                     >
-                        ▶ Run
+                        {t("run")}
                     </button>
                     {run &&
                     (run.status === "running" || run.status === "queued") ? (
@@ -318,11 +306,11 @@ function RunPanel({
                             className="tfs-btn"
                             onClick={() => studio.cancelRun(run.runId)}
                         >
-                            Cancel
+                            {t("cancel")}
                         </button>
                     ) : null}
                     <button
-                        className="tfs-btn small"
+                        className="tfs-btn"
                         onClick={async () => {
                             const b: Record<string, string> = {};
                             for (const [k, v] of Object.entries(bindings))
@@ -337,7 +325,7 @@ function RunPanel({
                             onChanged();
                         }}
                     >
-                        Save as defaults
+                        {t("saveDefaults")}
                     </button>
                     {run ? (
                         <span className={`tfs-status ${run.status}`}>
@@ -354,9 +342,9 @@ function RunPanel({
             ) : null}
             {run?.takes.length ? (
                 <div style={{ marginTop: 6 }}>
-                    ★ takes:{" "}
+                    {t("takesLabel")}:{" "}
                     {run.takes
-                        .map((t) => `${t.owner}/${t.pass}/${t.take}`)
+                        .map((tk) => `${tk.owner}/${tk.pass}/${tk.take}`)
                         .join(", ")}
                 </div>
             ) : null}
@@ -368,7 +356,7 @@ function RunNodes({ run }: { run: RunSummary }) {
     const entries = Object.entries(run.nodes);
     if (entries.length === 0) return null;
     return (
-        <div style={{ marginTop: 6, fontSize: 12 }}>
+        <div style={{ marginTop: 6 }}>
             {entries.map(([id, n]) => (
                 <div key={id} className="tfs-row">
                     <span className={`tfs-status ${n.status}`}>{n.status}</span>
@@ -407,7 +395,7 @@ export function describeEvent(e: RunEvent): string {
             return `✗ workflow failed: ${e.error ?? ""}`;
         case "ingested":
             return e.takes?.length
-                ? `★ ${e.takes.map((t) => `${t.owner}/${t.pass}/${t.take}`).join(", ")}`
+                ? `★ ${e.takes.map((tk) => `${tk.owner}/${tk.pass}/${tk.take}`).join(", ")}`
                 : "";
         case "error":
             return `✗ ${e.error ?? ""}`;
@@ -418,7 +406,7 @@ export function describeEvent(e: RunEvent): string {
 
 /* ---------------- recent runs ---------------- */
 
-function RecentRuns({
+export function RecentRuns({
     pid,
     refreshToken,
     onChanged,
@@ -427,6 +415,7 @@ function RecentRuns({
     refreshToken: number;
     onChanged: () => void;
 }) {
+    const t = useT();
     const { data, reload } = useAsync(
         () => studio.runs(pid),
         [pid, refreshToken],
@@ -440,20 +429,20 @@ function RecentRuns({
     );
     useEffect(() => {
         if (!live) return;
-        const t = setInterval(reload, 2500);
-        return () => clearInterval(t);
+        const timer = setInterval(reload, 2500);
+        return () => clearInterval(timer);
     }, [live, reload]);
-    if (!data || data.length === 0) return null;
+    if (!data || data.length === 0) return <div className="tfs-muted">—</div>;
     return (
         <div className="tfs-card">
-            <h3>Recent runs</h3>
-            {data.slice(0, 8).map((r) => (
+            <h3>{t("recentRuns")}</h3>
+            {data.slice(0, 12).map((r) => (
                 <div
                     key={r.runId}
                     className="tfs-row"
                     style={{
                         justifyContent: "space-between",
-                        padding: "2px 0",
+                        padding: "3px 0",
                     }}
                 >
                     <span
@@ -461,7 +450,7 @@ function RecentRuns({
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                             whiteSpace: "nowrap",
-                            maxWidth: 170,
+                            maxWidth: 190,
                         }}
                         title={r.workflow}
                     >
@@ -493,4 +482,19 @@ function RecentRuns({
     );
 }
 
-export type { WorkflowSummary };
+/** Live count of active runs for the header button. */
+export function useActiveRuns(pid: string, refreshToken: number): number {
+    const { data, reload } = useAsync(
+        () => studio.runs(pid),
+        [pid, refreshToken],
+    );
+    const n = (data ?? []).filter(
+        (r) => r.status === "running" || r.status === "queued",
+    ).length;
+    useEffect(() => {
+        if (n === 0) return;
+        const timer = setInterval(reload, 3000);
+        return () => clearInterval(timer);
+    }, [n, reload]);
+    return n;
+}

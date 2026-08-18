@@ -9,6 +9,7 @@ import type {} from "@deepseek-ai/dsh-client-runtime/client";
 import type {} from "@deepseek-ai/dsh-client-ui-conversation/client";
 import type { PropsRuntime } from "@deepseek-ai/dsh-client-ui-slots";
 import { useEffect, useMemo, useRef } from "react";
+import { useT } from "./common.tsx";
 
 export type ChatPaneProps = Pick<
     PropsRuntime<"conversation.view">,
@@ -63,6 +64,7 @@ function shortArgs(raw: string): string {
 }
 
 export function ChatPane({ useSession }: ChatPaneProps) {
+    const t = useT();
     const nodes = useSession((s) => s.nodes);
     const partial = useSession((s) => s.partial);
     const runningCalls = useSession((s) => s.runningCalls);
@@ -166,13 +168,12 @@ export function ChatPane({ useSession }: ChatPaneProps) {
             <div className="tfs-chat-list" ref={listRef}>
                 {rows.length === 0 ? (
                     <div className="tfs-muted" style={{ padding: 12 }}>
-                        Talk to the crew in the box below: describe the show,
-                        ask for a character, a shot list, a keyframe…
+                        {t("chatEmpty")}
                     </div>
                 ) : null}
                 {running ? (
                     <div className="tfs-muted" style={{ padding: "0 8px" }}>
-                        ● the crew is working…
+                        {t("crewWorking")}
                     </div>
                 ) : null}
                 {rows.map((r) => (

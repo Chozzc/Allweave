@@ -280,3 +280,34 @@ describe("templates", () => {
         ).rejects.toThrow(/no REF take/);
     });
 });
+
+describe("template locales", () => {
+    it("lists localized titles and overlays zh starter files", async () => {
+        const zh = (await listTemplates("zh-CN")).find(
+            (t) => t.id === "manga-drama",
+        );
+        expect(zh?.title).toBe("漫剧");
+        expect(zh?.locales).toContain("zh");
+        const en = (await listTemplates("en")).find(
+            (t) => t.id === "manga-drama",
+        );
+        expect(en?.title).toContain("Manga drama");
+        const created = await createProject(studio, {
+            title: "中文项目",
+            template: "manga-drama",
+            locale: "zh-CN",
+            logline: "一句话",
+        });
+        const readme = await import("node:fs/promises").then((fs) =>
+            fs.readFile(`${created.root}/README.md`, "utf8"),
+        );
+        expect(readme).toContain("漫剧制作");
+        expect(readme).toContain("中文项目");
+        const { loadProject } = await import("../src/project/manifest.ts");
+        expect(
+            (await loadProject(studio, created.id)).manifest.defaults.locale,
+        ).toBe("zh");
+        const { stat } = await import("node:fs/promises");
+        await expect(stat(`${created.root}/_locales`)).rejects.toThrow();
+    });
+});

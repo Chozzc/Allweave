@@ -1,7 +1,13 @@
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import type { Pass, TakeInfo } from "../../shared/types.ts";
 import { modalityOfExt } from "../../shared/types.ts";
 import { fileUrl } from "../api.ts";
+import { makeT, type T, type UiKey } from "../i18n.ts";
+
+export const TContext = createContext<T>(makeT("en"));
+export function useT(): T {
+    return useContext(TContext);
+}
 
 export function useAsync<T>(
     fn: () => Promise<T>,
@@ -69,27 +75,28 @@ export function TakesGrid({
     selected?: TakeInfo;
     onSelect: (take: TakeInfo) => void;
 }) {
+    const t = useT();
     if (takes.length === 0)
-        return <div className="tfs-muted">no takes yet</div>;
+        return <div className="tfs-muted">{t("noTakes")}</div>;
     return (
         <div className="tfs-takes">
-            {takes.map((t) => (
+            {takes.map((tk) => (
                 <div
-                    key={t.key}
-                    className={`tfs-take${t.circled ? " circled" : ""}${selected?.key === t.key ? " selected" : ""}`}
-                    onClick={() => onSelect(t)}
-                    title={t.fileName}
+                    key={tk.key}
+                    className={`tfs-take${tk.circled ? " circled" : ""}${selected?.key === tk.key ? " selected" : ""}`}
+                    onClick={() => onSelect(tk)}
+                    title={tk.fileName}
                 >
                     <div className="tfs-take-thumb">
-                        <TakeThumb pid={pid} take={t} />
+                        <TakeThumb pid={pid} take={tk} />
                     </div>
                     <div className="tfs-take-foot">
-                        <span>{t.take}</span>
-                        {t.circled ? (
-                            <span className="circle">● circled</span>
+                        <span>{tk.take}</span>
+                        {tk.circled ? (
+                            <span className="circle">{t("circled")}</span>
                         ) : (
                             <span className="tfs-muted">
-                                {fmtBytes(t.size)}
+                                {fmtBytes(tk.size)}
                             </span>
                         )}
                     </div>
@@ -111,24 +118,56 @@ export function fmtTime(iso: string | undefined): string {
     return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
 }
 
-export function passLabel(pass: Pass): string {
-    return (
-        {
-            REF: "Reference",
-            VO: "Voice ref",
-            SB: "Storyboard",
-            KF: "Keyframe",
-            ANI: "Animation",
-            DLG: "Dialogue",
-            MUS: "Music",
-            SFX: "SFX",
-            MIX: "Mix",
-            CUT: "Cut",
-        } as Record<Pass, string>
-    )[pass];
+const PASS_KEY: Record<Pass, UiKey> = {
+    REF: "reference",
+    VO: "voiceRef",
+    SB: "storyboard",
+    KF: "keyframe",
+    ANI: "animation",
+    DLG: "dialogueAudio",
+    MUS: "music",
+    SFX: "sfx",
+    MIX: "mix",
+    CUT: "cut",
+};
+export function passLabel(t: T, pass: Pass): string {
+    return t(PASS_KEY[pass]);
 }
 
 export function Modal({
+    title,
+    onClose,
+    children,
+    wide,
+}: {
+    title: string;
+    onClose: () => void;
+    children: React.ReactNode;
+    wide?: boolean;
+}) {
+    return (
+        <div className="tfs-modal-backdrop" onClick={onClose}>
+            <div
+                className={`tfs-modal${wide ? " wide" : ""}`}
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div
+                    className="tfs-row"
+                    style={{ justifyContent: "space-between", marginBottom: 8 }}
+                >
+                    <h2>{title}</h2>
+                    <button className="tfs-btn small" onClick={onClose}>
+                        ✕
+                    </button>
+                </div>
+                {children}
+            </div>
+        </div>
+    );
+}
+
+/** Right-side drawer inside the studio root (details, run, takes). */
+export function Drawer({
     title,
     onClose,
     children,
@@ -138,19 +177,14 @@ export function Modal({
     children: React.ReactNode;
 }) {
     return (
-        <div className="tfs-modal-backdrop" onClick={onClose}>
-            <div className="tfs-modal" onClick={(e) => e.stopPropagation()}>
-                <div
-                    className="tfs-row"
-                    style={{ justifyContent: "space-between" }}
-                >
-                    <h2>{title}</h2>
-                    <button className="tfs-btn small" onClick={onClose}>
-                        ✕
-                    </button>
-                </div>
-                {children}
+        <div className="tfs-drawer">
+            <div className="tfs-drawer-head">
+                <h2>{title}</h2>
+                <button className="tfs-btn small" onClick={onClose}>
+                    ✕
+                </button>
             </div>
+            <div className="tfs-drawer-body">{children}</div>
         </div>
     );
 }

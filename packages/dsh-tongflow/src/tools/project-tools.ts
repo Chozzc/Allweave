@@ -40,6 +40,11 @@ export function projectTools(env: ToolEnv): ToolDefinition[] {
                     description:
                         "Preferred kebab-case project id (derived from the title when omitted).",
                 },
+                locale: {
+                    type: "string",
+                    description:
+                        "Language of the starter files (en, zh, ja…). Defaults to the studio locale.",
+                },
             },
             output: { schema: { type: "json" }, render: (_a, v) => text(v) },
             async execute(args) {
@@ -48,6 +53,7 @@ export function projectTools(env: ToolEnv): ToolDefinition[] {
                     template: args.template,
                     ...(args.logline ? { logline: args.logline } : {}),
                     ...(args.id ? { id: args.id } : {}),
+                    ...(args.locale ? { locale: args.locale } : {}),
                 });
                 return compact({
                     ok: true,
