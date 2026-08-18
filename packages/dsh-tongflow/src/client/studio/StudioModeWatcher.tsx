@@ -51,12 +51,28 @@ function findTabs():
     return undefined;
 }
 
+const LS_PREFIX = "dsh-tongflow:studio-session:";
+
 export function StudioModeWatcher({
     useSession,
+    useSessions,
     sessionId,
 }: StudioModeWatcherProps) {
+    // The loaded history window may not reach the first message of a long
+    // session; the session title (derived from it) and a per-session memo cover that.
     const firstText = useSession((s) => firstUserText(s.nodes));
-    const studioMode = isStudioText(firstText);
+    const title = useSessions(
+        (s) => s.byId[sessionId]?.title ?? s.byId[sessionId]?.displayTitle,
+    );
+    const remembered =
+        typeof localStorage !== "undefined" &&
+        localStorage.getItem(LS_PREFIX + sessionId) === "1";
+    const studioMode =
+        remembered || isStudioText(firstText) || isStudioText(title);
+    useEffect(() => {
+        if (studioMode && !remembered)
+            localStorage.setItem(LS_PREFIX + sessionId, "1");
+    }, [studioMode, remembered, sessionId]);
 
     useEffect(() => {
         // Studio session: activate the Studio view and hide the tab ring.
