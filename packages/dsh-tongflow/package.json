@@ -55,6 +55,7 @@
         "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.client.json"
     },
     "dependencies": {
+        "@deepseek-ai/schemastery": "^3.18.1",
         "tongflow": "workspace:^"
     },
     "peerDependencies": {

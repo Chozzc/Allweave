@@ -186,6 +186,9 @@ importers:
 
   packages/dsh-tongflow:
     dependencies:
+      '@deepseek-ai/schemastery':
+        specifier: ^3.18.1
+        version: 3.18.1
       tongflow:
         specifier: workspace:^
         version: link:../tongflow

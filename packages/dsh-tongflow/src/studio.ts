@@ -1,0 +1,93 @@
+/**
+ * The Studio: one object holding resolved config, paths, the python
+ * bootstrap, the plugin registry and the run manager. Tools, HTTP routes and
+ * skills all talk to this instead of to each other.
+ */
+import { createRequire } from "node:module";
+import { mkdir } from "node:fs/promises";
+import type { Config } from "./config.ts";
+import { ensureVenv } from "./engine/bootstrap.ts";
+import { RegistryManager } from "./engine/registry.ts";
+import { RunManager } from "./engine/runs.ts";
+import { type ProjectRef, loadProject } from "./project/manifest.ts";
+import { type StudioPaths, resolveStudioRoot, studioPaths } from "./project/paths.ts";
+
+export type Logger = (line: string) => void;
+
+export interface StudioOptions {
+    config: Config;
+    log?: Logger;
+    /** Extra env resolved at run time (e.g. credentials); merged over config.env. */
+    resolveEnv?: () => Promise<Record<string, string>>;
+}
+
+export class Studio {
+    readonly config: Config;
+    readonly paths: StudioPaths;
+    readonly abiPath: string | undefined;
+    readonly registry: RegistryManager;
+    readonly runs: RunManager;
+    readonly log: Logger;
+    private readonly resolveEnv: (() => Promise<Record<string, string>>) | undefined;
+    private pythonPromise: Promise<string> | undefined;
+
+    constructor(options: StudioOptions) {
+        this.config = options.config;
+        this.log = options.log ?? (() => undefined);
+        this.resolveEnv = options.resolveEnv;
+        this.paths = studioPaths(resolveStudioRoot(options.config.studioRoot));
+        this.abiPath = resolveAbiPath();
+        this.registry = new RegistryManager({
+            pluginsDir: this.paths.plugins,
+            abiPath: this.abiPath,
+            python: () => this.python(),
+            org: options.config.pluginOrg,
+            pluginGitUrls: options.config.pluginGitUrls,
+            log: this.log,
+        });
+        this.runs = new RunManager(this);
+    }
+
+    async init(): Promise<void> {
+        await mkdir(this.paths.projects, { recursive: true });
+        await mkdir(this.paths.plugins, { recursive: true });
+        await mkdir(this.paths.data, { recursive: true });
+        await mkdir(this.paths.tmp, { recursive: true });
+    }
+
+    /** The studio venv python (bootstrapped on first use). */
+    python(log: Logger = this.log): Promise<string> {
+        if (!this.pythonPromise) {
+            this.pythonPromise = ensureVenv({
+                venvDir: this.paths.venv,
+                pythonPath: this.config.pythonPath,
+                sdkSpec: this.config.sdkSpec,
+                log,
+            }).catch((error) => {
+                this.pythonPromise = undefined;
+                throw error;
+            });
+        }
+        return this.pythonPromise;
+    }
+
+    /** Environment handed to the engine (inherited by plugin subprocesses). */
+    async pluginEnv(): Promise<Record<string, string>> {
+        const extra = this.resolveEnv ? await this.resolveEnv() : {};
+        return { ...this.config.env, ...extra };
+    }
+
+    project(projectId: string): Promise<ProjectRef> {
+        return loadProject(this.paths.root, projectId);
+    }
+}
+
+function resolveAbiPath(): string | undefined {
+    try {
+        const require = createRequire(import.meta.url);
+        return require.resolve("tongflow/abi");
+    } catch {
+        // Fall back to the SDK-bundled ABI.
+        return undefined;
+    }
+}
