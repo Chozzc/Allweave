@@ -311,3 +311,30 @@ describe("template locales", () => {
         await expect(stat(`${created.root}/_locales`)).rejects.toThrow();
     });
 });
+
+describe("per-asset workflows", () => {
+    it("infers the target from the file name and resolves templates under workflows/templates", async () => {
+        const { targetFromWorkflowKey } = await import("../src/api.ts");
+        expect(
+            targetFromWorkflowKey(
+                "workflows/EP01_SC001_SH0010_KF.tongflow.json",
+            ),
+        ).toEqual({ owner: "EP01_SC001_SH0010", pass: "KF" });
+        expect(
+            targetFromWorkflowKey("workflows/CHR_MEI_REF_wide.tongflow.json"),
+        ).toEqual({ owner: "CHR_MEI", pass: "REF" });
+        expect(
+            targetFromWorkflowKey("workflows/EP01_CUT.tongflow.json"),
+        ).toEqual({ owner: "EP01", pass: "CUT" });
+        expect(
+            targetFromWorkflowKey("workflows/character-sheet.tongflow.json"),
+        ).toBeUndefined();
+        expect(
+            targetFromWorkflowKey("workflows/CHR_MEI_KF.tongflow.json"),
+        ).toBeUndefined(); // KF is not an entity pass
+        const { stat } = await import("node:fs/promises");
+        await expect(
+            stat(`${root}/workflows/templates/shot-keyframe.tongflow.json`),
+        ).resolves.toBeTruthy();
+    });
+});

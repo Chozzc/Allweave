@@ -45,20 +45,20 @@ export function workflowTools(env: ToolEnv): ToolDefinition[] {
         defineTool({
             name: "tongflow_workflow_new",
             description:
-                "Create a new workflow file (empty, or copied from another workflow / a template shipped with the project such as workflows/character-sheet.tongflow.json). " +
-                "Media generation ALWAYS goes through a workflow file: create → patch nodes → bind inputs to tf:// refs → run. Never overwrite an existing file; patch it instead.",
+                "Create a new workflow file — ONE PER GENERATED ASSET, named after its target (CHR_MEI_REF, EP01_SC001_SH0010_KF, EP01_CUT; add a suffix for variants). Copy a starting shape with fromTemplate ('character-sheet', 'shot-keyframe', 'dub-line', 'shot-i2v', … resolved under workflows/templates/), then patch the concrete prompt / tf:// refs into its nodes so the file is self-contained and re-runnable. " +
+                "Media generation ALWAYS goes through such a file: create → patch nodes → run. Never overwrite an existing file; patch it instead. A <OWNER>_<PASS> name implies the target.",
             parameters: {
                 project: PROJECT_PARAM,
                 path: {
                     type: "string",
                     required: true,
                     description:
-                        "New file name, e.g. 'shot-keyframe' → workflows/shot-keyframe.tongflow.json.",
+                        "New file name = target, e.g. 'EP01_SC001_SH0010_KF' → workflows/EP01_SC001_SH0010_KF.tongflow.json.",
                 },
                 fromTemplate: {
                     type: "string",
                     description:
-                        "Existing workflow file to copy (graph + meta).",
+                        "Template to copy: a name under workflows/templates/ (e.g. 'shot-keyframe') or any workflow key.",
                 },
                 name: { type: "string", description: "Display name." },
                 description: {

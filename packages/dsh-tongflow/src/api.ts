@@ -41,9 +41,11 @@ import {
     summarize,
 } from "./project/manifest.ts";
 import {
+    assertPassForOwner,
     ENTITY_PASSES,
     EPISODE_PASSES,
     isEpisodeId,
+    isPass,
     ownerKindOf,
     type Pass,
     passesFor,
@@ -320,16 +322,19 @@ export class StudioApi {
             );
         let doc: WorkflowDocument;
         if (options.fromTemplate) {
-            const src = await this.readWorkflow(
-                projectId,
+            const templateKey = await this.resolveTemplateKey(
+                ref.root,
                 options.fromTemplate,
             );
+            const src = await this.readWorkflow(projectId, templateKey);
+            // A per-asset copy: drop the template's own target/purpose, keep the graph.
+            const { target: _t, purpose: _p, ...inherited } = src.meta;
             doc = {
                 ...src,
                 meta: {
-                    ...src.meta,
+                    ...inherited,
                     ...(options.meta ?? {}),
-                    template: normalizeWorkflowKey(options.fromTemplate),
+                    template: templateKey,
                 },
             };
             if (options.name) doc.name = options.name;
@@ -354,6 +359,20 @@ export class StudioApi {
             description: doc.description ?? "",
         });
         return summarizeWorkflow(ref.root, key);
+    }
+
+    /** `shot-keyframe` → workflows/templates/shot-keyframe.tongflow.json when such a file exists, else the key as given. */
+    private async resolveTemplateKey(
+        projectRoot: string,
+        input: string,
+    ): Promise<string> {
+        const direct = normalizeWorkflowKey(input);
+        if (await exists(fromProjectKey(projectRoot, direct))) return direct;
+        const base = basename(direct, WORKFLOW_EXT);
+        const inTemplates = `${DIRS.workflows}/templates/${base}${WORKFLOW_EXT}`;
+        if (await exists(fromProjectKey(projectRoot, inTemplates)))
+            return inTemplates;
+        return direct;
     }
 
     /** Run one of the tongflow graph tools (apply_graph_patch / read_canvas / validate_workflow / describe_node_type) against a file. */
@@ -799,6 +818,23 @@ export class StudioApi {
 
     toKey(projectRoot: string, abs: string): string {
         return toProjectKey(projectRoot, abs);
+    }
+}
+
+/** `EP01_SC001_SH0010_KF` / `CHR_MEI_REF` / `EP01_CUT` file names carry their own target. */
+export function targetFromWorkflowKey(
+    key: string,
+): { owner: string; pass: Pass } | undefined {
+    const name = basename(key, WORKFLOW_EXT);
+    const m = /^(.+)_([A-Z]+)(?:_[a-z0-9-]+)?$/.exec(name);
+    if (!m) return undefined;
+    const [, owner, pass] = m;
+    try {
+        if (!isPass(pass)) return undefined;
+        assertPassForOwner(owner, pass);
+        return { owner, pass };
+    } catch {
+        return undefined;
     }
 }
 

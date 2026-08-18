@@ -66,8 +66,8 @@ Every entity's `consistency.json` holds `promptPrefix`, `promptSuffix`, `negativ
 ## The loop for any media
 
 1. `tongflow_project_status` — see what exists; `tongflow_node_catalog` — see node types and installed plugins.
-2. `tongflow_workflow_new` (copy a template when one fits) → `tongflow_workflow_patch` (build/adjust the graph) → `tongflow_workflow_read` (verify wires + validation).
-3. `tongflow_workflow_bind` — inputs → tf:// refs; set `target` `{owner, pass}`.
+2. `tongflow_workflow_new({ path: '<OWNER>_<PASS>', fromTemplate })` — one file per asset → `tongflow_workflow_patch` (write the concrete prompt / refs / params into the nodes) → `tongflow_workflow_read` (verify wires + validation).
+3. `tongflow_workflow_bind` only for inputs you deliberately left open; the target is implied by the file name.
 4. `tongflow_workflow_run` — foreground for a single image, `run_in_background` for video/batches; keep working meanwhile.
 5. Review: `tongflow_look` (images / video contact sheets) and `tongflow_perceive` (video/audio understanding, transcripts). Write findings with `tongflow_dailies_note`.
 6. Circle the good take (`tongflow_take_circle`) or fix the workflow / prompt and run again (next take).
@@ -75,8 +75,9 @@ Every entity's `consistency.json` holds `promptPrefix`, `promptSuffix`, `negativ
 Rules of thumb:
 - Patch incrementally; never rebuild a workflow from scratch; never invent node ids. Read the patch result: `ok:false` steps must be fixed before running.
 - Two ways to parameterize: (a) a level-0 data node WITHOUT data becomes an input you bind per run (`tongflow_workflow_bind` / `tongflow_workflow_run inputs`) — name it with `data:{inputName:"prompt"}`; (b) put `tf://` refs or `{{tf://…}}` templates directly in node data. Both resolve at run time against the circled takes.
-- The project ships templates under `workflows/` (character-sheet, location-plate, storyboard-panel, shot-keyframe, dub-line, voice-preset, shot-i2v, episode-music, assemble-episode): copy with `tongflow_workflow_new({path, fromTemplate})` instead of building from scratch, then bind.
+- Templates live under `workflows/templates/` (character-sheet, location-plate, storyboard-panel, shot-keyframe, dub-line, voice-preset, shot-i2v, episode-music, assemble-episode). They are starting shapes only: copy one per asset with `tongflow_workflow_new({ path: '<OWNER>_<PASS>', fromTemplate: '<template>' })`, then patch its nodes with the concrete text and refs (a template's inputs may stay as inputs bound in `meta.bindings`, but prefer writing values into the nodes).
 - Text you author (script, dialogue, prompts) goes into files / the breakdown, then into workflows **as inputs** — text generation nodes are only for mechanical bulk transforms.
-- One workflow per job type, parameterized by inputs (e.g. `shot-keyframe` reused for every shot with different bindings) — not one workflow per shot.
+- **One workflow file per generated asset.** Every image / audio / video gets its *own* `.tongflow.json`, named after its target: `CHR_MEI_REF`, `LOC_ROOFTOP_REF`, `EP01_SC001_SH0010_SB|KF|ANI|DLG`, `EP01_MUS`, `EP01_CUT` (add a suffix for variants: `EP01_SC001_SH0010_KF_wide`). Start from a template (`tongflow_workflow_new({ path: 'EP01_SC001_SH0010_KF', fromTemplate: 'shot-keyframe' })`), then **patch the concrete prompt / `tf://` refs / params into the nodes** so the file is self-contained: opening it on the canvas shows exactly what made that take, and re-running it reproduces it. Do not keep shared parameterized workflows that you re-bind per shot. A file named `<OWNER>_<PASS>` needs no explicit target — it is inferred.
+- The take's provenance points at its workflow; when a take is off, fix *that* workflow (or the bible / breakdown it draws from) and run it again — the next take lands beside the old one.
 - Before running, make sure the plugin for each node is installed (`tongflow_plugins_list`, `tongflow_plugins_install`) and its API keys are configured in the tongflow settings.
 - If the user edited a workflow on the canvas, `tongflow_workflow_read` it again before patching.

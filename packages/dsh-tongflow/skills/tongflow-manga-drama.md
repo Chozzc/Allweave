@@ -23,7 +23,7 @@ Work stage by stage. Each stage has an artifact, a tool, and an acceptance check
 
 For every character, key location, hero prop:
 - `tongflow_bible_upsert` with a full `card.md` (name, age, silhouette, face, hair, wardrobe, palette, personality, voice description) and `consistency` = `{ promptPrefix: "<style-agnostic visual description, comma separated>", negativePrompt, seed }`.
-- Generate the **reference sheet** into `REF`: workflow `character-sheet` = `textNode` (texts: `["{{tf://STY_MAIN/prompt}}, {{tf://CHR_X/prompt}}, full-body character reference sheet, front and side view, neutral pose, plain background"]`) → `textGenImageNode`. Set `target {owner: CHR_X, pass: REF}`. Run → `tongflow_look` → circle the best. Do 2–3 takes if the first is off-model. Repeat with a `location-plate` workflow for locations (establishing plate) if useful.
+- Generate the **reference sheet** into `REF`: `tongflow_workflow_new({ path: 'CHR_X_REF', fromTemplate: 'character-sheet' })`, then patch its text node to `["{{tf://STY_MAIN/prompt}}, {{tf://CHR_X/prompt}}, full-body character reference sheet, front and side view, neutral pose, plain background"]`. Run → `tongflow_look` → circle the best. Do 2–3 takes if the first is off-model. Same for locations: `LOC_Y_REF` from `location-plate`.
 - Voice: choose a preset voice or make a `VO` reference clip with a text-to-speech workflow (a neutral sentence in the character's voice). Circle it; dubbing binds `tf://CHR_X/VO`.
 - Acceptance: every speaking character has a circled REF and VO; STY_MAIN prefix final.
 
@@ -34,33 +34,33 @@ For every character, key location, hero prop:
 
 ## 4. Storyboards (SB) — optional but fast
 
-- Workflow `storyboard-panel` (text → image, cheap plugin, low res): inputs `prompt` ← `tf://<SHOT>/prompt/KF`; target `{owner: <SHOT>, pass: SB}`. Run for every shot (background), review with `tongflow_look` as a set. Fix compositions in the breakdown, not by hand-editing images.
+- Per shot: `<SHOT>_SB` from `storyboard-panel` (text → image, cheap plugin, low res) with the text node set to `"{{tf://STY_MAIN/prompt}}, storyboard sketch, {{tf://<SHOT>/prompt/KF}}"`. Run all (background), review with `tongflow_look` as a set. Fix compositions in the breakdown, not by hand-editing images.
 
 ## 5. Keyframes (KF)
 
-- Workflow `shot-keyframe`: an image-edit / image-fusion node fed by an `imageNode` WITHOUT data (→ input `refs`, bind per run to `tf://CHR_X/REF`, and `tf://LOC_Y/REF` if a plate exists) and a `textNode` WITHOUT data (→ input `prompt`, bind per run to `"{{tf://STY_MAIN/prompt}}, {{tf://CHR_X/prompt}}, {{tf://<SHOT>/prompt/KF}}"`); aspect ratio from the project. Target `{owner: <SHOT>, pass: KF}`. Run per shot with `tongflow_workflow_run` `inputs`, in background, batch by scene.
+- Per shot: `<SHOT>_KF` from `shot-keyframe`; patch the image node to `fileKeys: ['tf://CHR_X/REF', 'tf://LOC_Y/REF']` (every character in the shot, plus the plate if one exists) and the text node to `"{{tf://STY_MAIN/prompt}}, {{tf://CHR_X/prompt}}, {{tf://<SHOT>/prompt/KF}}"`; aspect ratio from the project. Run in background, batch by scene.
 - QC each KF with `tongflow_look`: on-model face/hair/wardrobe vs REF, correct shot size, no text/watermark, hands. Note issues in dailies; re-run with an adjusted `prompts.KF` for bad ones; circle the good ones.
 - Acceptance: every shot has a circled KF.
 
 ## 6. Dubbing (DLG)
 
-- Workflow `dub-line`: text-to-speech (clone with `tf://CHR_X/VO`, or a preset voice), input `text` ← `tf://<SHOT>/dialogue/<n>`, target `{owner: <SHOT>, pass: DLG}`. One take per line (a shot with two lines gets T01, T02 …). QC with `tongflow_perceive` (transcribe) — the transcript must match the line; check emotion via `direction`.
+- Per line: `<SHOT>_DLG` (or `<SHOT>_DLG_2` for a second line) from `dub-line` (clone with `tf://CHR_X/VO`) or `voice-preset`; patch the text node to `"{{tf://<SHOT>/dialogue/<n>}}"` and the audio node to `tf://CHR_X/VO`. QC with `tongflow_perceive` (transcribe) — the transcript must match the line; check emotion via `direction`.
 - Acceptance: every dialogue line has an audio take; shots without dialogue skip this pass.
 
 ## 7. Animation (ANI)
 
-- Workflow `shot-i2v`: image-gen-video node with `image` ← `tf://<SHOT>/KF`, `text` ← `tf://<SHOT>/prompt/ANI` (motion only), `duration` from the breakdown; optionally `audio` ← `tf://<SHOT>/DLG` for lip-sync plugins. Target `{owner: <SHOT>, pass: ANI}`. Always `run_in_background`; run several shots in parallel if the concurrency limit allows.
+- Per shot: `<SHOT>_ANI` from `shot-i2v`; patch the image node to `tf://<SHOT>/KF`, the text node to `"{{tf://<SHOT>/prompt/ANI}}"` (motion only), `duration` from the breakdown; optionally an audio node `tf://<SHOT>/DLG` for lip-sync plugins. Always `run_in_background`; run several shots in parallel if the concurrency limit allows.
 - QC: `tongflow_look` (contact sheet — check for morphing, extra limbs, identity drift, wrong motion) then `tongflow_perceive` for a second opinion on motion/continuity. Re-run with a tighter ANI prompt or a different KF take when needed. Circle.
 - Acceptance: every shot has a circled ANI.
 
 ## 8. Music, mix, cut
 
-- `MUS`: music-generation workflow with a mood prompt, target `{owner: EP01, pass: MUS}`.
-- `CUT`: workflow `assemble-episode` (concat / video-edit nodes): `clips` ← `tf://EP01/ANI` (already in shooting order), `dialogue` ← `tf://EP01/DLG` where the plugin supports per-clip audio, `music` ← `tf://EP01/MUS`; target `{owner: EP01, pass: CUT}`. Review with `tongflow_look` + `tongflow_perceive`; write the dailies note; circle. Copy the final into `05_DELIVERY/` when the user signs off.
+- `EP01_MUS` from `episode-music` with a mood prompt in its text node.
+- `EP01_CUT` from `assemble-episode` (concat / video-edit nodes): video node `tf://EP01/ANI` (already in shooting order), plus `tf://EP01/DLG` / `tf://EP01/MUS` where the plugin takes them. Review with `tongflow_look` + `tongflow_perceive`; write the dailies note; circle. Copy the final into `05_DELIVERY/` when the user signs off.
 
 ## Working style
 
-- Batch smartly: same workflow, different bindings, `run_in_background`, then review as a set.
+- Batch smartly: create the per-shot workflows for a whole scene, run them `run_in_background`, then review as a set.
 - Every review produces a `tongflow_dailies_note` — what passed, what to redo, why.
 - When something is consistently off-model, fix the **source** (consistency kit, REF take, breakdown prompt) — not individual images.
 - Keep the user in the loop at stage boundaries (script, bible, breakdown, first KFs, first ANI): show what you have and ask before spending on video generation.

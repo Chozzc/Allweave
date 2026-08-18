@@ -349,6 +349,18 @@ function StudioBody(props: StudioViewProps) {
                                         });
                                         setDrawer(undefined);
                                     }}
+                                    onOpenWorkflow={(key) => {
+                                        setSelected({
+                                            id: key,
+                                            label: key.replace(
+                                                /^workflows\//,
+                                                "",
+                                            ),
+                                            kind: "workflow",
+                                            key,
+                                        });
+                                        setDrawer(undefined);
+                                    }}
                                 />
                             ) : drawer.kind === "run" ? (
                                 <RunPanel

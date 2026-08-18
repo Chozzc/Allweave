@@ -15,11 +15,13 @@ export function TakeCard({
     take,
     onChanged,
     onOpenTake,
+    onOpenWorkflow,
 }: {
     pid: string;
     take: TakeInfo;
     onChanged: () => void;
     onOpenTake: (t: TakeInfo) => void;
+    onOpenWorkflow?: (key: string) => void;
 }) {
     const t = useT();
     const prov = take.provenance;
@@ -102,6 +104,16 @@ export function TakeCard({
                 <button className="tfs-btn" onClick={() => onOpenTake(take)}>
                     {t("preview")}
                 </button>
+                {prov &&
+                onOpenWorkflow &&
+                !prov.workflow.startsWith("(inline)") ? (
+                    <button
+                        className="tfs-btn"
+                        onClick={() => onOpenWorkflow(prov.workflow)}
+                    >
+                        {t("workflow")} ↗
+                    </button>
+                ) : null}
                 <button
                     className="tfs-btn danger"
                     onClick={async () => {
