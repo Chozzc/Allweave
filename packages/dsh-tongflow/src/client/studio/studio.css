@@ -467,38 +467,3 @@
     white-space: nowrap;
     font-family: ui-monospace, Menlo, monospace;
 }
-
-/* launcher + overlay */
-.tfs-launch {
-    appearance: none;
-    border: 0;
-    background: transparent;
-    color: inherit;
-    font: inherit;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 8px;
-    border-radius: 6px;
-    opacity: 0.85;
-}
-.tfs-launch:hover {
-    opacity: 1;
-    background: var(
-        --dsw-alias-interactive-bg-hover,
-        rgba(127, 127, 127, 0.12)
-    );
-}
-.tfs-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 900;
-    background: var(--dsw-alias-bg-base, #fff);
-    display: flex;
-    flex-direction: column;
-}
-.tfs-overlay > .tfs-root {
-    flex: 1;
-    min-height: 0;
-}

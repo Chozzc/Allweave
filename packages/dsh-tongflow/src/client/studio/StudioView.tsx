@@ -19,12 +19,9 @@ export interface StudioInjected {
     locale: string;
 }
 
-/**
- * Works both as the conversation "Studio" tab (session kit present → a chat
- * column is shown) and inside the sidebar launcher's overlay (no session).
- */
+/** The Studio as the session's conversation view (session kit present → chat column shown). */
 export type StudioViewProps = Pick<
-    PropsRuntime<"sidebar.footer.action">,
+    PropsRuntime<"conversation.view">,
     "useSessions"
 > &
     Partial<
