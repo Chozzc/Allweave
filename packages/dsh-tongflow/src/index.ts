@@ -11,17 +11,16 @@ import type {} from "@deepseek-ai/dsh-host-webserver";
 import type {} from "@deepseek-ai/dsh-skill";
 import type {} from "@deepseek-ai/dsh-system-prompt";
 import type {} from "@deepseek-ai/dsh-tools";
+import { installActivation } from "./activation.ts";
 import { StudioApi } from "./api.ts";
 import { Config } from "./config.ts";
 import { registerRoutes } from "./http/routes.ts";
-import { registerSkills } from "./skills/provider.ts";
 import { Studio } from "./studio.ts";
-import { registerTools } from "./tools/index.ts";
 
 export const name = "dsh-tongflow";
 
-/** The tool registry is the only hard requirement; other seams attach when they mount. */
-export const inject = ["tools"];
+/** The tool registry and agent registry are the hard requirements; other seams attach when they mount. */
+export const inject = ["tools", "agents"];
 
 export { Config };
 export type { Config as TongflowConfig } from "./config.ts";
@@ -36,21 +35,13 @@ export function apply(ctx: Context, config: Config): void {
         );
     });
 
-    registerTools(ctx, { ctx, studio, api });
-
-    ctx.inject(["systemPrompt"], (promptCtx) => {
-        promptCtx.effect(
-            () =>
-                promptCtx.systemPrompt.section({
-                    name: "tool:tongflow",
-                    order: 150,
-                    text: SYSTEM_SECTION,
-                }),
-            "dsh-tongflow: system prompt section",
-        );
+    // Tools / prompt / skills attach per agent, only for studio sessions
+    // (first message starts with "@tongflow", or the cwd is a studio project).
+    installActivation(ctx, {
+        studio,
+        env: { studio, api },
+        systemSection: SYSTEM_SECTION,
     });
-
-    ctx.inject(["skills"], (skillCtx) => registerSkills(skillCtx));
 
     ctx.inject(["webServer"], (webCtx) =>
         registerRoutes(webCtx, { studio, api, prefix: config.httpPrefix }),

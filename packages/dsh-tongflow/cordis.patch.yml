@@ -5,9 +5,3 @@
     - id: tongflow
       name: dsh-tongflow
       config: {}
-
-# The Studio replaces the chat view; the trajectory tab is not needed either,
-# so the session shows a single view and no tab bar. Re-enable it in your
-# profile patch (`- id: ui-trajectory` / `disabled: false`) if you want it back.
-- id: ui-trajectory
-  disabled: true

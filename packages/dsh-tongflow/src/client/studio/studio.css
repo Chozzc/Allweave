@@ -467,3 +467,11 @@
     white-space: nowrap;
     font-family: ui-monospace, Menlo, monospace;
 }
+.tfs-mode-badge {
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: color-mix(in srgb, #4d6bfe 18%, transparent);
+    color: inherit;
+    white-space: nowrap;
+}
