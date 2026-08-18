@@ -68,13 +68,9 @@ export function StudioModeWatcher({
                 if (!found.active) found.studio?.click();
                 found.list.style.display = "none";
             } else {
-                // Plain session: hide the Studio tab; if that leaves a single
-                // tab (dsh renders the ring only for >1), hide the ring too.
+                // Plain session: dsh untouched, only our Studio tab is hidden.
+                found.list.style.display = "";
                 if (found.studio) found.studio.style.display = "none";
-                const visible = [
-                    ...found.list.querySelectorAll<HTMLElement>('[role="tab"]'),
-                ].filter((el) => el !== found.studio);
-                found.list.style.display = visible.length > 1 ? "" : "none";
             }
         };
         apply();
