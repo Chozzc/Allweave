@@ -5,6 +5,7 @@ import type { PropsRuntime } from "@deepseek-ai/dsh-client-ui-slots";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ProjectSummary, TakeInfo, TreeNode } from "../../shared/types.ts";
 import { studio } from "../api.ts";
+import { ChatPane } from "./ChatPane.tsx";
 import { Modal, useAsync } from "./common.tsx";
 import { InspectorPane } from "./InspectorPane.tsx";
 import { PluginsDialog } from "./PluginsDialog.tsx";
@@ -18,19 +19,36 @@ export interface StudioInjected {
     locale: string;
 }
 
+/**
+ * Works both as the conversation "Studio" tab (session kit present → a chat
+ * column is shown) and inside the sidebar launcher's overlay (no session).
+ */
 export type StudioViewProps = Pick<
     PropsRuntime<"sidebar.footer.action">,
     "useSessions"
 > &
+    Partial<
+        Pick<
+            PropsRuntime<"conversation.view">,
+            "useSession" | "inputActions" | "useInput" | "sessionId"
+        >
+    > &
     StudioInjected & { onClose?: () => void };
 
 const LS_KEY = "dsh-tongflow:project";
 
 export function StudioView(props: StudioViewProps) {
     const { openWorkspace, locale, useSessions, onClose } = props;
-    const cwd = useSessions((s) =>
-        s.current ? s.byId[s.current]?.cwd : undefined,
+    const hasChat = Boolean(
+        props.useSession &&
+            props.inputActions &&
+            props.useInput &&
+            props.sessionId,
     );
+    const cwd = useSessions((s) => {
+        const id = props.sessionId ?? s.current;
+        return id ? s.byId[id]?.cwd : undefined;
+    });
     const projects = useAsync(() => studio.projects(), []);
     const health = useAsync(() => studio.health(), []);
     const [pid, setPid] = useState<string | undefined>(
@@ -161,7 +179,17 @@ export function StudioView(props: StudioViewProps) {
                     </button>
                 ) : null}
             </div>
-            <div className="tfs-body">
+            <div className={`tfs-body${hasChat ? " with-chat" : ""}`}>
+                {hasChat ? (
+                    <div className="tfs-pane">
+                        <ChatPane
+                            useSession={props.useSession!}
+                            inputActions={props.inputActions!}
+                            useInput={props.useInput!}
+                            sessionId={props.sessionId!}
+                        />
+                    </div>
+                ) : null}
                 <div className="tfs-pane">
                     {tree.error ? (
                         <div className="tfs-error" style={{ padding: 10 }}>

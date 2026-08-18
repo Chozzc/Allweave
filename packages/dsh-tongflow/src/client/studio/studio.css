@@ -7,7 +7,7 @@
     --tfs-fg-2: var(--dsw-alias-label-secondary, #57606a);
     --tfs-fg-3: var(--dsw-alias-label-tertiary, #8b949e);
     --tfs-border: var(--dsw-alias-border-l2, #d8dde3);
-    --tfs-accent: var(--dsw-alias-brand-primary, #4d6bfe);
+    --tfs-accent: #4d6bfe;
     --tfs-ok: var(--dsw-alias-state-success-primary, #2da44e);
     --tfs-err: var(--dsw-alias-state-error-primary, #d1242f);
     --tfs-warn: var(--dsw-alias-state-warn-primary, #bf8700);
@@ -45,6 +45,59 @@
     grid-template-columns: 240px minmax(0, 1fr) 300px;
     flex: 1;
     min-height: 0;
+}
+.tfs-body.with-chat {
+    grid-template-columns: minmax(280px, 22%) 220px minmax(0, 1fr) 280px;
+}
+/* chat column */
+.tfs-chat {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+.tfs-chat-list {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.tfs-msg {
+    border-radius: 8px;
+    padding: 6px 8px;
+    font-size: 12px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+}
+.tfs-msg.user {
+    background: color-mix(in srgb, var(--tfs-accent) 14%, transparent);
+    align-self: flex-end;
+}
+.tfs-msg.assistant {
+    background: var(--tfs-bg-1);
+}
+.tfs-msg.tool {
+    background: transparent;
+    border: 1px dashed var(--tfs-border);
+    color: var(--tfs-fg-2);
+    font-size: 11px;
+}
+.tfs-msg.tool.err {
+    border-color: var(--tfs-err);
+}
+.tfs-msg.error {
+    color: var(--tfs-err);
+}
+.tfs-msg.running {
+    opacity: 0.8;
+}
+.tfs-msg-title {
+    font-weight: 600;
+    margin-bottom: 2px;
 }
 .tfs-pane {
     min-height: 0;
