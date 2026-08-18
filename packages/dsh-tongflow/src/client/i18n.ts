@@ -107,6 +107,10 @@ const en = {
     mix: "Mix",
     cut: "Cut",
     details: "Details",
+    composeShot: "Compose whole shot",
+    composeEpisode: "Compose whole episode",
+    composeEntity: "Compose entity",
+    composed: "Composed {n} nodes, {links} links → {key}",
 } as const;
 
 export type UiKey = keyof typeof en;
@@ -217,6 +221,10 @@ const zh: Record<UiKey, string> = {
     mix: "混音",
     cut: "剪辑",
     details: "详情",
+    composeShot: "合成整镜头工作流",
+    composeEpisode: "合成整集工作流",
+    composeEntity: "合成角色工作流",
+    composed: "已合成 {n} 个节点、{links} 条连线 → {key}",
 };
 
 const dicts: Record<string, Record<UiKey, string>> = { en, zh };

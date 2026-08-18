@@ -1,14 +1,14 @@
 {
     "name": "Assemble episode",
-    "description": "Concatenate the circled ANI takes of an episode into a cut (CUT). Bind `clips` ← tf://EP01/ANI.",
+    "description": "Concatenate the circled ANI takes of an episode, then lay the music under it (CUT). Bind `clips` ← tf://EP01/ANI, `music` ← tf://EP01/MUS.",
     "flow": {
         "nodes": [
             {
-                "id": "7bec5d63-784f-411a-9879-79747d5e5c0a",
+                "id": "9dc62c16-4389-43e7-bb3a-fcf8d82ee371",
                 "type": "videoNode",
                 "position": {
                     "x": 100,
-                    "y": 100
+                    "y": 0
                 },
                 "origin": [0.5, 0.5],
                 "data": {
@@ -16,10 +16,42 @@
                 }
             },
             {
-                "id": "86eb689e-7ec8-4c1d-86f6-e69a46651f60",
+                "id": "4b57c2a5-ae3f-4253-9336-5eeef8741ccb",
                 "type": "concatVideoComposeNode",
                 "position": {
-                    "x": 568,
+                    "x": 620,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {}
+            },
+            {
+                "id": "e50f6bd6-eca4-4564-ab97-0435062b1a01",
+                "type": "videoNode",
+                "position": {
+                    "x": 1088,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {}
+            },
+            {
+                "id": "f4cdc30f-f46d-4638-bcf4-0be8d9a2dd8b",
+                "type": "audioNode",
+                "position": {
+                    "x": 100,
+                    "y": 282
+                },
+                "origin": [0.5, 0.5],
+                "data": {
+                    "inputName": "music"
+                }
+            },
+            {
+                "id": "7d93fdb4-7ce5-4940-b797-2508961ee365",
+                "type": "mergeVideoAudioNode",
+                "position": {
+                    "x": 1556,
                     "y": 100
                 },
                 "origin": [0.5, 0.5],
@@ -28,16 +60,40 @@
         ],
         "edges": [
             {
-                "id": "9da10a31-25fd-41fc-a26e-57e27dbe32a9",
-                "source": "7bec5d63-784f-411a-9879-79747d5e5c0a",
-                "target": "86eb689e-7ec8-4c1d-86f6-e69a46651f60",
+                "id": "81787ab1-79a3-451d-a0af-66aa7ab48346",
+                "source": "9dc62c16-4389-43e7-bb3a-fcf8d82ee371",
+                "target": "4b57c2a5-ae3f-4253-9336-5eeef8741ccb",
                 "type": "custom-edge",
                 "sourceHandle": "out:videoNode",
                 "targetHandle": "in:videos"
+            },
+            {
+                "id": "fd0f6cb6-dfe7-4ae0-ac02-56c686700020",
+                "source": "4b57c2a5-ae3f-4253-9336-5eeef8741ccb",
+                "target": "e50f6bd6-eca4-4564-ab97-0435062b1a01",
+                "type": "custom-edge",
+                "sourceHandle": "out:video",
+                "targetHandle": "in:videoNode"
+            },
+            {
+                "id": "d36163cf-17d5-4173-9736-75f89da3d050",
+                "source": "e50f6bd6-eca4-4564-ab97-0435062b1a01",
+                "target": "7d93fdb4-7ce5-4940-b797-2508961ee365",
+                "type": "custom-edge",
+                "sourceHandle": "out:videoNode",
+                "targetHandle": "in:video"
+            },
+            {
+                "id": "a929e17d-d175-44ec-a294-e09b6221b78b",
+                "source": "f4cdc30f-f46d-4638-bcf4-0be8d9a2dd8b",
+                "target": "7d93fdb4-7ce5-4940-b797-2508961ee365",
+                "type": "custom-edge",
+                "sourceHandle": "out:audioNode",
+                "targetHandle": "in:audio"
             }
         ]
     },
     "meta": {
-        "purpose": "Inputs: clips ← tf://EP01/ANI (shooting order). Target {owner: EP01, pass: CUT}."
+        "purpose": "Two steps: concat-videos → merge-video-audio. Inputs: clips ← tf://EP01/ANI (shooting order), music ← tf://EP01/MUS. Remove the merge step if there is no music yet."
     }
 }

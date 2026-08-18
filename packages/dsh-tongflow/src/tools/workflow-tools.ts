@@ -309,6 +309,26 @@ export function workflowTools(env: ToolEnv): ToolDefinition[] {
             },
         }),
         defineTool({
+            name: "tongflow_workflow_compose",
+            description:
+                "Compose the asset workflows of a shot (SB→KF→DLG→ANI), an entity, or a whole episode (every shot in order, then MUS/SFX/MIX/CUT) into ONE big workflow (<OWNER>_ALL.tongflow.json next to the owner) for human review and one-shot re-runs. " +
+                "tf:// references to products made inside the composition become real edges; every stage still lands its own takes. Do this after the parts exist and were reviewed; tell the user to open it on the canvas.",
+            parameters: {
+                project: PROJECT_PARAM,
+                owner: {
+                    type: "string",
+                    required: true,
+                    description:
+                        "Shot id (EP01_SC001_SH0010), episode id (EP01) or entity id (CHR_MEI).",
+                },
+            },
+            output: { schema: { type: "json" }, render: (_a, v) => text(v) },
+            async execute(args, exec) {
+                const pid = await resolveProjectId(env, exec, args.project);
+                return compact(await api.composeWorkflow(pid, args.owner));
+            },
+        }),
+        defineTool({
             name: "tongflow_node_catalog",
             description:
                 "One line per canvas node type: ABI slot, wires (inputs from other nodes; * = required), config fields, outputs, and which installed plugins implement it. Consult before patching.",

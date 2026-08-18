@@ -1,13 +1,21 @@
 # Workflow templates
 
-Copy one with `tongflow_workflow_new({ path, fromTemplate: '<name>' (resolved under workflows/templates/) })`, then bind its inputs (`tongflow_workflow_bind`) and run. Plugins are filled with the installed default for each slot when copied.
+Starting shapes only. Copy one per asset with
+`tongflow_workflow_new({ path: '<OWNER>_<PASS>', fromTemplate: '<name>' })`, then patch the
+concrete prompt / `tf://` refs into its nodes. Plugins are filled with the installed default
+for each slot when copied. Multi-step templates: delete the steps a given asset does not need.
 
-- `character-sheet` — Text → reference image (REF) for a bible entity.
-- `location-plate` — Text → establishing plate (REF) for a location.
-- `storyboard-panel` — Prompt input → storyboard panel (SB). Bind `prompt` per shot. Inputs: prompt.
-- `shot-keyframe` — Reference images + prompt → keyframe (KF) via image fusion. Bind `refs` and `prompt` per shot. Inputs: refs, prompt.
-- `dub-line` — Voice reference + line → dialogue audio (DLG). Bind `voice` and `text` per line. Inputs: voice, text.
-- `voice-preset` — Line → speech with a preset voice (VO reference or DLG when no clone plugin). Inputs: text.
-- `shot-i2v` — Keyframe + motion prompt → animation (ANI). Bind `image` and `prompt` per shot. Inputs: image, prompt.
-- `episode-music` — Mood prompt → music track (MUS). Inputs: prompt.
-- `assemble-episode` — Concatenate the circled ANI takes of an episode into a cut (CUT). Bind `clips` ← tf://EP01/ANI. Inputs: clips.
+- `character-sheet` — text → reference image (REF).
+- `location-plate` — text → establishing plate (REF).
+- `storyboard-panel` — prompt → storyboard panel (SB). Inputs: prompt.
+- `shot-keyframe` — reference images + prompt → keyframe (KF) via image fusion. Inputs: refs, prompt.
+- `shot-keyframe-hd` — image fusion → upscale (KF). Inputs: refs, prompt.
+- `dub-line` — voice reference + line → dialogue audio (DLG). Inputs: voice, text.
+- `voice-preset` — line → preset-voice speech (VO / DLG). Inputs: text.
+- `shot-i2v` — keyframe + motion prompt → animation (ANI). Inputs: image, prompt.
+- `shot-i2v-lipsync` — image-to-video → lip-sync with the dialogue audio (ANI). Inputs: image, prompt, audio.
+- `episode-music` — mood prompt → music (MUS). Inputs: prompt.
+- `assemble-episode` — concatenate the circled ANI takes, then merge the music (CUT). Inputs: clips ← tf://EP01/ANI, music ← tf://EP01/MUS.
+
+After a shot's parts exist, `tongflow_workflow_compose({ owner })` (or the button on the shot in the Studio)
+joins them into `<SHOT>_ALL.tongflow.json` for review and one-shot re-runs; the same works for an episode.

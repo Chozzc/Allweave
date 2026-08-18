@@ -54,6 +54,10 @@ For every character, key location, hero prop:
 - QC: `tongflow_look` (contact sheet — check for morphing, extra limbs, identity drift, wrong motion) then `tongflow_perceive` for a second opinion on motion/continuity. Re-run with a tighter ANI prompt or a different KF take when needed. Circle.
 - Acceptance: every shot has a circled ANI.
 
+## 7b. Compose for review
+
+- After a shot's SB/KF/DLG/ANI are circled: `tongflow_workflow_compose({ owner: '<SHOT>' })` → `<SHOT>_ALL.tongflow.json`; ask the user to review it on the canvas (they may tweak prompts / params and re-run the whole shot). After the cut exists, compose the episode too.
+
 ## 8. Music, mix, cut
 
 - `EP01_MUS` from `episode-music` with a mood prompt in its text node.

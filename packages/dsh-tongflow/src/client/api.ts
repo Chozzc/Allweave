@@ -152,6 +152,13 @@ export const studio = {
             "GET",
             `/p/${pid}/workflow/describe?key=${encodeURIComponent(key)}`,
         ),
+    compose: (pid: string, owner: string) =>
+        call<{
+            key: string;
+            links: number;
+            unlinked: string[];
+            nodeCount: number;
+        }>("POST", `/p/${pid}/compose`, { owner }),
     runs: (pid: string) => call<RunSummary[]>("GET", `/p/${pid}/runs`),
     startRun: (
         pid: string,

@@ -84,7 +84,8 @@ export async function executeRun(
     }
     if (request.target)
         assertPassForOwner(request.target.owner, request.target.pass);
-    for (const t of Object.values(request.targets ?? {}))
+    const targets = request.targets ?? doc.meta.targets;
+    for (const t of Object.values(targets ?? {}))
         assertPassForOwner(t.owner, t.pass);
 
     const workflow = structuredClone(doc.executable) as ExecutableWorkflow;
@@ -188,7 +189,7 @@ export async function executeRun(
         projectRoot: project.root,
         result,
         ...(request.target ? { target: request.target } : {}),
-        ...(request.targets ? { targets: request.targets } : {}),
+        ...(targets ? { targets } : {}),
         provenance,
     });
     if (!request.keepRunDir && ingest.loose.length === 0) {

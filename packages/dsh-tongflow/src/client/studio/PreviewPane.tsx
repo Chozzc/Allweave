@@ -25,6 +25,66 @@ export interface PreviewProps {
     ) => void;
     /** Open the run drawer for the current workflow. */
     onRun: (workflowKey: string) => void;
+    /** Select a workflow file (e.g. after composing). */
+    onOpenWorkflow: (key: string) => void;
+}
+
+/** "Compose whole shot / episode / entity" button; opens the result on the canvas. */
+function ComposeButton({
+    pid,
+    owner,
+    kind,
+    onOpenWorkflow,
+    onChanged,
+}: {
+    pid: string;
+    owner: string;
+    kind: "shot" | "episode" | "entity";
+    onOpenWorkflow: (key: string) => void;
+    onChanged: () => void;
+}) {
+    const t = useT();
+    const [busy, setBusy] = useState(false);
+    const [msg, setMsg] = useState<string | undefined>();
+    return (
+        <span className="tfs-row">
+            <button
+                className="tfs-btn small"
+                disabled={busy}
+                onClick={async () => {
+                    setBusy(true);
+                    setMsg(undefined);
+                    try {
+                        const r = await studio.compose(pid, owner);
+                        setMsg(
+                            t("composed", {
+                                n: r.nodeCount,
+                                links: r.links,
+                                key: r.key.split("/").pop() ?? r.key,
+                            }),
+                        );
+                        onChanged();
+                        onOpenWorkflow(r.key);
+                    } catch (e) {
+                        setMsg(e instanceof Error ? e.message : String(e));
+                    } finally {
+                        setBusy(false);
+                    }
+                }}
+            >
+                {busy
+                    ? "…"
+                    : t(
+                          kind === "shot"
+                              ? "composeShot"
+                              : kind === "episode"
+                                ? "composeEpisode"
+                                : "composeEntity",
+                      )}
+            </button>
+            {msg ? <span className="tfs-muted">{msg}</span> : null}
+        </span>
+    );
 }
 
 export function PreviewPane(p: PreviewProps) {
@@ -79,6 +139,7 @@ function EntityView({
     selectedTake,
     onSelectTake,
     onChanged,
+    onOpenWorkflow,
 }: PreviewProps & { entityId: string }) {
     const t = useT();
     const { data, error, reload } = useAsync(
@@ -124,6 +185,13 @@ function EntityView({
                     </span>
                 </h2>
                 <span className="tfs-spacer" />
+                <ComposeButton
+                    pid={pid}
+                    owner={entityId}
+                    kind="entity"
+                    onOpenWorkflow={onOpenWorkflow}
+                    onChanged={onChanged}
+                />
                 {editing ? (
                     <>
                         <button
@@ -247,6 +315,8 @@ function ShotView({
     refreshToken,
     selectedTake,
     onSelectTake,
+    onChanged,
+    onOpenWorkflow,
 }: PreviewProps & { shotId: string }) {
     const t = useT();
     const takes = useAsync(
@@ -263,6 +333,14 @@ function ShotView({
                         {String(bd.size ?? "")} {String(bd.camera ?? "")}
                     </span>
                 </h2>
+                <span className="tfs-spacer" />
+                <ComposeButton
+                    pid={pid}
+                    owner={shotId}
+                    kind="shot"
+                    onOpenWorkflow={onOpenWorkflow}
+                    onChanged={onChanged}
+                />
             </div>
             <div className="tfs-preview-body">
                 <div className="tfs-card">
@@ -387,6 +465,8 @@ function EpisodeView({
     refreshToken,
     selectedTake,
     onSelectTake,
+    onChanged,
+    onOpenWorkflow,
 }: PreviewProps & { episode: string }) {
     const t = useT();
     const { data, error } = useAsync(
@@ -405,6 +485,14 @@ function EpisodeView({
                     {episode}{" "}
                     <span className="tfs-muted">{bd?.title ?? ""}</span>
                 </h2>
+                <span className="tfs-spacer" />
+                <ComposeButton
+                    pid={pid}
+                    owner={episode}
+                    kind="episode"
+                    onOpenWorkflow={onOpenWorkflow}
+                    onChanged={onChanged}
+                />
             </div>
             <div className="tfs-preview-body">
                 {error ? <div className="tfs-error">{error}</div> : null}

@@ -4,7 +4,7 @@
     "flow": {
         "nodes": [
             {
-                "id": "c2213ad7-e699-481e-9d97-0574c43b9c63",
+                "id": "f4c88dbf-82e6-43c7-a34c-91f605d1271a",
                 "type": "audioNode",
                 "position": {
                     "x": 100,
@@ -16,7 +16,7 @@
                 }
             },
             {
-                "id": "b3f54eeb-965f-4cbe-8711-35b022d83255",
+                "id": "62a62a1b-e22e-4ff2-8b90-7aac4c92c4b2",
                 "type": "textNode",
                 "position": {
                     "x": 100,
@@ -28,7 +28,7 @@
                 }
             },
             {
-                "id": "7d473042-3681-49cf-b02c-5946560c6195",
+                "id": "c4c64f22-ec48-4a38-9371-835976cf3131",
                 "type": "textGenSpeechCloneComposeNode",
                 "position": {
                     "x": 620,
@@ -40,17 +40,17 @@
         ],
         "edges": [
             {
-                "id": "5c0350ae-594a-4934-a299-9d3e8ee609ca",
-                "source": "c2213ad7-e699-481e-9d97-0574c43b9c63",
-                "target": "7d473042-3681-49cf-b02c-5946560c6195",
+                "id": "4ea65970-ac03-423c-b325-6f2d1c65974a",
+                "source": "f4c88dbf-82e6-43c7-a34c-91f605d1271a",
+                "target": "c4c64f22-ec48-4a38-9371-835976cf3131",
                 "type": "custom-edge",
                 "sourceHandle": "out:audioNode",
                 "targetHandle": "in:ref_audio"
             },
             {
-                "id": "44e4d9af-3130-44f7-9f2e-3bde06b6cb46",
-                "source": "b3f54eeb-965f-4cbe-8711-35b022d83255",
-                "target": "7d473042-3681-49cf-b02c-5946560c6195",
+                "id": "6eb56bb0-2389-4b7c-a0bb-24f2d817f08c",
+                "source": "62a62a1b-e22e-4ff2-8b90-7aac4c92c4b2",
+                "target": "c4c64f22-ec48-4a38-9371-835976cf3131",
                 "type": "custom-edge",
                 "sourceHandle": "out:textNode",
                 "targetHandle": "in:text"

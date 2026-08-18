@@ -482,6 +482,15 @@ function buildRoutes(env: RouteEnv): Route[] {
             },
         },
         {
+            method: "POST",
+            pattern: "/p/:pid/compose",
+            handler: async (c) => {
+                const body = await readJson<{ owner?: string }>(c.req);
+                if (!body.owner) throw new HttpError(400, "owner is required");
+                json(c, await api.composeWorkflow(c.params.pid, body.owner));
+            },
+        },
+        {
             method: "GET",
             pattern: "/p/:pid/workflow/describe",
             handler: async (c) =>

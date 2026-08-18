@@ -164,6 +164,8 @@ export interface WorkflowFileMeta {
     bindings?: Record<string, string | string[]>;
     /** Where the outputs of this workflow are ingested by default. */
     target?: { owner: string; pass: Pass };
+    /** Per-output targets (composed workflows): workflow output name → owner/pass. */
+    targets?: Record<string, { owner: string; pass: Pass }>;
     /** Template id this file was created from. */
     template?: string;
     /** Free-form purpose note. */

@@ -426,3 +426,121 @@ describe("workflow placement", () => {
         ).toBe("workflows/templates/shot-keyframe.tongflow.json");
     });
 });
+
+describe("compose", () => {
+    it("links a shot's KF product into its ANI workflow and keeps every stage an output", async () => {
+        const { StudioApi } = await import("../src/api.ts");
+        const { Studio } = await import("../src/studio.ts");
+        const { Config } = await import("../src/config.ts");
+        const st = new Studio({ config: Config({ studioRoot: studio }) });
+        (st.registry as unknown as { get: () => Promise<unknown> }).get =
+            async () => ({
+                registry: {
+                    version: 1,
+                    generatedAt: "",
+                    nodePluginMap: {
+                        "image-fusion": ["p-fuse"],
+                        "image-gen-video": ["p-i2v"],
+                        "image-gen": ["p-gen"],
+                    },
+                    plugins: {},
+                },
+                meta: {},
+                scannedAt: "",
+            });
+        const api = new StudioApi(st);
+        await upsertEntity(root, { id: "CHR_MEI", card: "# Mei\n" });
+        await writeBreakdown(studio, projectId, {
+            episode: "EP01",
+            scenes: [
+                {
+                    id: "",
+                    shots: [
+                        {
+                            id: "",
+                            prompts: { KF: "mei looks up", ANI: "rain falls" },
+                        },
+                    ],
+                },
+            ],
+        });
+        const shot = "EP01_SC001_SH0010";
+        await api.newWorkflow(projectId, `${shot}_KF`, { name: "KF" });
+        const kf = await api.patchWorkflow(projectId, `${shot}_KF`, {
+            add_nodes: [
+                {
+                    alias: "refs",
+                    type: "imageNode",
+                    data: { fileKeys: ["tf://CHR_MEI/REF"] },
+                },
+                {
+                    alias: "prompt",
+                    type: "textNode",
+                    data: {
+                        texts: [
+                            "{{tf://STY_MAIN/prompt}}, {{tf://EP01_SC001_SH0010/prompt/KF}}",
+                        ],
+                    },
+                },
+                { alias: "fuse", type: "imageFusionNode" },
+            ],
+            add_edges: [
+                { from: "refs", to: "fuse" },
+                { from: "prompt", to: "fuse" },
+            ],
+        });
+        expect(kf.ok).toBe(true);
+        await api.newWorkflow(projectId, `${shot}_ANI`, { name: "ANI" });
+        const ani = await api.patchWorkflow(projectId, `${shot}_ANI`, {
+            add_nodes: [
+                {
+                    alias: "kf",
+                    type: "imageNode",
+                    data: { fileKeys: [`tf://${shot}/KF`] },
+                },
+                {
+                    alias: "motion",
+                    type: "textNode",
+                    data: { texts: ["{{tf://EP01_SC001_SH0010/prompt/ANI}}"] },
+                },
+                {
+                    alias: "i2v",
+                    type: "imageGenVideoComposeNode",
+                    data: { duration: 5 },
+                },
+            ],
+            add_edges: [
+                { from: "kf", to: "i2v" },
+                { from: "motion", to: "i2v" },
+            ],
+        });
+        expect(ani.ok).toBe(true);
+        const r = await api.composeWorkflow(projectId, shot);
+        expect(r.key).toBe(`shots/${shot}/${shot}_ALL.tongflow.json`);
+        expect(r.links).toBe(1);
+        expect(r.unlinked).toEqual(["tf://CHR_MEI/REF"]); // external product: stays a tf:// reference
+        const doc = await api.readWorkflow(projectId, r.key);
+        // The ANI's imageNode no longer carries the tf:// KF ref: it is fed by the fusion node.
+        const kfChannel = doc.flow.nodes.find(
+            (n) =>
+                n.type === "imageNode" &&
+                !((n.data as { fileKeys?: string[] }).fileKeys ?? []).length &&
+                doc.flow.edges.some((e) => e.target === n.id),
+        );
+        expect(kfChannel).toBeTruthy();
+        const fusion = doc.flow.nodes.find(
+            (n) => n.type === "imageFusionNode",
+        )!;
+        expect(
+            doc.flow.edges.filter((e) => e.source === fusion.id).length,
+        ).toBeGreaterThanOrEqual(2); // channel + tap
+        const targets = doc.meta.targets ?? {};
+        expect(
+            Object.values(targets)
+                .map((t) => t.pass)
+                .sort(),
+        ).toEqual(["ANI", "KF"]);
+        expect(doc.executable).toBeTruthy();
+        expect(doc.executable!.executionLevels.length).toBe(2); // fusion first, then i2v
+    });
+});

@@ -34,6 +34,7 @@ import {
     shotStatuses,
     writeBreakdown,
 } from "./project/breakdown.ts";
+import { composeWorkflow } from "./project/compose.ts";
 import {
     listProjects,
     loadProject,
@@ -450,6 +451,13 @@ export class StudioApi {
         };
     }
 
+    /** Compose an owner's asset workflows into one `<OWNER>_ALL` workflow (see project/compose.ts). */
+    async composeWorkflow(projectId: string, owner: string) {
+        const ref = await this.project(projectId);
+        const registry = (await this.studio.registry.get()).registry;
+        return composeWorkflow(ref.root, owner, registry);
+    }
+
     /** Update meta (bindings / target / purpose) without touching the graph. */
     async bindWorkflow(
         projectId: string,
@@ -851,7 +859,9 @@ export class StudioApi {
                 const st = await stat(join(dir, e.name));
                 out.push({
                     id: key,
-                    label: e.name,
+                    label: isWorkflowKey(key)
+                        ? e.name.slice(0, -WORKFLOW_EXT.length)
+                        : e.name,
                     kind: isWorkflowKey(key) ? "workflow" : "file",
                     key,
                     meta: {

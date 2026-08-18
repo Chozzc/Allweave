@@ -4,7 +4,7 @@
     "flow": {
         "nodes": [
             {
-                "id": "76bd71ef-8b09-48aa-8eb3-957dd2a0788e",
+                "id": "64607da5-22c4-4b5b-b66f-57fb8708a41b",
                 "type": "imageNode",
                 "position": {
                     "x": 100,
@@ -16,7 +16,7 @@
                 }
             },
             {
-                "id": "cef05040-0fe6-40b0-81fe-17fb49a86e91",
+                "id": "b0a3fcdf-9ca8-4e8a-ae89-1f79c14de458",
                 "type": "textNode",
                 "position": {
                     "x": 100,
@@ -28,7 +28,7 @@
                 }
             },
             {
-                "id": "8fe96970-c859-40ca-a8a3-b9aa86705ec3",
+                "id": "ac786477-3890-4551-8abc-1cc7806bc58d",
                 "type": "imageFusionNode",
                 "position": {
                     "x": 568,
@@ -40,17 +40,17 @@
         ],
         "edges": [
             {
-                "id": "b670ef4c-c67a-4ebd-89a5-b204bf9cb8f0",
-                "source": "76bd71ef-8b09-48aa-8eb3-957dd2a0788e",
-                "target": "8fe96970-c859-40ca-a8a3-b9aa86705ec3",
+                "id": "d9b8c980-dc17-47ea-9c1a-524fa9a52888",
+                "source": "64607da5-22c4-4b5b-b66f-57fb8708a41b",
+                "target": "ac786477-3890-4551-8abc-1cc7806bc58d",
                 "type": "custom-edge",
                 "sourceHandle": "out:imageNode",
                 "targetHandle": "in:images"
             },
             {
-                "id": "3a7662cf-761f-4b89-9eac-68cdd64b3151",
-                "source": "cef05040-0fe6-40b0-81fe-17fb49a86e91",
-                "target": "8fe96970-c859-40ca-a8a3-b9aa86705ec3",
+                "id": "3302bcd6-e351-435e-9dab-a8fdfdfa79fc",
+                "source": "b0a3fcdf-9ca8-4e8a-ae89-1f79c14de458",
+                "target": "ac786477-3890-4551-8abc-1cc7806bc58d",
                 "type": "custom-edge",
                 "sourceHandle": "out:textNode",
                 "targetHandle": "in:text"

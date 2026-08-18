@@ -4,7 +4,7 @@
     "flow": {
         "nodes": [
             {
-                "id": "4ac56cef-07df-4228-8807-f24b257c957c",
+                "id": "868e38ae-75f8-4b75-9c67-7318cc926f7a",
                 "type": "textNode",
                 "position": {
                     "x": 100,
@@ -16,7 +16,7 @@
                 }
             },
             {
-                "id": "585636d3-50c6-4164-8963-625ddf85eee9",
+                "id": "c724c798-33a0-4c0c-a9dc-ac032dae88df",
                 "type": "textGenImageNode",
                 "position": {
                     "x": 568,
@@ -28,9 +28,9 @@
         ],
         "edges": [
             {
-                "id": "50967365-8e78-4467-a467-4f0dda3ba208",
-                "source": "4ac56cef-07df-4228-8807-f24b257c957c",
-                "target": "585636d3-50c6-4164-8963-625ddf85eee9",
+                "id": "e0848be7-09dd-4bac-8cf3-edd426c76bb8",
+                "source": "868e38ae-75f8-4b75-9c67-7318cc926f7a",
+                "target": "c724c798-33a0-4c0c-a9dc-ac032dae88df",
                 "type": "custom-edge",
                 "sourceHandle": "out:textNode",
                 "targetHandle": "in:text"

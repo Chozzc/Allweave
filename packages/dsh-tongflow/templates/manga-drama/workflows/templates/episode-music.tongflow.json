@@ -4,7 +4,7 @@
     "flow": {
         "nodes": [
             {
-                "id": "93ee6f8c-dcd8-4497-ad22-d01051ca376b",
+                "id": "a6dcf28f-07c3-4aa6-8a69-6651f0b384d0",
                 "type": "textNode",
                 "position": {
                     "x": 100,
@@ -16,7 +16,7 @@
                 }
             },
             {
-                "id": "379610aa-02d1-48e8-ae9c-b9e2074b0e16",
+                "id": "0e1597a9-9dc6-436c-a15c-19a61b9ec8ac",
                 "type": "textGenMusicNode",
                 "position": {
                     "x": 588,
@@ -28,9 +28,9 @@
         ],
         "edges": [
             {
-                "id": "92ccbdb3-1b0a-4fd5-a103-6ed16d5ea72d",
-                "source": "93ee6f8c-dcd8-4497-ad22-d01051ca376b",
-                "target": "379610aa-02d1-48e8-ae9c-b9e2074b0e16",
+                "id": "b023c748-0f2a-4959-8e5e-86c42b675fe9",
+                "source": "a6dcf28f-07c3-4aa6-8a69-6651f0b384d0",
+                "target": "0e1597a9-9dc6-436c-a15c-19a61b9ec8ac",
                 "type": "custom-edge",
                 "sourceHandle": "out:textNode",
                 "targetHandle": "in:lyrics"

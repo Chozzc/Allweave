@@ -338,6 +338,15 @@ function StudioBody(props: StudioViewProps) {
                             onRun={(key) =>
                                 setDrawer({ kind: "run", workflowKey: key })
                             }
+                            onOpenWorkflow={(key) => {
+                                setSelected({
+                                    id: key,
+                                    label: key.split("/").pop() ?? key,
+                                    kind: "workflow",
+                                    key,
+                                });
+                                setDrawer(undefined);
+                            }}
                         />
                     ) : (
                         <div className="tfs-empty">
