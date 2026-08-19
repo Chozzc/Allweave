@@ -173,7 +173,7 @@ export function ChatPane({ useSession }: ChatPaneProps) {
                 ) : null}
                 {running ? (
                     <div className="tfs-muted" style={{ padding: "0 8px" }}>
-                        {t("crewWorking")}
+                        {t("working")}
                     </div>
                 ) : null}
                 {rows.map((r) => (

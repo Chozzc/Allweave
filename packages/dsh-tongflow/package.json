@@ -1,7 +1,7 @@
 {
     "name": "dsh-tongflow",
-    "version": "0.1.2",
-    "description": "TongFlow studio plugin for DeepSeek Harness (dsh): film-crew style project model, agent-authored TongFlow workflows, deterministic media generation, embedded canvas.",
+    "version": "0.2.0",
+    "description": "TongFlow studio plugin for DeepSeek Harness (dsh): agent-designed project folders, one TongFlow workflow per generated asset stored next to its outputs, deterministic media generation, embedded canvas.",
     "author": "tong-io",
     "license": "AGPL-3.0-only",
     "repository": {
@@ -44,7 +44,6 @@
     },
     "files": [
         "lib",
-        "templates",
         "skills",
         "cordis.patch.yml",
         "README.md"

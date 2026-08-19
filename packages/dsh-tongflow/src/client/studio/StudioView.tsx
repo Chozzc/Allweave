@@ -3,17 +3,12 @@ import type {} from "@deepseek-ai/dsh-client-runtime/client";
 import type {} from "@deepseek-ai/dsh-client-ui-conversation/client";
 import type { PropsRuntime } from "@deepseek-ai/dsh-client-ui-slots";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ProjectSummary, TakeInfo, TreeNode } from "../../shared/types.ts";
+import type { ProjectSummary, TreeNode } from "../../shared/types.ts";
 import { studio } from "../api.ts";
 import { makeT } from "../i18n.ts";
 import { ChatPane } from "./ChatPane.tsx";
 import { Drawer, Modal, TContext, useAsync, useT } from "./common.tsx";
-import {
-    RecentRuns,
-    RunPanel,
-    TakeCard,
-    useActiveRuns,
-} from "./InspectorPane.tsx";
+import { RecentRuns, RunPanel, useActiveRuns } from "./InspectorPane.tsx";
 import { PluginsDialog } from "./PluginsDialog.tsx";
 import { PreviewPane } from "./PreviewPane.tsx";
 import { TreePane } from "./TreePane.tsx";
@@ -41,7 +36,6 @@ export type StudioViewProps = Pick<
 const LS_KEY = "dsh-tongflow:project";
 
 type DrawerState =
-    | { kind: "take"; take: TakeInfo }
     | { kind: "run"; workflowKey: string }
     | { kind: "runs" }
     | undefined;
@@ -128,6 +122,38 @@ function StudioBody(props: StudioViewProps) {
     const [refresh, setRefresh] = useState(0);
     const [dialog, setDialog] = useState<"new" | "plugins" | undefined>();
     const bump = useCallback(() => setRefresh((n) => n + 1), []);
+    const fileInput = useRef<HTMLInputElement>(null);
+    const [uploadMsg, setUploadMsg] = useState<string | undefined>();
+
+    /** Folder uploads go to: the selected folder, or the folder of the selected file, else uploads/. */
+    const uploadDir = (): string => {
+        if (!selected) return "uploads";
+        if (selected.kind === "folder") return selected.key;
+        const i = selected.key.lastIndexOf("/");
+        return i < 0 ? "uploads" : selected.key.slice(0, i);
+    };
+    const doUpload = async (files: FileList | File[], dir = uploadDir()) => {
+        if (!pid || files.length === 0) return;
+        setUploadMsg(t("uploading"));
+        try {
+            const done = await studio.upload(pid, dir, files);
+            setUploadMsg(t("uploaded", { n: done.length, dir: dir || "/" }));
+            bump();
+            const first = done[0];
+            if (first)
+                setSelected({
+                    id: first.key,
+                    label: first.key.split("/").pop() ?? first.key,
+                    kind: "file",
+                    key: first.key,
+                });
+        } catch (e) {
+            setUploadMsg(
+                `${t("uploadFailed")}: ${e instanceof Error ? e.message : String(e)}`,
+            );
+        }
+        setTimeout(() => setUploadMsg(undefined), 4000);
+    };
 
     // Sync dark mode for the embedded canvas (dsh marks dark on body[data-ds-dark-theme]).
     useEffect(() => {
@@ -208,9 +234,9 @@ function StudioBody(props: StudioViewProps) {
 
     const onSelect = (n: TreeNode) => {
         setSelected(n);
-        if (drawer?.kind === "take") setDrawer(undefined);
+        if (drawer?.kind === "run" && n.key !== drawer.workflowKey)
+            setDrawer(undefined);
     };
-    const selectedTake = drawer?.kind === "take" ? drawer.take : undefined;
 
     return (
         <div
@@ -249,6 +275,31 @@ function StudioBody(props: StudioViewProps) {
                     >
                         {t("openInSession")}
                     </button>
+                ) : null}
+                {pid ? (
+                    <>
+                        <button
+                            className="tfs-btn"
+                            title={t("uploadHint", { dir: uploadDir() })}
+                            onClick={() => fileInput.current?.click()}
+                        >
+                            {t("upload")}
+                        </button>
+                        <input
+                            ref={fileInput}
+                            type="file"
+                            multiple
+                            style={{ display: "none" }}
+                            onChange={(e) => {
+                                if (e.target.files)
+                                    void doUpload(e.target.files);
+                                e.target.value = "";
+                            }}
+                        />
+                    </>
+                ) : null}
+                {uploadMsg ? (
+                    <span className="tfs-muted">{uploadMsg}</span>
                 ) : null}
                 <span className="tfs-spacer" />
                 {health.data && !health.data.ok ? (
@@ -325,12 +376,6 @@ function StudioBody(props: StudioViewProps) {
                             node={selected}
                             locale={locale}
                             refreshToken={refresh}
-                            selectedTake={selectedTake}
-                            onSelectTake={(tk) =>
-                                setDrawer(
-                                    tk ? { kind: "take", take: tk } : undefined,
-                                )
-                            }
                             onChanged={bump}
                             onCanvasSave={(s) => {
                                 if (s === "saved") tree.reload();
@@ -338,15 +383,11 @@ function StudioBody(props: StudioViewProps) {
                             onRun={(key) =>
                                 setDrawer({ kind: "run", workflowKey: key })
                             }
-                            onOpenWorkflow={(key) => {
-                                setSelected({
-                                    id: key,
-                                    label: key.split("/").pop() ?? key,
-                                    kind: "workflow",
-                                    key,
-                                });
+                            onOpen={(n) => {
+                                setSelected(n);
                                 setDrawer(undefined);
                             }}
+                            onDropFiles={(files, dir) => doUpload(files, dir)}
                         />
                     ) : (
                         <div className="tfs-empty">
@@ -362,45 +403,13 @@ function StudioBody(props: StudioViewProps) {
                     {pid && drawer ? (
                         <Drawer
                             title={
-                                drawer.kind === "take"
-                                    ? `${t("take")} · ${drawer.take.owner}/${drawer.take.pass}/${drawer.take.take}`
-                                    : drawer.kind === "run"
-                                      ? t("run").replace("▶ ", "")
-                                      : t("runs")
+                                drawer.kind === "run"
+                                    ? t("run").replace("▶ ", "")
+                                    : t("runs")
                             }
                             onClose={() => setDrawer(undefined)}
                         >
-                            {drawer.kind === "take" ? (
-                                <TakeCard
-                                    pid={pid}
-                                    take={drawer.take}
-                                    onChanged={() => {
-                                        bump();
-                                        setDrawer(undefined);
-                                    }}
-                                    onOpenTake={(tk) => {
-                                        setSelected({
-                                            id: tk.key,
-                                            label: tk.fileName,
-                                            kind: "file",
-                                            key: tk.key,
-                                        });
-                                        setDrawer(undefined);
-                                    }}
-                                    onOpenWorkflow={(key) => {
-                                        setSelected({
-                                            id: key,
-                                            label: key.replace(
-                                                /^workflows\//,
-                                                "",
-                                            ),
-                                            kind: "workflow",
-                                            key,
-                                        });
-                                        setDrawer(undefined);
-                                    }}
-                                />
-                            ) : drawer.kind === "run" ? (
+                            {drawer.kind === "run" ? (
                                 <RunPanel
                                     pid={pid}
                                     workflowKey={drawer.workflowKey}
@@ -448,16 +457,10 @@ function NewProjectDialog({
     onCreated: (p: ProjectSummary) => void;
 }) {
     const t = useT();
-    const templates = useAsync(() => studio.templates(locale), [locale]);
     const [title, setTitle] = useState("");
-    const [template, setTemplate] = useState("");
-    const [logline, setLogline] = useState("");
+    const [brief, setBrief] = useState("");
     const [busy, setBusy] = useState(false);
     const [err, setErr] = useState<string | undefined>();
-    useEffect(() => {
-        if (!template && templates.data?.[0]) setTemplate(templates.data[0].id);
-    }, [templates.data, template]);
-    const tpl = templates.data?.find((x) => x.id === template);
     return (
         <Modal title={t("newProjectTitle")} onClose={onClose}>
             <div className="tfs-form">
@@ -467,50 +470,36 @@ function NewProjectDialog({
                         className="tfs-input"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        placeholder="Rooftop Rain"
+                        placeholder={t("titlePlaceholder")}
                     />
                 </div>
                 <div>
-                    <div className="tfs-label">{t("template")}</div>
-                    <select
-                        className="tfs-select"
-                        value={template}
-                        onChange={(e) => setTemplate(e.target.value)}
-                    >
-                        {(templates.data ?? []).map((x) => (
-                            <option key={x.id} value={x.id}>
-                                {x.title}
-                            </option>
-                        ))}
-                    </select>
+                    <div className="tfs-label">{t("brief")}</div>
+                    <textarea
+                        className="tfs-textarea"
+                        style={{ minHeight: 90 }}
+                        value={brief}
+                        onChange={(e) => setBrief(e.target.value)}
+                        placeholder={t("briefPlaceholder")}
+                    />
                     <div className="tfs-muted" style={{ marginTop: 4 }}>
-                        {tpl?.description}
+                        {t("briefHint")}
                     </div>
-                </div>
-                <div>
-                    <div className="tfs-label">{t("logline")}</div>
-                    <input
-                        className="tfs-input"
-                        value={logline}
-                        onChange={(e) => setLogline(e.target.value)}
-                        placeholder={t("oneSentence")}
-                    />
                 </div>
                 {err ? <div className="tfs-error">{err}</div> : null}
                 <div className="tfs-row">
                     <button
                         className="tfs-btn primary"
-                        disabled={!title.trim() || !template || busy}
+                        disabled={!title.trim() || busy}
                         onClick={async () => {
                             setBusy(true);
                             setErr(undefined);
                             try {
                                 const p = await studio.createProject({
                                     title: title.trim(),
-                                    template,
                                     locale,
-                                    ...(logline.trim()
-                                        ? { logline: logline.trim() }
+                                    ...(brief.trim()
+                                        ? { brief: brief.trim() }
                                         : {}),
                                 });
                                 onCreated(p);

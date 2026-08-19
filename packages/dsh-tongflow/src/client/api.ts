@@ -1,13 +1,10 @@
 /** Same-origin client for the plugin's HTTP routes (`/tongflow/…`). */
 import type {
-    EntityDetail,
-    EntitySummary,
-    EpisodeBreakdown,
-    Pass,
+    OutputInfo,
+    PluginConfirmation,
     ProjectSummary,
     RunEvent,
     RunSummary,
-    TakeInfo,
     TreeNode,
     WorkflowFileMeta,
     WorkflowSummary,
@@ -46,12 +43,6 @@ async function call<T>(
     return data as T;
 }
 
-export interface TemplateInfo {
-    id: string;
-    title: string;
-    description: string;
-}
-
 export interface Health {
     ok: boolean;
     studioRoot: string;
@@ -80,46 +71,11 @@ export const studio = {
             "GET",
             `/session/${encodeURIComponent(sid)}/project`,
         ),
-    templates: (locale?: string) =>
-        call<TemplateInfo[]>(
-            "GET",
-            `/templates${locale ? `?locale=${encodeURIComponent(locale)}` : ""}`,
-        ),
     projects: () => call<ProjectSummary[]>("GET", "/projects"),
-    createProject: (body: {
-        title: string;
-        template: string;
-        logline?: string;
-        locale?: string;
-    }) => call<ProjectSummary>("POST", "/projects", body),
+    createProject: (body: { title: string; brief?: string; locale?: string }) =>
+        call<ProjectSummary>("POST", "/projects", body),
     project: (pid: string) => call<ProjectSummary>("GET", `/p/${pid}`),
     tree: (pid: string) => call<TreeNode[]>("GET", `/p/${pid}/tree`),
-    entities: (pid: string) =>
-        call<EntitySummary[]>("GET", `/p/${pid}/entities`),
-    entity: (pid: string, id: string) =>
-        call<EntityDetail>("GET", `/p/${pid}/entities/${id}`),
-    upsertEntity: (
-        pid: string,
-        id: string,
-        body: { card?: string; consistency?: Record<string, unknown> },
-    ) => call<EntityDetail>("PUT", `/p/${pid}/entities/${id}`, body),
-    breakdown: (pid: string, ep: string) =>
-        call<{ breakdown: EpisodeBreakdown; status: unknown[] }>(
-            "GET",
-            `/p/${pid}/breakdown/${ep}`,
-        ),
-    takes: (pid: string, owner: string) =>
-        call<Record<string, TakeInfo[]>>("GET", `/p/${pid}/takes/${owner}`),
-    circle: (pid: string, owner: string, pass: Pass, take: string) =>
-        call<TakeInfo>(
-            "POST",
-            `/p/${pid}/takes/${owner}/${pass}/${take}/circle`,
-        ),
-    deleteTake: (pid: string, owner: string, pass: Pass, take: string) =>
-        call<{ ok: true }>(
-            "DELETE",
-            `/p/${pid}/takes/${owner}/${pass}/${take}`,
-        ),
     workflows: (pid: string) =>
         call<WorkflowSummary[]>("GET", `/p/${pid}/workflows`),
     workflow: (pid: string, key: string) =>
@@ -135,37 +91,34 @@ export const studio = {
         ),
     newWorkflow: (
         pid: string,
-        body: { path: string; fromTemplate?: string; name?: string },
+        body: { path: string; copyFrom?: string; name?: string },
     ) => call<WorkflowSummary>("POST", `/p/${pid}/workflows`, body),
-    bindWorkflow: (
-        pid: string,
-        key: string,
-        body: Partial<WorkflowFileMeta> & { unbind?: string[] },
-    ) =>
+    workflowSummary: (pid: string, key: string) =>
         call<WorkflowSummary>(
-            "POST",
-            `/p/${pid}/workflow/bind?key=${encodeURIComponent(key)}`,
-            body,
+            "GET",
+            `/p/${pid}/workflow/summary?key=${encodeURIComponent(key)}`,
+        ),
+    workflowConfirmations: (pid: string, key: string) =>
+        call<PluginConfirmation[]>(
+            "GET",
+            `/p/${pid}/workflow/confirmations?key=${encodeURIComponent(key)}`,
+        ),
+    workflowOutputs: (pid: string, key: string) =>
+        call<OutputInfo[]>(
+            "GET",
+            `/p/${pid}/workflow/outputs?key=${encodeURIComponent(key)}`,
         ),
     describeWorkflow: (pid: string, key: string) =>
         call<Record<string, unknown>>(
             "GET",
             `/p/${pid}/workflow/describe?key=${encodeURIComponent(key)}`,
         ),
-    compose: (pid: string, owner: string) =>
-        call<{
-            key: string;
-            links: number;
-            unlinked: string[];
-            nodeCount: number;
-        }>("POST", `/p/${pid}/compose`, { owner }),
     runs: (pid: string) => call<RunSummary[]>("GET", `/p/${pid}/runs`),
     startRun: (
         pid: string,
         body: {
             workflowKey: string;
             inputs?: Record<string, unknown>;
-            target?: { owner: string; pass: Pass };
             note?: string;
         },
     ) => call<RunSummary>("POST", `/p/${pid}/runs`, body),
@@ -186,6 +139,26 @@ export const studio = {
             undefined,
             text,
         ),
+    /** Upload files into a project folder (default uploads/); never overwrites. */
+    upload: async (pid: string, dir: string, files: File[] | FileList) => {
+        const form = new FormData();
+        for (const f of Array.from(files)) form.append("file", f, f.name);
+        const res = await fetch(
+            `${PREFIX}/p/${pid}/upload?dir=${encodeURIComponent(dir)}`,
+            { method: "POST", body: form, credentials: "same-origin" },
+        );
+        const data = (await res.json().catch(() => undefined)) as
+            | {
+                  files?: { key: string; size: number; name: string }[];
+                  error?: string;
+              }
+            | undefined;
+        if (!res.ok)
+            throw new Error(data?.error ?? `${res.status} ${res.statusText}`);
+        return data?.files ?? [];
+    },
+    deleteFile: (pid: string, key: string) =>
+        call<{ ok: true }>("DELETE", `/p/${pid}/files/${encodeKey(key)}`),
     plugins: () =>
         call<{
             registry: {
@@ -227,8 +200,6 @@ export function encodeKey(key: string): string {
 }
 
 export function fileUrl(pid: string, key: string): string {
-    if (key.startsWith("tf://"))
-        return `${PREFIX}/p/${pid}/ref?ref=${encodeURIComponent(key)}`;
     if (/^(https?:|data:|blob:)/.test(key)) return key;
     return `${PREFIX}/p/${pid}/files/${encodeKey(key.replace(/^\//, ""))}`;
 }

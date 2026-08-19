@@ -4,8 +4,7 @@ import type { ContentBlock } from "@deepseek-ai/dsh-llm";
 import type { JsonValue } from "@deepseek-ai/dsh-session";
 import type { ToolRunContext } from "@deepseek-ai/dsh-tools";
 import type { StudioApi } from "../api.ts";
-import { isProjectId } from "../project/naming.ts";
-import { isInsideProject } from "../project/paths.ts";
+import { isInsideProject, isProjectId } from "../project/paths.ts";
 import { getSessionProject, setSessionProject } from "../session-projects.ts";
 import type { Studio } from "../studio.ts";
 
@@ -65,7 +64,7 @@ export async function resolveProjectId(
     if (projects.length === 1) return remember(projects[0].id);
     if (projects.length === 0) {
         throw new Error(
-            "no studio project yet — create one with tongflow_project_create({ title, template })",
+            "no studio project yet — create one with tongflow_project_create({ title, brief })",
         );
     }
     throw new Error(
@@ -109,11 +108,6 @@ export const PROJECT_PARAM = {
     description:
         "Project id. Optional when the session is opened inside a project folder or only one project exists.",
 } as const;
-
-export const OWNER_DESC =
-    "Owner id: an entity (CHR_MEI / LOC_ROOFTOP / PRP_… / STY_MAIN), a shot (EP01_SC003_SH0010) or an episode (EP01).";
-export const PASS_DESC =
-    "Pass code. Entity: REF (reference image) · VO (voice reference). Shot: SB (storyboard) · KF (keyframe) · ANI (animation) · DLG (dialogue audio). Episode: MUS · SFX · MIX · CUT.";
 
 export function errorMessage(error: unknown): string {
     return error instanceof Error ? error.message : String(error);

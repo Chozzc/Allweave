@@ -56,7 +56,7 @@ export class RunManager {
             request.workflowKey ??
             request.document?.name ??
             "workflow";
-        const summary = newRunSummary(runId, project.id, label, request.target);
+        const summary = newRunSummary(runId, project.id, label);
         const controller = new AbortController();
         const listeners = new Set<
             (event: RunEvent, summary: RunSummary) => void
@@ -242,8 +242,8 @@ export function formatEvent(e: RunEvent): string {
         case "workflow_failed":
             return `✗ workflow failed: ${e.error ?? ""}`;
         case "ingested":
-            return e.takes && e.takes.length > 0
-                ? `★ takes: ${e.takes.map((t) => `${t.owner}/${t.pass}/${t.take}`).join(", ")}`
+            return e.files && e.files.length > 0
+                ? `★ outputs: ${e.files.map((f) => f.key).join(", ")}`
                 : "";
         case "error":
             return `✗ ${e.error ?? "error"}`;

@@ -3,173 +3,90 @@
  * tiny constants only — this file is compiled into both bundles.
  */
 
-export type EntityKind = "character" | "location" | "prop" | "style";
-
-export type Pass =
-    | "REF"
-    | "VO"
-    | "SB"
-    | "KF"
-    | "ANI"
-    | "DLG"
-    | "MUS"
-    | "SFX"
-    | "MIX"
-    | "CUT";
-
-export type OwnerKind = "entity" | "shot" | "episode";
-
 /** `project.json` at the project root. */
 export interface ProjectManifest {
     id: string;
     title: string;
-    template: string;
     createdAt: string;
     updatedAt: string;
-    /** Free-form logline / synopsis shown in the project switcher. */
-    logline?: string;
-    naming: {
-        /** Shot numbers step by this much (default 10) so shots can be inserted. */
-        shotStep: number;
-    };
-    defaults: {
-        locale?: string;
-        /** Preferred plugin ids per ABI slot family, consulted by the skill. */
-        plugins?: Record<string, string>;
-    };
-    episodes: string[];
+    /** What the user wants to make, in their own words (the agent reads this first). */
+    brief?: string;
+    /** Language of the project's text files / UI (en, zh, ja…). */
+    locale?: string;
 }
 
-/** `consistency.json` next to an entity's card — the consistency kit that follows the entity. */
-export interface ConsistencyKit {
-    /** Preferred plugin / model for generating this entity. */
-    pluginId?: string;
-    model?: string;
-    seed?: number;
-    /** Text prepended / appended to every prompt that renders this entity. */
-    promptPrefix?: string;
-    promptSuffix?: string;
-    negativePrompt?: string;
-    /** Project-relative keys of the reference images (usually circled REF takes). */
-    refImages?: string[];
-    /** Project-relative key of the voice reference (usually the circled VO take). */
-    voiceRef?: string;
-    lora?: Record<string, unknown>;
-    notes?: string;
+/** How a plugin is billed — what the user is asked to confirm before the first run. */
+export type PluginBilling = "api" | "modal" | "local";
+
+/**
+ * One paid plugin a workflow run would use. Every run that costs money is
+ * confirmed by the user each time; nothing is remembered.
+ */
+export interface PluginConfirmation {
+    pluginId: string;
+    name?: string;
+    billing: PluginBilling;
+    /** Plain-language billing note the agent relays to the user. */
+    billingNote: string;
+    /** Model(s) the workflow's nodes ask for (from node data), if any. */
+    models: string[];
+    /** Models the plugin advertises for the slots involved. */
+    availableModels: string[];
+    /** Env keys the plugin needs and whether they are set. */
+    env: { key: string; required: boolean; set: boolean }[];
+    /** Node slots this plugin serves in the workflow. */
+    slots: string[];
+    /** Other installed plugins for the same slots (id → slots). */
+    alternatives: {
+        pluginId: string;
+        billing: PluginBilling;
+        slots: string[];
+    }[];
 }
 
-export interface EntitySummary {
-    id: string;
-    kind: EntityKind;
-    name: string;
-    /** First non-heading line of card.md. */
-    summary?: string;
-    circled: Partial<Record<Pass, string>>;
-    takeCounts: Partial<Record<Pass, number>>;
-}
-
-export interface EntityDetail extends EntitySummary {
-    card: string;
-    consistency: ConsistencyKit;
-}
-
-/** One dialogue line inside a shot. */
-export interface DialogueLine {
-    character: string;
-    line: string;
-    /** Delivery / emotion note for the voice pass. */
-    direction?: string;
-}
-
-export interface ShotBreakdown {
-    id: string;
-    /** Shot size: ECU, CU, MCU, MS, MLS, WS, EWS, POV, OTS, INSERT … */
-    size?: string;
-    /** Camera movement: static, pan, tilt, dolly, zoom, handheld … */
-    camera?: string;
-    /** Target duration in seconds. */
-    duration?: number;
-    characters?: string[];
-    props?: string[];
-    action?: string;
-    dialogue?: DialogueLine[];
-    /** Prompts the passes should use (agent-authored, entity refs by id). */
-    prompts?: Partial<Record<"SB" | "KF" | "ANI", string>>;
-    notes?: string;
-}
-
-export interface SceneBreakdown {
-    id: string;
-    title?: string;
-    location?: string;
-    timeOfDay?: string;
-    summary?: string;
-    characters?: string[];
-    shots: ShotBreakdown[];
-}
-
-/** `episodes/<EP>/scenes.json`. */
-export interface EpisodeBreakdown {
-    episode: string;
-    title?: string;
-    synopsis?: string;
-    scenes: SceneBreakdown[];
-}
-
-/** `takes.json` inside an owner directory. */
-export interface TakesManifest {
-    circled: Partial<Record<Pass, string>>;
-}
-
-export interface TakeInfo {
-    owner: string;
-    pass: Pass;
-    take: string;
-    takeNo: number;
-    ext: string;
-    /** Project-relative key. */
-    key: string;
-    fileName: string;
-    size: number;
-    mtime: string;
-    circled: boolean;
-    provenance?: Provenance;
-}
-
-/** `<take>.provenance.json` — how a take came to be. */
-export interface Provenance {
+/** One entry of `<stem>.runs.json` — how a numbered output came to be. */
+export interface OutputRecord {
+    /** Output number shared by every file this run produced (`<stem>.03.png`). */
+    no: number;
     runId: string;
-    /** Project-relative key of the workflow file. */
-    workflow: string;
     workflowHash: string;
-    workflowName?: string;
-    /** Input name → the `tf://` refs / literal values that were bound. */
-    bindings: Record<string, string | string[]>;
-    /** Input name → what the refs resolved to (project keys or text). */
-    resolved: Record<string, string[]>;
-    /** Which workflow output produced this take. */
-    output: string;
+    /** Input name → what was passed for this run. */
+    inputs: Record<string, string | string[]>;
+    /** File names produced (relative to the workflow's directory). */
+    files: string[];
+    /** Text outputs (workflow output name → texts), also written as `.txt` files. */
+    texts?: Record<string, string[]>;
     pluginIds: string[];
-    sdkVersion?: string;
     startedAt: string;
     finishedAt: string;
     durationMs: number;
-    /** Free-form note recorded when the take was made. */
     note?: string;
+}
+
+/** A generated file next to its workflow. */
+export interface OutputInfo {
+    /** Project-relative key. */
+    key: string;
+    fileName: string;
+    no: number;
+    /** Workflow output name when the run produced more than one. */
+    output?: string;
+    ext: string;
+    size: number;
+    mtime: string;
+    /** Project-relative key of the workflow that made it. */
+    workflow: string;
+    record?: OutputRecord;
 }
 
 /** Studio-side metadata stored in a `.tongflow.json` file under `meta`. */
 export interface WorkflowFileMeta {
-    /** Default `tf://` bindings per workflow input name. */
-    bindings?: Record<string, string | string[]>;
-    /** Where the outputs of this workflow are ingested by default. */
-    target?: { owner: string; pass: Pass };
-    /** Per-output targets (composed workflows): workflow output name → owner/pass. */
-    targets?: Record<string, { owner: string; pass: Pass }>;
-    /** Template id this file was created from. */
-    template?: string;
     /** Free-form purpose note. */
     purpose?: string;
+    /** Workflow output name → readable label used in generated file names (`<stem>.01.<label>.png`). */
+    outputLabels?: Record<string, string>;
+    /** Set on a composed workflow: which small workflows it was built from. */
+    composed?: { parts: string[]; at: string };
 }
 
 export interface WorkflowSummary {
@@ -181,11 +98,14 @@ export interface WorkflowSummary {
         name: string;
         type: string;
         required: boolean;
-        bound?: string | string[];
     }[];
     outputs: { name: string; type: string }[];
     meta: WorkflowFileMeta;
     mtime: string;
+    /** Number of generated files next to the workflow. */
+    outputCount: number;
+    /** Highest output number so far (0 when none). */
+    lastNo: number;
 }
 
 export type RunStatus =
@@ -217,7 +137,7 @@ export interface RunEvent {
     error?: string;
     totalNodes?: number;
     levels?: number;
-    takes?: TakeInfo[];
+    files?: OutputInfo[];
     /** Raw node outputs (nodeId → plugin output), on `ingested`. */
     outputs?: Record<string, unknown>;
 }
@@ -226,12 +146,11 @@ export interface RunSummary {
     runId: string;
     projectId: string;
     workflow: string;
-    target?: { owner: string; pass: Pass };
     status: RunStatus;
     startedAt: string;
     finishedAt?: string;
     error?: string;
-    takes: TakeInfo[];
+    files: OutputInfo[];
     /** Node id → last known state, for canvas overlays. */
     nodes: Record<
         string,
@@ -246,33 +165,33 @@ export interface RunSummary {
 
 export interface ProjectSummary extends ProjectManifest {
     root: string;
-    entityCount: number;
-    shotCount: number;
     workflowCount: number;
+    fileCount: number;
 }
 
-/** Tree node the studio's left pane renders. */
+/** Tree node the studio's left pane renders — a plain view of the project folder. */
 export interface TreeNode {
     id: string;
     label: string;
-    kind:
-        | "folder"
-        | "file"
-        | "entity"
-        | "shot"
-        | "episode"
-        | "scene"
-        | "workflow"
-        | "take";
-    key?: string;
+    kind: "folder" | "file" | "workflow" | "output";
+    /** Project-relative key. */
+    key: string;
     children?: TreeNode[];
-    meta?: Record<string, unknown>;
+    meta?: {
+        size?: number;
+        mtime?: string;
+        modality?: Modality;
+        /** For outputs: the number and workflow output name. */
+        no?: number;
+        output?: string;
+        /** For workflows: number of generated files. */
+        outputCount?: number;
+    };
 }
 
-export const MEDIA_EXT: Record<
-    string,
-    "image" | "video" | "audio" | "text" | "model" | "file"
-> = {
+export type Modality = "image" | "video" | "audio" | "text" | "model" | "file";
+
+export const MEDIA_EXT: Record<string, Modality> = {
     png: "image",
     jpg: "image",
     jpeg: "image",
@@ -289,6 +208,9 @@ export const MEDIA_EXT: Record<
     md: "text",
     txt: "text",
     json: "text",
+    yaml: "text",
+    yml: "text",
+    csv: "text",
     srt: "text",
     glb: "model",
     gltf: "model",
@@ -297,8 +219,6 @@ export const MEDIA_EXT: Record<
     splat: "model",
 };
 
-export function modalityOfExt(
-    ext: string,
-): "image" | "video" | "audio" | "text" | "model" | "file" {
+export function modalityOfExt(ext: string): Modality {
     return MEDIA_EXT[ext.toLowerCase().replace(/^\./, "")] ?? "file";
 }

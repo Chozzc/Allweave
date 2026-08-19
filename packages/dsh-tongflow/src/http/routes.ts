@@ -2,32 +2,29 @@
  * HTTP routes on dsh's web server, under `<prefix>` (default `/tongflow`):
  *
  *   Studio API (JSON)              /tongflow/projects, /tongflow/p/:pid/…, /tongflow/runs/…, /tongflow/plugins…
- *   Files (Range)                  /tongflow/p/:pid/files/<key>   ·  /tongflow/p/:pid/ref?ref=tf://…
+ *   Files (Range)                  /tongflow/p/:pid/files/<key>
  *   Canvas-compat API              /tongflow/p/:pid/api/…  — what `tongflow/canvas` calls when its
  *                                  apiBaseUrl is `/tongflow/p/:pid` (task create/wait/stop, plugins registry,
  *                                  upload, uploads, material stubs).
  */
 
-import { mkdir, unlink, writeFile } from "node:fs/promises";
+import { unlink } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { basename, extname, join } from "node:path";
+
 import type { Context } from "@deepseek-ai/cordis";
 import type {} from "@deepseek-ai/dsh-host-webserver";
 import { TaskStatus } from "tongflow";
 import type { StudioApi } from "../api.ts";
 import type { RunRecord } from "../engine/runs.ts";
 import type { CanvasTaskBody } from "../engine/single-node.ts";
-import { DIRS, fromProjectKey, toProjectKey } from "../project/paths.ts";
 import { getSessionProject } from "../session-projects.ts";
 import type {
-    EpisodeBreakdown,
-    Pass,
     RunEvent,
     RunSummary,
     WorkflowFileMeta,
 } from "../shared/types.ts";
 import type { Studio } from "../studio.ts";
-import { exists, writeFileAtomic } from "../util/fsx.ts";
+import { writeFileAtomic } from "../util/fsx.ts";
 import { serveFile } from "./files.ts";
 import { openSse } from "./sse.ts";
 import {
@@ -41,6 +38,9 @@ import {
     sendError,
     sendJson,
 } from "./util.ts";
+
+/** Where files dropped onto the canvas land inside a project. */
+const UPLOADS_DIR = "uploads";
 
 export interface RouteEnv {
     studio: Studio;
@@ -206,12 +206,6 @@ function buildRoutes(env: RouteEnv): Route[] {
         /* ---------------- projects ---------------- */
         {
             method: "GET",
-            pattern: "/templates",
-            handler: async (c) =>
-                json(c, await api.listTemplates(q(c.url, "locale"))),
-        },
-        {
-            method: "GET",
             pattern: "/projects",
             handler: async (c) => json(c, await api.listProjects()),
         },
@@ -221,19 +215,18 @@ function buildRoutes(env: RouteEnv): Route[] {
             handler: async (c) => {
                 const body = await readJson<{
                     title?: string;
-                    template?: string;
-                    logline?: string;
+                    brief?: string;
                     id?: string;
+                    locale?: string;
                 }>(c.req);
-                if (!body.title || !body.template)
-                    throw new HttpError(400, "title and template are required");
+                if (!body.title) throw new HttpError(400, "title is required");
                 json(
                     c,
                     await api.createProject({
                         title: body.title,
-                        template: body.template,
-                        ...(body.logline ? { logline: body.logline } : {}),
+                        ...(body.brief ? { brief: body.brief } : {}),
                         ...(body.id ? { id: body.id } : {}),
+                        ...(body.locale ? { locale: body.locale } : {}),
                     }),
                     201,
                 );
@@ -256,147 +249,6 @@ function buildRoutes(env: RouteEnv): Route[] {
             handler: async (c) => json(c, await api.tree(c.params.pid)),
         },
 
-        /* ---------------- bible ---------------- */
-        {
-            method: "GET",
-            pattern: "/p/:pid/entities",
-            handler: async (c) => json(c, await api.listEntities(c.params.pid)),
-        },
-        {
-            method: "GET",
-            pattern: "/p/:pid/entities/:id",
-            handler: async (c) => {
-                const e = await api.getEntity(c.params.pid, c.params.id);
-                if (!e)
-                    throw new HttpError(404, `entity ${c.params.id} not found`);
-                json(c, e);
-            },
-        },
-        {
-            method: "PUT",
-            pattern: "/p/:pid/entities/:id",
-            handler: async (c) => {
-                const body = await readJson<{
-                    card?: string;
-                    consistency?: Record<string, unknown>;
-                }>(c.req);
-                json(
-                    c,
-                    await api.upsertEntity(c.params.pid, {
-                        id: c.params.id,
-                        ...(body.card !== undefined ? { card: body.card } : {}),
-                        ...(body.consistency
-                            ? { consistency: body.consistency }
-                            : {}),
-                    }),
-                );
-            },
-        },
-        {
-            method: "DELETE",
-            pattern: "/p/:pid/entities/:id",
-            handler: async (c) => {
-                await api.deleteEntity(c.params.pid, c.params.id);
-                json(c, { ok: true });
-            },
-        },
-
-        /* ---------------- breakdown ---------------- */
-        {
-            method: "GET",
-            pattern: "/p/:pid/breakdown/:ep",
-            handler: async (c) => {
-                const bd = await api.getBreakdown(c.params.pid, c.params.ep);
-                if (!bd)
-                    throw new HttpError(404, `no breakdown for ${c.params.ep}`);
-                json(c, {
-                    breakdown: bd,
-                    status: await api.shotStatuses(c.params.pid, c.params.ep),
-                });
-            },
-        },
-        {
-            method: "PUT",
-            pattern: "/p/:pid/breakdown/:ep",
-            handler: async (c) => {
-                const body = await readJson<EpisodeBreakdown>(c.req);
-                json(
-                    c,
-                    await api.setBreakdown(c.params.pid, {
-                        ...body,
-                        episode: c.params.ep,
-                    }),
-                );
-            },
-        },
-
-        /* ---------------- takes ---------------- */
-        {
-            method: "GET",
-            pattern: "/p/:pid/takes/:owner",
-            handler: async (c) =>
-                json(c, await api.allTakes(c.params.pid, c.params.owner)),
-        },
-        {
-            method: "GET",
-            pattern: "/p/:pid/takes/:owner/:pass",
-            handler: async (c) =>
-                json(
-                    c,
-                    await api.listTakes(
-                        c.params.pid,
-                        c.params.owner,
-                        c.params.pass as Pass,
-                    ),
-                ),
-        },
-        {
-            method: "POST",
-            pattern: "/p/:pid/takes/:owner/:pass/:take/circle",
-            handler: async (c) =>
-                json(
-                    c,
-                    await api.circleTake(
-                        c.params.pid,
-                        c.params.owner,
-                        c.params.pass as Pass,
-                        c.params.take,
-                    ),
-                ),
-        },
-        {
-            method: "DELETE",
-            pattern: "/p/:pid/takes/:owner/:pass/:take",
-            handler: async (c) => {
-                await api.deleteTake(
-                    c.params.pid,
-                    c.params.owner,
-                    c.params.pass as Pass,
-                    c.params.take,
-                );
-                json(c, { ok: true });
-            },
-        },
-        {
-            method: "POST",
-            pattern: "/p/:pid/notes",
-            handler: async (c) => {
-                const body = await readJson<{
-                    subject?: string;
-                    text?: string;
-                }>(c.req);
-                if (!body.subject || !body.text)
-                    throw new HttpError(400, "subject and text are required");
-                json(c, {
-                    key: await api.addNote(
-                        c.params.pid,
-                        body.subject,
-                        body.text,
-                    ),
-                });
-            },
-        },
-
         /* ---------------- workflows ---------------- */
         {
             method: "GET",
@@ -410,7 +262,7 @@ function buildRoutes(env: RouteEnv): Route[] {
             handler: async (c) =>
                 json(
                     c,
-                    await api.readWorkflow(
+                    await api.readWorkflowForCanvas(
                         c.params.pid,
                         requireQ(c.url, "key"),
                     ),
@@ -441,7 +293,7 @@ function buildRoutes(env: RouteEnv): Route[] {
             handler: async (c) => {
                 const body = await readJson<{
                     path?: string;
-                    fromTemplate?: string;
+                    copyFrom?: string;
                     name?: string;
                     description?: string;
                     meta?: WorkflowFileMeta;
@@ -452,17 +304,6 @@ function buildRoutes(env: RouteEnv): Route[] {
                     await api.newWorkflow(c.params.pid, body.path, body),
                     201,
                 );
-            },
-        },
-        {
-            method: "POST",
-            pattern: "/p/:pid/workflow/bind",
-            handler: async (c) => {
-                const key = requireQ(c.url, "key");
-                const body = await readJson<
-                    Partial<WorkflowFileMeta> & { unbind?: string[] }
-                >(c.req);
-                json(c, await api.bindWorkflow(c.params.pid, key, body));
             },
         },
         {
@@ -486,9 +327,13 @@ function buildRoutes(env: RouteEnv): Route[] {
             method: "POST",
             pattern: "/p/:pid/compose",
             handler: async (c) => {
-                const body = await readJson<{ owner?: string }>(c.req);
-                if (!body.owner) throw new HttpError(400, "owner is required");
-                json(c, await api.composeWorkflow(c.params.pid, body.owner));
+                const body = await readJson<{
+                    workflows?: string[];
+                    folder?: string;
+                    path?: string;
+                    name?: string;
+                }>(c.req);
+                json(c, await api.composeWorkflows(c.params.pid, body), 201);
             },
         },
         {
@@ -498,6 +343,40 @@ function buildRoutes(env: RouteEnv): Route[] {
                 json(
                     c,
                     await api.describeWorkflow(
+                        c.params.pid,
+                        requireQ(c.url, "key"),
+                    ),
+                ),
+        },
+
+        {
+            method: "GET",
+            pattern: "/p/:pid/workflow/summary",
+            handler: async (c) =>
+                json(
+                    c,
+                    await api.workflowSummary(
+                        c.params.pid,
+                        requireQ(c.url, "key"),
+                    ),
+                ),
+        },
+        {
+            method: "GET",
+            pattern: "/p/:pid/workflow/confirmations",
+            handler: async (c) =>
+                json(
+                    c,
+                    await api.paidPlugins(c.params.pid, requireQ(c.url, "key")),
+                ),
+        },
+        {
+            method: "GET",
+            pattern: "/p/:pid/workflow/outputs",
+            handler: async (c) =>
+                json(
+                    c,
+                    await api.workflowOutputs(
                         c.params.pid,
                         requireQ(c.url, "key"),
                     ),
@@ -517,7 +396,6 @@ function buildRoutes(env: RouteEnv): Route[] {
                 const body = await readJson<{
                     workflowKey?: string;
                     inputs?: Record<string, unknown>;
-                    target?: { owner: string; pass: Pass };
                     note?: string;
                 }>(c.req);
                 if (!body.workflowKey)
@@ -606,6 +484,34 @@ function buildRoutes(env: RouteEnv): Route[] {
         },
 
         /* ---------------- files ---------------- */
+        /** Studio upload: multipart `file` field(s) into `?dir=<project key>` (default `uploads/`). */
+        {
+            method: "POST",
+            pattern: "/p/:pid/upload",
+            handler: async (c) => {
+                const form = await readFormData(c.req);
+                const dir = q(c.url, "dir") || UPLOADS_DIR;
+                const files = form
+                    .getAll("file")
+                    .filter((f) => f instanceof File) as File[];
+                if (files.length === 0)
+                    throw new HttpError(
+                        400,
+                        "multipart field 'file' is required",
+                    );
+                const out: { key: string; size: number; name: string }[] = [];
+                for (const file of files) {
+                    const r = await api.uploadFile(
+                        c.params.pid,
+                        dir,
+                        file.name,
+                        new Uint8Array(await file.arrayBuffer()),
+                    );
+                    out.push({ ...r, name: file.name });
+                }
+                json(c, { files: out }, 201);
+            },
+        },
         {
             method: "GET",
             pattern: "/p/:pid/files/*",
@@ -634,26 +540,6 @@ function buildRoutes(env: RouteEnv): Route[] {
                 json(c, { ok: true });
             },
         },
-        {
-            method: "GET",
-            pattern: "/p/:pid/ref",
-            handler: async (c) => {
-                const r = await api.resolveRef(
-                    c.params.pid,
-                    requireQ(c.url, "ref"),
-                );
-                if (r.kind === "texts") {
-                    json(c, { kind: "texts", texts: r.texts });
-                    return;
-                }
-                if (r.paths.length !== 1) {
-                    json(c, { kind: "files", keys: r.keys });
-                    return;
-                }
-                await serveFile(c.req, c.res, r.paths[0]);
-            },
-        },
-
         /* ---------------- canvas-compat (`tongflow/canvas` with apiBaseUrl=/tongflow/p/:pid) ---------------- */
         {
             method: "GET",
@@ -724,28 +610,16 @@ function buildRoutes(env: RouteEnv): Route[] {
                         400,
                         "multipart field 'file' is required",
                     );
-                const ref = await api.project(c.params.pid);
-                const dir = join(ref.root, DIRS.inbox);
-                await mkdir(dir, { recursive: true });
-                const safe =
-                    basename(file.name || "upload").replace(
-                        /[^A-Za-z0-9._-]+/g,
-                        "_",
-                    ) || "upload";
-                let dest = join(dir, safe);
-                if (await exists(dest)) {
-                    const ext = extname(safe);
-                    dest = join(
-                        dir,
-                        `${safe.slice(0, safe.length - ext.length)}-${Date.now().toString(36)}${ext}`,
-                    );
-                }
-                await writeFile(dest, Buffer.from(await file.arrayBuffer()));
-                const key = toProjectKey(ref.root, dest);
+                const { key, size } = await api.uploadFile(
+                    c.params.pid,
+                    UPLOADS_DIR,
+                    file.name,
+                    new Uint8Array(await file.arrayBuffer()),
+                );
                 json(c, {
                     fileKey: key,
                     url: `${env.prefix}/p/${c.params.pid}/files/${key}`,
-                    size: file.size,
+                    size,
                     name: file.name,
                 });
             },
@@ -887,5 +761,3 @@ function canvasFrame(
             return undefined;
     }
 }
-
-export { fromProjectKey };

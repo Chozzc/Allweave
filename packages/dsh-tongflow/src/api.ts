@@ -3,7 +3,14 @@
  * call. Everything is keyed by project id; the project directory on disk is
  * the source of truth (no in-memory canvas state).
  */
-import { readdir, readFile, stat } from "node:fs/promises";
+import {
+    mkdir,
+    readdir,
+    readFile,
+    stat,
+    unlink,
+    writeFile,
+} from "node:fs/promises";
 import { basename, join } from "node:path";
 import {
     type ExecuteToolContext,
@@ -15,6 +22,11 @@ import {
     resolvedSpecForNodeType,
     type ToolResult,
 } from "tongflow";
+import {
+    categoryOf,
+    NODE_CATEGORY_ORDER,
+    type NodeCategory,
+} from "./engine/node-categories.ts";
 import type { RunRequest } from "./engine/run.ts";
 import type { RunRecord } from "./engine/runs.ts";
 import {
@@ -22,61 +34,33 @@ import {
     singleNodeDocument,
 } from "./engine/single-node.ts";
 import {
-    deleteEntity,
-    getEntity,
-    listEntities,
-    type UpsertEntityInput,
-    upsertEntity,
-} from "./project/bible.ts";
+    type ComposeResult,
+    composeWorkflows,
+    workflowsInFolder,
+} from "./project/compose.ts";
 import {
-    listEpisodes,
-    readBreakdown,
-    shotStatuses,
-    writeBreakdown,
-} from "./project/breakdown.ts";
-import { composeWorkflow } from "./project/compose.ts";
-import {
+    type CreateProjectInput,
+    createProject,
     listProjects,
     loadProject,
     type ProjectRef,
     summarize,
 } from "./project/manifest.ts";
+import { listOutputs, readRunsLog, runsLogKey } from "./project/outputs.ts";
 import {
-    ENTITY_PASSES,
-    EPISODE_PASSES,
-    isEpisodeId,
-    ownerKindOf,
-    type Pass,
-    passesFor,
-    SHOT_PASSES,
-} from "./project/naming.ts";
-import {
-    DIRS,
     fromProjectKey,
-    ownerDir,
-    projectPaths,
+    normalizeKey,
+    RUNS_DIR,
     toProjectKey,
     WORKFLOW_EXT,
 } from "./project/paths.ts";
-import { resolveRef } from "./project/refs.ts";
 import {
-    circleTake,
-    deleteTake,
-    listTakes,
-    takeOverview,
-} from "./project/takes.ts";
-import {
-    type CreateProjectInput,
-    createProject,
-    listTemplates,
-} from "./project/templates.ts";
-import {
+    canvasView,
     deleteWorkflowFile,
     hydrateStore,
     isWorkflowKey,
     listWorkflows,
     normalizeWorkflowKey,
-    parseAssetWorkflowName,
     readWorkflowFile,
     saveWorkflowFile,
     summarizeWorkflow,
@@ -84,27 +68,22 @@ import {
     workflowHash,
 } from "./project/workflow-file.ts";
 import type {
-    EntityDetail,
-    EntitySummary,
-    EpisodeBreakdown,
+    OutputInfo,
+    PluginBilling,
+    PluginConfirmation,
     ProjectSummary,
-    TakeInfo,
     TreeNode,
     WorkflowFileMeta,
     WorkflowSummary,
 } from "./shared/types.ts";
 import { modalityOfExt } from "./shared/types.ts";
 import type { Studio } from "./studio.ts";
-import { exists, nowIso, writeFileAtomic } from "./util/fsx.ts";
+import { exists, writeFileAtomic } from "./util/fsx.ts";
 
 export class StudioApi {
     constructor(readonly studio: Studio) {}
 
     /* ---------------- projects ---------------- */
-
-    listTemplates(locale?: string) {
-        return listTemplates(locale ?? this.studio.config.locale);
-    }
 
     listProjects(): Promise<ProjectSummary[]> {
         return listProjects(this.studio.paths.root);
@@ -126,155 +105,31 @@ export class StudioApi {
         return summarize(await this.project(projectId));
     }
 
-    /** The crew board: entities, episodes → shots with pass status, workflows, recent runs. */
+    /**
+     * What exists: the folder tree (as indented text), every workflow with
+     * its outputs, recent runs. This is what the agent reads first.
+     */
     async status(projectId: string) {
         const ref = await this.project(projectId);
-        const [summary, entities, episodes, workflows] = await Promise.all([
+        const [summary, workflows, tree] = await Promise.all([
             summarize(ref),
-            listEntities(ref.root),
-            listEpisodes(ref.root),
             listWorkflows(ref.root),
+            this.tree(projectId),
         ]);
-        const episodeBoards = [];
-        for (const ep of episodes) {
-            const shots = await shotStatuses(ref.root, ep);
-            const post = await takeOverview(ref.root, ep, EPISODE_PASSES);
-            episodeBoards.push({ episode: ep, shots, post });
-        }
         return {
             project: summary,
-            entities,
-            episodes: episodeBoards,
-            workflows,
+            tree: renderTree(tree),
+            workflows: workflows.map((w) => ({
+                key: w.key,
+                name: w.name,
+                ...(w.description ? { description: w.description } : {}),
+                nodes: w.nodeCount,
+                inputs: w.inputs,
+                outputs: w.outputCount,
+                lastNo: w.lastNo,
+            })),
             runs: this.studio.runs.list(projectId).slice(0, 10),
         };
-    }
-
-    /* ---------------- bible ---------------- */
-
-    async listEntities(projectId: string): Promise<EntitySummary[]> {
-        return listEntities((await this.project(projectId)).root);
-    }
-
-    async getEntity(
-        projectId: string,
-        id: string,
-    ): Promise<EntityDetail | undefined> {
-        return getEntity((await this.project(projectId)).root, id);
-    }
-
-    async upsertEntity(
-        projectId: string,
-        input: UpsertEntityInput,
-    ): Promise<EntityDetail> {
-        return upsertEntity((await this.project(projectId)).root, input);
-    }
-
-    async deleteEntity(projectId: string, id: string): Promise<void> {
-        return deleteEntity((await this.project(projectId)).root, id);
-    }
-
-    /* ---------------- breakdown ---------------- */
-
-    async getBreakdown(
-        projectId: string,
-        episode: string,
-    ): Promise<EpisodeBreakdown | undefined> {
-        return readBreakdown((await this.project(projectId)).root, episode);
-    }
-
-    async setBreakdown(
-        projectId: string,
-        breakdown: EpisodeBreakdown,
-    ): Promise<EpisodeBreakdown> {
-        const ref = await this.project(projectId);
-        return writeBreakdown(
-            this.studio.paths.root,
-            projectId,
-            breakdown,
-            ref.manifest.naming.shotStep,
-        );
-    }
-
-    async shotStatuses(projectId: string, episode: string) {
-        return shotStatuses((await this.project(projectId)).root, episode);
-    }
-
-    /* ---------------- takes ---------------- */
-
-    async listTakes(
-        projectId: string,
-        owner: string,
-        pass: Pass,
-    ): Promise<TakeInfo[]> {
-        return listTakes((await this.project(projectId)).root, owner, pass);
-    }
-
-    async allTakes(
-        projectId: string,
-        owner: string,
-    ): Promise<Record<string, TakeInfo[]>> {
-        const root = (await this.project(projectId)).root;
-        const out: Record<string, TakeInfo[]> = {};
-        for (const pass of passesFor(ownerKindOf(owner))) {
-            const takes = await listTakes(root, owner, pass);
-            if (takes.length > 0) out[pass] = takes;
-        }
-        return out;
-    }
-
-    async circleTake(
-        projectId: string,
-        owner: string,
-        pass: Pass,
-        take: string,
-    ): Promise<TakeInfo> {
-        return circleTake(
-            (await this.project(projectId)).root,
-            owner,
-            pass,
-            take,
-        );
-    }
-
-    async deleteTake(
-        projectId: string,
-        owner: string,
-        pass: Pass,
-        take: string,
-    ): Promise<void> {
-        return deleteTake(
-            (await this.project(projectId)).root,
-            owner,
-            pass,
-            take,
-        );
-    }
-
-    /** Append a dated review note under notes/. */
-    async addNote(
-        projectId: string,
-        subject: string,
-        text: string,
-    ): Promise<string> {
-        const ref = await this.project(projectId);
-        const day = nowIso().slice(0, 10).replace(/-/g, "");
-        const safe =
-            subject.replace(/[^A-Za-z0-9_-]+/g, "_").slice(0, 60) || "note";
-        const key = `${DIRS.dailies}/${day}_${safe}.md`;
-        const abs = fromProjectKey(ref.root, key);
-        const prev = (await exists(abs))
-            ? await readFile(abs, "utf8")
-            : `# ${subject}\n`;
-        await writeFileAtomic(
-            abs,
-            `${prev.trimEnd()}\n\n## ${nowIso()}\n\n${text.trim()}\n`,
-        );
-        return key;
-    }
-
-    async resolveRef(projectId: string, ref: string) {
-        return resolveRef((await this.project(projectId)).root, ref);
     }
 
     /* ---------------- workflows ---------------- */
@@ -293,6 +148,15 @@ export class StudioApi {
         );
     }
 
+    /** The document as the canvas should see it (references anchored at the project root). */
+    async readWorkflowForCanvas(
+        projectId: string,
+        keyInput: string,
+    ): Promise<WorkflowDocument> {
+        const key = normalizeWorkflowKey(keyInput);
+        return canvasView(await this.readWorkflow(projectId, key), key);
+    }
+
     async workflowSummary(
         projectId: string,
         key: string,
@@ -303,12 +167,12 @@ export class StudioApi {
         );
     }
 
-    /** Create an empty workflow file, or copy one (template key or another workflow) — never overwrites. */
+    /** Create an empty workflow file, or copy another workflow — never overwrites. */
     async newWorkflow(
         projectId: string,
         keyInput: string,
         options: {
-            fromTemplate?: string;
+            copyFrom?: string;
             name?: string;
             description?: string;
             meta?: WorkflowFileMeta;
@@ -322,22 +186,9 @@ export class StudioApi {
                 `${key} already exists — patch it, or pick another name`,
             );
         let doc: WorkflowDocument;
-        if (options.fromTemplate) {
-            const templateKey = await this.resolveTemplateKey(
-                ref.root,
-                options.fromTemplate,
-            );
-            const src = await this.readWorkflow(projectId, templateKey);
-            // A per-asset copy: drop the template's own target/purpose, keep the graph.
-            const { target: _t, purpose: _p, ...inherited } = src.meta;
-            doc = {
-                ...src,
-                meta: {
-                    ...inherited,
-                    ...(options.meta ?? {}),
-                    template: templateKey,
-                },
-            };
+        if (options.copyFrom) {
+            const src = await this.readWorkflow(projectId, options.copyFrom);
+            doc = { ...src, meta: { ...src.meta, ...(options.meta ?? {}) } };
             if (options.name) doc.name = options.name;
             if (options.description !== undefined)
                 doc.description = options.description;
@@ -360,20 +211,6 @@ export class StudioApi {
             description: doc.description ?? "",
         });
         return summarizeWorkflow(ref.root, key);
-    }
-
-    /** `shot-keyframe` → workflows/templates/shot-keyframe.tongflow.json when such a file exists, else the key as given. */
-    private async resolveTemplateKey(
-        projectRoot: string,
-        input: string,
-    ): Promise<string> {
-        const direct = normalizeWorkflowKey(input);
-        if (await exists(fromProjectKey(projectRoot, direct))) return direct;
-        const base = basename(direct, WORKFLOW_EXT);
-        const inTemplates = `${DIRS.workflows}/templates/${base}${WORKFLOW_EXT}`;
-        if (await exists(fromProjectKey(projectRoot, inTemplates)))
-            return inTemplates;
-        return direct;
     }
 
     /** Run one of the tongflow graph tools (apply_graph_patch / read_canvas / validate_workflow / describe_node_type) against a file. */
@@ -419,7 +256,7 @@ export class StudioApi {
         );
     }
 
-    /** Full read: rendered canvas + inputs/outputs + bindings + validation. */
+    /** Full read: rendered canvas + inputs/outputs + generated files + validation. */
     async describeWorkflow(projectId: string, keyInput: string) {
         const ref = await this.project(projectId);
         const key = normalizeWorkflowKey(keyInput);
@@ -432,7 +269,10 @@ export class StudioApi {
             {},
             { registry },
         );
-        const summary = await summarizeWorkflow(ref.root, key);
+        const [summary, outputs] = await Promise.all([
+            summarizeWorkflow(ref.root, key),
+            listOutputs(ref.root, key),
+        ]);
         return {
             ok: true as const,
             workflow: key,
@@ -448,50 +288,57 @@ export class StudioApi {
             exportError: doc.exportError,
             validation,
             hash: workflowHash(doc),
+            files: outputs.map((o) => ({
+                key: o.key,
+                no: o.no,
+                ...(o.output ? { output: o.output } : {}),
+                size: o.size,
+                mtime: o.mtime,
+                ...(o.record?.note ? { note: o.record.note } : {}),
+            })),
         };
     }
 
-    /** Compose an owner's asset workflows into one `<OWNER>_ALL` workflow (see project/compose.ts). */
-    async composeWorkflow(projectId: string, owner: string) {
+    /**
+     * Compose small workflows (explicit list, or every workflow directly in
+     * a folder) into one big one; see project/compose.ts.
+     */
+    async composeWorkflows(
+        projectId: string,
+        options: {
+            workflows?: string[];
+            folder?: string;
+            path?: string;
+            name?: string;
+        },
+    ): Promise<ComposeResult> {
         const ref = await this.project(projectId);
+        const workflows =
+            options.workflows && options.workflows.length > 0
+                ? options.workflows
+                : options.folder !== undefined
+                  ? await workflowsInFolder(ref.root, options.folder)
+                  : [];
+        if (workflows.length === 0)
+            throw new Error(
+                "nothing to compose — pass workflows: [...] or a folder that holds workflow files",
+            );
         const registry = (await this.studio.registry.get()).registry;
-        return composeWorkflow(ref.root, owner, registry);
+        return composeWorkflows(ref.root, {
+            workflows,
+            ...(options.path !== undefined ? { path: options.path } : {}),
+            ...(options.name ? { name: options.name } : {}),
+            registry,
+        });
     }
 
-    /** Update meta (bindings / target / purpose) without touching the graph. */
-    async bindWorkflow(
+    /** Generated files next to a workflow, with provenance. */
+    async workflowOutputs(
         projectId: string,
         keyInput: string,
-        patch: Partial<WorkflowFileMeta> & { unbind?: string[] },
-    ): Promise<WorkflowSummary> {
+    ): Promise<OutputInfo[]> {
         const ref = await this.project(projectId);
-        const key = normalizeWorkflowKey(keyInput);
-        const doc = await readWorkflowFile(ref.root, key);
-        const meta: WorkflowFileMeta = { ...doc.meta };
-        if (patch.bindings)
-            meta.bindings = { ...(meta.bindings ?? {}), ...patch.bindings };
-        for (const name of patch.unbind ?? [])
-            if (meta.bindings) delete meta.bindings[name];
-        if (patch.target !== undefined) meta.target = patch.target;
-        if (patch.purpose !== undefined) meta.purpose = patch.purpose;
-        // Validate that bound names exist as inputs (advisory error).
-        const inputNames = new Set(
-            (doc.executable?.inputs ?? []).map((i) => i.name),
-        );
-        const unknown = Object.keys(meta.bindings ?? {}).filter(
-            (n) => !inputNames.has(n),
-        );
-        if (unknown.length > 0) {
-            throw new Error(
-                inputNames.size === 0
-                    ? `this workflow has no inputs (every level-0 data node carries static data); to parameterize it add a data node WITHOUT data — or put tf:// refs / {{tf://…}} templates directly into node data. Rejected: ${unknown.join(", ")}`
-                    : `unknown input names: ${unknown.join(", ")} (inputs: ${[...inputNames].join(", ")})`,
-            );
-        }
-        const store = hydrateStore(doc);
-        const registry = (await this.studio.registry.get()).registry;
-        await saveWorkflowFile(ref.root, key, store, { registry, meta });
-        return summarizeWorkflow(ref.root, key);
+        return listOutputs(ref.root, normalizeWorkflowKey(keyInput));
     }
 
     /** Save a document coming from the canvas (flow already edited client-side). */
@@ -520,21 +367,133 @@ export class StudioApi {
         );
     }
 
+    /* ---------------- billing checkpoint ---------------- */
+
+    /** How a plugin is billed, from what the registry knows about it. */
+    private async pluginBilling(
+        pluginId: string,
+    ): Promise<{ billing: PluginBilling; note: string }> {
+        const { registry, meta } = await this.studio.registry.get();
+        const plugin = registry.plugins[pluginId] as
+            | { needsDeploy?: boolean }
+            | undefined;
+        const env = meta[pluginId]?.env ?? [];
+        if (plugin?.needsDeploy) {
+            return {
+                billing: "modal",
+                note: "Runs on your Modal account: GPU time is billed per second while it runs (plus a cold start); the first run deploys the app, which can take minutes.",
+            };
+        }
+        if (env.some((e) => e.required)) {
+            return {
+                billing: "api",
+                note: `Calls a paid API with your own key (${env
+                    .filter((e) => e.required)
+                    .map((e) => e.key)
+                    .join(", ")}); every run is billed by that provider.`,
+            };
+        }
+        return {
+            billing: "local",
+            note: "Runs locally / free of charge as far as the studio knows.",
+        };
+    }
+
+    /**
+     * Paid plugins (API / Modal) a workflow run would use, with what the user
+     * needs to know to say yes. Empty means the run is free and may start
+     * without asking.
+     */
+    async paidPlugins(
+        projectId: string,
+        keyInput: string,
+    ): Promise<PluginConfirmation[]> {
+        const ref = await this.project(projectId);
+        const key = normalizeWorkflowKey(keyInput);
+        const doc = await readWorkflowFile(ref.root, key);
+        const nodes = doc.executable?.executableNodes ?? [];
+        const byPlugin = new Map<
+            string,
+            { slots: Set<string>; models: Set<string> }
+        >();
+        for (const n of nodes) {
+            if (!n.pluginId) continue;
+            const e = byPlugin.get(n.pluginId) ?? {
+                slots: new Set<string>(),
+                models: new Set<string>(),
+            };
+            e.slots.add(n.feature);
+            if (n.model) e.models.add(n.model);
+            byPlugin.set(n.pluginId, e);
+        }
+        if (byPlugin.size === 0) return [];
+        const { registry, meta } = await this.studio.registry.get();
+        const envNow = await this.studio.pluginEnv();
+        const out: PluginConfirmation[] = [];
+        for (const [pluginId, e] of byPlugin) {
+            const { billing, note } = await this.pluginBilling(pluginId);
+            if (billing === "local") continue;
+            const plugin = registry.plugins[pluginId] as
+                | {
+                      name?: string;
+                      methodsByNodeSlot?: Record<string, { models?: string[] }>;
+                  }
+                | undefined;
+            const slots = [...e.slots];
+            const availableModels = [
+                ...new Set(
+                    slots.flatMap(
+                        (slot) =>
+                            plugin?.methodsByNodeSlot?.[slot]?.models ?? [],
+                    ),
+                ),
+            ];
+            const alternatives: PluginConfirmation["alternatives"] = [];
+            for (const [otherId, otherPlugin] of Object.entries(
+                registry.plugins,
+            )) {
+                if (otherId === pluginId) continue;
+                const shared = slots.filter(
+                    (slot) =>
+                        (
+                            otherPlugin as {
+                                methodsByNodeSlot?: Record<string, unknown>;
+                            }
+                        ).methodsByNodeSlot?.[slot],
+                );
+                if (shared.length === 0) continue;
+                alternatives.push({
+                    pluginId: otherId,
+                    billing: (await this.pluginBilling(otherId)).billing,
+                    slots: shared,
+                });
+            }
+            out.push({
+                pluginId,
+                ...(plugin?.name ? { name: plugin.name } : {}),
+                billing,
+                billingNote: note,
+                models: [...e.models],
+                availableModels,
+                env: (meta[pluginId]?.env ?? []).map((v) => ({
+                    key: v.key,
+                    required: Boolean(v.required),
+                    set: Boolean(envNow[v.key] || process.env[v.key]),
+                })),
+                slots,
+                alternatives,
+            });
+        }
+        return out;
+    }
+
     /* ---------------- runs ---------------- */
 
     async startRun(request: RunRequest): Promise<RunRecord> {
         const project = await this.project(request.projectId);
         const req: RunRequest = { ...request };
-        if (req.workflowKey) {
+        if (req.workflowKey)
             req.workflowKey = normalizeWorkflowKey(req.workflowKey);
-            if (!req.target) {
-                const doc = await readWorkflowFile(
-                    project.root,
-                    req.workflowKey,
-                );
-                if (doc.meta.target) req.target = doc.meta.target;
-            }
-        }
         return this.studio.runs.start(project, req);
     }
 
@@ -593,46 +552,82 @@ export class StudioApi {
         return this.studio.registry.update(ids);
     }
 
-    /** One line per node type: what it does, what it wires, what it emits, which plugins implement it. */
+    /**
+     * The node catalog the agent reads before writing a workflow: TongFlow's
+     * grammar (six node categories, how edges and outputs work, batch vs
+     * collect), then one line per node type grouped by category — ABI slot,
+     * wires (with the data node each accepts), config fields, outputs, and
+     * which installed plugins implement it. Everything per-type comes from
+     * the ABI registry, so it cannot drift from what the exporter accepts.
+     */
     async nodeCatalog(): Promise<string> {
         const { registry } = await this.studio.registry.get();
-        const lines: string[] = [];
+        const byCat = new Map<NodeCategory, string[]>();
+        for (const c of NODE_CATEGORY_ORDER) byCat.set(c, []);
+        const uncategorized: string[] = [];
         for (const type of KNOWN_NODE_TYPES) {
+            const cat = categoryOf(type);
             const feature = NODE_TYPE_TO_ABI_FEATURE[type];
+            let line: string;
             if (!feature) {
-                lines.push(
-                    `- ${type}: data node (${type.startsWith("add") ? "input asset / text" : `carries ${type.replace(/Node$/, "")}`})`,
+                line =
+                    cat === "add"
+                        ? `- ${type}: canvas input widget — do NOT use in agent-written workflows; use the ${type.replace(/^add/, "").replace(/^[A-Z]/, (m) => m.toLowerCase())} modality node with data instead`
+                        : `- ${type}: carries ${type.replace(/Node$/, "")} (data: ${type === "textNode" || type === "linkNode" ? "{texts:[…]}" : "{fileKeys:[…]}"})`;
+            } else {
+                const spec = resolvedSpecForNodeType(type);
+                if (!spec) continue;
+                const wires: string[] = [];
+                const config: string[] = [];
+                for (const field of spec.topology.inputOrder) {
+                    const f = spec.fields[field];
+                    if (f.kind === "handle") {
+                        const flag = f.batch
+                            ? " batch"
+                            : f.collect
+                              ? " collect"
+                              : f.array
+                                ? "[]"
+                                : "";
+                        wires.push(
+                            `${field}←${f.nodeType.replace(/Node$/, "")}${flag}${f.required ? "*" : ""}`,
+                        );
+                    } else config.push(`${field}${f.required ? "*" : ""}`);
+                }
+                const outs = spec.topology.outputs.map(
+                    (o) => `${o.field}→${o.nodeType.replace(/Node$/, "")}`,
                 );
-                continue;
+                const plugins = registry.nodePluginMap[feature] ?? [];
+                line = `- ${type} (${feature}): wires ${wires.join(", ") || "-"}; config ${config.join(", ") || "-"}; out ${outs.join(", ") || "-"}; plugins: ${plugins.length ? plugins.join(", ") : "NONE INSTALLED"}`;
             }
-            const spec = resolvedSpecForNodeType(type);
-            if (!spec) continue;
-            const wires: string[] = [];
-            const config: string[] = [];
-            for (const field of spec.topology.inputOrder) {
-                const f = spec.fields[field];
-                if (f.kind === "handle")
-                    wires.push(
-                        `${field}←${f.nodeType.replace(/Node$/, "")}${f.array || f.collect ? "[]" : ""}${f.required ? "*" : ""}`,
-                    );
-                else config.push(`${field}${f.required ? "*" : ""}`);
-            }
-            const outs = spec.topology.outputs.map(
-                (o) => `${o.field}→${o.nodeType.replace(/Node$/, "")}`,
-            );
-            const plugins = registry.nodePluginMap[feature] ?? [];
-            lines.push(
-                `- ${type} (${feature}): wires ${wires.join(", ") || "-"}; config ${config.join(", ") || "-"}; out ${outs.join(", ") || "-"}; plugins: ${plugins.length ? plugins.join(", ") : "NONE INSTALLED"}`,
-            );
+            if (cat) byCat.get(cat)!.push(line);
+            else uncategorized.push(line);
         }
-        return lines.join("\n");
+        const sections: string[] = [CATALOG_GRAMMAR.trim()];
+        const titles: Record<NodeCategory, string> = {
+            add: "add/ — canvas input widgets (not for agent workflows)",
+            modality:
+                "modality/ — data nodes, one asset each (what you wire INTO executables; also what executables emit)",
+            transfer: "transfer/ — 1 → 1 executables",
+            compose: "compose/ — N → 1 executables",
+            decompose: "decompose/ — 1 → N executables",
+            batch: "batch/ — N → 1 groupings",
+        };
+        for (const c of NODE_CATEGORY_ORDER) {
+            const lines = byCat.get(c) ?? [];
+            if (lines.length === 0) continue;
+            sections.push(`## ${titles[c]}\n${lines.join("\n")}`);
+        }
+        if (uncategorized.length > 0)
+            sections.push(`## other\n${uncategorized.join("\n")}`);
+        return sections.join("\n\n");
     }
 
     /* ---------------- files & tree ---------------- */
 
     async readTextFile(projectId: string, key: string): Promise<string> {
         const ref = await this.project(projectId);
-        return readFile(fromProjectKey(ref.root, key), "utf8");
+        return readFile(fromProjectKey(ref.root, normalizeKey(key)), "utf8");
     }
 
     async writeTextFile(
@@ -641,198 +636,59 @@ export class StudioApi {
         text: string,
     ): Promise<void> {
         const ref = await this.project(projectId);
-        await writeFileAtomic(fromProjectKey(ref.root, key), text);
+        await writeFileAtomic(
+            fromProjectKey(ref.root, normalizeKey(key)),
+            text,
+        );
+    }
+
+    async deleteFile(projectId: string, key: string): Promise<void> {
+        const ref = await this.project(projectId);
+        await unlink(fromProjectKey(ref.root, normalizeKey(key)));
+    }
+
+    /**
+     * Store a user-supplied file under `dirKey` (created as needed) without
+     * overwriting: a clash gets a short suffix. Returns the project key.
+     */
+    async uploadFile(
+        projectId: string,
+        dirKey: string,
+        fileName: string,
+        data: Uint8Array,
+    ): Promise<{ key: string; size: number }> {
+        const ref = await this.project(projectId);
+        const dir = fromProjectKey(ref.root, normalizeKey(dirKey) || ".");
+        await mkdir(dir, { recursive: true });
+        const safe =
+            sanitizeFileName(basename(fileName || "upload")) || "upload";
+        let dest = join(dir, safe);
+        if (await exists(dest)) {
+            const ext = safe.includes(".")
+                ? safe.slice(safe.lastIndexOf("."))
+                : "";
+            const stem = safe.slice(0, safe.length - ext.length);
+            let i = 2;
+            while (await exists(join(dir, `${stem}-${i}${ext}`))) i++;
+            dest = join(dir, `${stem}-${i}${ext}`);
+        }
+        await writeFile(dest, data);
+        return { key: toProjectKey(ref.root, dest), size: data.byteLength };
     }
 
     async filePath(projectId: string, key: string): Promise<string> {
         const ref = await this.project(projectId);
-        return fromProjectKey(ref.root, key);
+        return fromProjectKey(ref.root, normalizeKey(key));
     }
 
-    /** Studio tree for the left pane: Bible / Script / Breakdown / Shots / Post / Workflows / Dailies. */
+    /**
+     * The project folder as a tree. Generated files (`<stem>.NN…`) and the
+     * runs log are nested under their workflow so the pane shows "workflow +
+     * what it made" as one unit; everything else is listed as-is.
+     */
     async tree(projectId: string): Promise<TreeNode[]> {
         const ref = await this.project(projectId);
-        const p = projectPaths(ref.root);
-        const [entities, episodes, workflows] = await Promise.all([
-            listEntities(ref.root),
-            listEpisodes(ref.root),
-            listWorkflows(ref.root),
-        ]);
-        // A pass folder lists the asset workflow(s) that live next to its takes.
-        const workflowsByDir = new Map<string, WorkflowSummary[]>();
-        for (const w of workflows) {
-            const dir = w.key.slice(0, w.key.lastIndexOf("/"));
-            const arr = workflowsByDir.get(dir) ?? [];
-            arr.push(w);
-            workflowsByDir.set(dir, arr);
-        }
-        const ownerKey = (owner: string) =>
-            toProjectKey(ref.root, ownerDir(ref.root, owner));
-        const passNodes = (
-            owner: string,
-            passes: readonly Pass[],
-        ): TreeNode[] =>
-            passes.map((pass) => {
-                const dirKey = `${ownerKey(owner)}/${pass}`;
-                const wfs = workflowsByDir.get(dirKey) ?? [];
-                return {
-                    id: `${owner}/${pass}`,
-                    label: pass,
-                    kind: "folder",
-                    meta: { owner, pass },
-                    ...(wfs.length > 0
-                        ? {
-                              children: wfs.map((w) => ({
-                                  id: w.key,
-                                  label: w.name,
-                                  kind: "workflow" as const,
-                                  key: w.key,
-                                  meta: {
-                                      inputs: w.inputs,
-                                      target: { owner, pass },
-                                  },
-                              })),
-                          }
-                        : {}),
-                };
-            });
-        const nodes: TreeNode[] = [];
-        nodes.push({
-            id: "dev",
-            label: "Script",
-            kind: "folder",
-            children: await this.dirTree(ref.root, p.dev, DIRS.dev),
-        });
-        nodes.push({
-            id: "bible",
-            label: "Bible",
-            kind: "folder",
-            children: entities.map((e) => ({
-                id: e.id,
-                label: `${e.name} · ${e.id}`,
-                kind: "entity",
-                meta: {
-                    kind: e.kind,
-                    circled: e.circled,
-                    takeCounts: e.takeCounts,
-                },
-                children: passNodes(e.id, ENTITY_PASSES),
-            })),
-        });
-        const shotsChildren: TreeNode[] = [];
-        for (const ep of episodes) {
-            const bd = await readBreakdown(ref.root, ep);
-            const scenes: TreeNode[] = [];
-            for (const scene of bd?.scenes ?? []) {
-                const shots: TreeNode[] = [];
-                for (const shot of scene.shots) {
-                    const ov = await takeOverview(
-                        ref.root,
-                        shot.id,
-                        SHOT_PASSES,
-                    );
-                    shots.push({
-                        id: shot.id,
-                        label: shot.id.slice(-6),
-                        kind: "shot",
-                        meta: {
-                            breakdown: shot,
-                            circled: ov.circled,
-                            takeCounts: ov.counts,
-                        },
-                        children: passNodes(shot.id, SHOT_PASSES),
-                    });
-                }
-                scenes.push({
-                    id: scene.id,
-                    label: `${scene.id.slice(-5)} ${scene.title ?? scene.location ?? ""}`.trim(),
-                    kind: "scene",
-                    children: shots,
-                });
-            }
-            const post = await takeOverview(ref.root, ep, EPISODE_PASSES);
-            shotsChildren.push({
-                id: ep,
-                label: `${ep}${bd?.title ? ` · ${bd.title}` : ""}`,
-                kind: "episode",
-                meta: {
-                    breakdownKey: `${DIRS.breakdown}/${ep}/scenes.json`,
-                    post,
-                },
-                children: [
-                    ...scenes,
-                    {
-                        id: `${ep}/post`,
-                        label: "Post",
-                        kind: "folder",
-                        children: passNodes(ep, EPISODE_PASSES),
-                    },
-                ],
-            });
-        }
-        nodes.push({
-            id: "episodes",
-            label: "Episodes",
-            kind: "folder",
-            children: shotsChildren,
-        });
-        // Asset workflows live next to their takes (rendered inside the pass
-        // folders above); this root lists the loose ones plus the templates.
-        const misc = workflows.filter(
-            (w) =>
-                w.key.startsWith(`${DIRS.workflows}/`) &&
-                !w.key.startsWith(`${DIRS.workflows}/templates/`),
-        );
-        const templateNodes = (
-            await this.dirTree(
-                ref.root,
-                join(p.workflows, "templates"),
-                `${DIRS.workflows}/templates`,
-            )
-        ).filter((n) => n.kind === "workflow");
-        nodes.push({
-            id: "workflows",
-            label: "Workflows",
-            kind: "folder",
-            children: [
-                ...misc.map((w) => ({
-                    id: w.key,
-                    label: w.name,
-                    kind: "workflow" as const,
-                    key: w.key,
-                    meta: { inputs: w.inputs, target: w.meta.target },
-                })),
-                ...(templateNodes.length > 0
-                    ? [
-                          {
-                              id: "workflows/templates",
-                              label: "templates",
-                              kind: "folder" as const,
-                              children: templateNodes,
-                          },
-                      ]
-                    : []),
-            ],
-        });
-        nodes.push({
-            id: "inbox",
-            label: "Inbox",
-            kind: "folder",
-            children: await this.dirTree(ref.root, p.inbox, DIRS.inbox),
-        });
-        nodes.push({
-            id: "dailies",
-            label: "Dailies",
-            kind: "folder",
-            children: await this.dirTree(ref.root, p.dailies, DIRS.dailies),
-        });
-        nodes.push({
-            id: "delivery",
-            label: "Delivery",
-            kind: "folder",
-            children: await this.dirTree(ref.root, p.delivery, DIRS.delivery),
-        });
-        return nodes;
+        return this.dirTree(ref.root, ref.root, "");
     }
 
     private async dirTree(
@@ -842,11 +698,58 @@ export class StudioApi {
     ): Promise<TreeNode[]> {
         if (!(await exists(dir))) return [];
         const entries = (await readdir(dir, { withFileTypes: true })).filter(
-            (e) => !e.name.startsWith("."),
+            (e) => !e.name.startsWith(".") && e.name !== RUNS_DIR,
         );
+        entries.sort((a, b) => {
+            if (a.isDirectory() !== b.isDirectory())
+                return a.isDirectory() ? -1 : 1;
+            return a.name.localeCompare(b.name);
+        });
+        const keyOf = (name: string) => (prefix ? `${prefix}/${name}` : name);
+        // Outputs claimed by a workflow in this directory are hidden from the flat list.
+        const claimed = new Set<string>();
+        const workflowNodes = new Map<string, TreeNode>();
+        for (const e of entries) {
+            if (!e.isFile() || !isWorkflowKey(e.name)) continue;
+            const key = keyOf(e.name);
+            const outputs = await listOutputs(root, key);
+            const logKey = runsLogKey(key);
+            const children: TreeNode[] = outputs.map((o) => {
+                claimed.add(o.fileName);
+                return {
+                    id: o.key,
+                    label: o.fileName.slice(
+                        basename(key, WORKFLOW_EXT).length + 1,
+                    ),
+                    kind: "output" as const,
+                    key: o.key,
+                    meta: {
+                        size: o.size,
+                        mtime: o.mtime,
+                        modality: modalityOfExt(o.ext),
+                        no: o.no,
+                        ...(o.output ? { output: o.output } : {}),
+                    },
+                };
+            });
+            claimed.add(basename(logKey));
+            const st = await stat(join(dir, e.name));
+            workflowNodes.set(e.name, {
+                id: key,
+                label: e.name.slice(0, -WORKFLOW_EXT.length),
+                kind: "workflow",
+                key,
+                meta: {
+                    size: st.size,
+                    mtime: st.mtime.toISOString(),
+                    outputCount: outputs.length,
+                },
+                ...(children.length > 0 ? { children } : {}),
+            });
+        }
         const out: TreeNode[] = [];
-        for (const e of entries.sort((a, b) => a.name.localeCompare(b.name))) {
-            const key = `${prefix}/${e.name}`;
+        for (const e of entries) {
+            const key = keyOf(e.name);
             if (e.isDirectory()) {
                 out.push({
                     id: key,
@@ -855,24 +758,34 @@ export class StudioApi {
                     key,
                     children: await this.dirTree(root, join(dir, e.name), key),
                 });
-            } else {
-                const st = await stat(join(dir, e.name));
-                out.push({
-                    id: key,
-                    label: isWorkflowKey(key)
-                        ? e.name.slice(0, -WORKFLOW_EXT.length)
-                        : e.name,
-                    kind: isWorkflowKey(key) ? "workflow" : "file",
-                    key,
-                    meta: {
-                        size: st.size,
-                        mtime: st.mtime.toISOString(),
-                        modality: modalityOfExt(e.name.split(".").pop() ?? ""),
-                    },
-                });
+                continue;
             }
+            const wf = workflowNodes.get(e.name);
+            if (wf) {
+                out.push(wf);
+                continue;
+            }
+            if (claimed.has(e.name)) continue;
+            const st = await stat(join(dir, e.name));
+            out.push({
+                id: key,
+                label: e.name,
+                kind: "file",
+                key,
+                meta: {
+                    size: st.size,
+                    mtime: st.mtime.toISOString(),
+                    modality: modalityOfExt(e.name.split(".").pop() ?? ""),
+                },
+            });
         }
         return out;
+    }
+
+    /** Provenance log of a workflow (`<stem>.runs.json`). */
+    async runsLog(projectId: string, keyInput: string) {
+        const ref = await this.project(projectId);
+        return readRunsLog(ref.root, normalizeWorkflowKey(keyInput));
     }
 
     toKey(projectRoot: string, abs: string): string {
@@ -880,11 +793,50 @@ export class StudioApi {
     }
 }
 
-/** `EP01_SC001_SH0010_KF` / `CHR_MEI_REF` / `EP01_CUT` file names carry their own target. */
-export function targetFromWorkflowKey(
-    key: string,
-): { owner: string; pass: Pass } | undefined {
-    return parseAssetWorkflowName(basename(key, WORKFLOW_EXT));
+/** Keep a user-supplied file name safe for the project folder: no control chars, no separators, no leading dots. */
+function sanitizeFileName(name: string): string {
+    const cleaned = [...name]
+        .map((ch) =>
+            ch.charCodeAt(0) < 32 || '/\\:*?"<>|'.includes(ch) ? "_" : ch,
+        )
+        .join("")
+        .replace(/\s+/g, "_")
+        .replace(/^\.+/, "");
+    return cleaned;
 }
 
-export { isEpisodeId };
+/** The grammar preamble of the node catalog. */
+const CATALOG_GRAMMAR = `
+# TongFlow node grammar (follow it exactly — the patch tool rejects anything else)
+
+A workflow is a graph of MODALITY data nodes and EXECUTABLE nodes.
+- Modality nodes (textNode, imageNode, videoNode, audioNode, fileNode, modelNode, linkNode) carry one asset each: data:{texts:[…]} for text/link, data:{fileKeys:[…]} for the others (paths relative to the workflow file or the project root, or URLs). They are the ONLY things you wire into an executable.
+- Executable nodes come in four categories (each maps to one ABI slot = one plugin method): transfer (1 → 1), compose (N → 1), decompose (1 → N), batch (N → 1 grouping). Pick the node whose slot matches the transformation; never fake a compose with a chain of transfers or vice versa.
+- Each executable's "wires" are its input handles: field←modality (* = required). Draw an edge FROM a modality node (or an upstream executable's output) TO that field; handles are derived automatically, pass toHandle only to disambiguate. Its "config" fields are set in data:{…} at creation or by update_nodes. Its "out" lists the modality nodes it emits — those are created automatically when you save; wire the NEXT executable from the executable node itself (or its emitted modality node), never invent an output node.
+- Batch semantics: a wire marked "batch" runs the executable once per upstream item (a textNode with 3 texts → 3 outputs); "collect" gathers every incoming edge into one array for a single run (e.g. images collect → one video); "[]" is an intrinsically array-typed input. Do not build loops by copying nodes — use batch.
+- Level-0 modality nodes WITHOUT data become workflow inputs supplied at run time (name them with data:{inputName:'…'}); prefer writing the data in.
+- Text you author goes into textNode data (or {{file}} includes) — genTextNode / textsGenTextNode are for mechanical transforms only.
+- After every patch read the result: ok:false steps mean the grammar or ABI rejected it — fix, do not retry blindly. tongflow_node_describe(type) gives the full config schema (enums, ranges, defaults) of one node.
+`;
+
+/** Indented text view of the tree (what the agent reads in project_status). */
+export function renderTree(nodes: TreeNode[], depth = 0): string {
+    const lines: string[] = [];
+    for (const n of nodes) {
+        const pad = "  ".repeat(depth);
+        if (n.kind === "folder") {
+            lines.push(`${pad}${n.label}/`);
+            if (n.children) lines.push(renderTree(n.children, depth + 1));
+        } else if (n.kind === "workflow") {
+            const count = n.meta?.outputCount ?? 0;
+            lines.push(
+                `${pad}${n.label}${WORKFLOW_EXT}  [workflow${count ? `, ${count} output file${count === 1 ? "" : "s"}` : ""}]`,
+            );
+            for (const c of n.children ?? [])
+                lines.push(`${pad}  ${c.key.split("/").pop()}`);
+        } else if (n.kind === "file") {
+            lines.push(`${pad}${n.label}`);
+        }
+    }
+    return lines.filter((l) => l.length > 0).join("\n");
+}

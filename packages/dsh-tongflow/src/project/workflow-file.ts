@@ -7,8 +7,8 @@
  *   { name, description?, flow: { nodes, edges }, executable?, meta }
  */
 import { createHash } from "node:crypto";
-import { readdir, readFile, stat, unlink } from "node:fs/promises";
-import { basename, join } from "node:path";
+import { mkdir, readdir, readFile, stat, unlink } from "node:fs/promises";
+import { basename, dirname, join } from "node:path";
 import {
     createFlowStore,
     type ExecutableWorkflow,
@@ -20,20 +20,16 @@ import {
     parseWorkflowImportJson,
 } from "tongflow";
 import type { WorkflowFileMeta, WorkflowSummary } from "../shared/types.ts";
-import { exists, writeFileAtomic } from "../util/fsx.ts";
+import { writeFileAtomic } from "../util/fsx.ts";
+import { listOutputs } from "./outputs.ts";
 import {
-    assertPassForOwner,
-    isPass,
-    ownerKindOf,
-    type Pass,
-} from "./naming.ts";
-import {
-    DIRS,
     fromProjectKey,
-    projectPaths,
+    keyDir,
+    normalizeKey,
     toProjectKey,
     WORKFLOW_EXT,
 } from "./paths.ts";
+import { isDirRelative, isUrlLike } from "./refs.ts";
 
 type Node = ExecutableWorkflow["originalFlow"]["nodes"][number];
 type Edge = ExecutableWorkflow["originalFlow"]["edges"][number];
@@ -52,61 +48,51 @@ export function isWorkflowKey(key: string): boolean {
     return key.endsWith(WORKFLOW_EXT);
 }
 
-/** Project-relative directory of an owner (mirrors paths.ownerDir). */
-function ownerKey(owner: string): string {
-    switch (ownerKindOf(owner)) {
-        case "entity":
-            return `${DIRS.bible}/${owner}`;
-        case "shot":
-            return `${DIRS.shots}/${owner}`;
-        case "episode":
-            return `${DIRS.post}/${owner}`;
-    }
-}
-
-/** `<OWNER>_<PASS>[_suffix]` → { owner, pass }, else undefined. */
-export function parseAssetWorkflowName(
-    name: string,
-): { owner: string; pass: Pass } | undefined {
-    const m = /^(.+)_([A-Z]+)(?:_[a-z0-9-]+)?$/.exec(name);
-    if (!m) return undefined;
-    const [, owner, pass] = m;
-    if (!isPass(pass)) return undefined;
-    try {
-        assertPassForOwner(owner, pass);
-        return { owner, pass };
-    } catch {
-        return undefined;
-    }
-}
-
 /**
- * Normalize a user/agent supplied workflow path to a project key.
- *  - a bare asset name (`EP01_SC001_SH0010_KF`, `CHR_MEI_REF_wide`) lives next
- *    to its takes: `<ownerDir>/<PASS>/<name>.tongflow.json`;
- *  - any other bare name goes under `workflows/`;
- *  - a path with slashes is taken as given.
+ * Normalize a user/agent supplied workflow path to a project key: POSIX
+ * separators, the `.tongflow.json` suffix added when missing, no `..`.
+ * A bare name lands at the project root; otherwise the path is taken as
+ * given (`characters/mei/mei_ref` → `characters/mei/mei_ref.tongflow.json`).
  */
 export function normalizeWorkflowKey(input: string): string {
-    let key = input
-        .trim()
-        .replace(/\\/g, "/")
-        .replace(/^\.?\//, "");
+    let key = normalizeKey(input);
     if (!key) throw new Error("workflow path is required");
-    if (key.includes("..")) throw new Error(`invalid workflow path "${input}"`);
     if (!key.endsWith(WORKFLOW_EXT)) {
         key = key.endsWith(".json")
             ? key.slice(0, -".json".length) + WORKFLOW_EXT
             : key + WORKFLOW_EXT;
     }
-    if (!key.includes("/")) {
-        const name = basename(key, WORKFLOW_EXT);
-        const asset = parseAssetWorkflowName(name);
-        key = asset
-            ? `${ownerKey(asset.owner)}/${asset.pass}/${key}`
-            : `${DIRS.workflows}/${key}`;
-    }
     return key;
+}
+
+/**
+ * The canvas resolves file keys against the project root (`/api/uploads/<key>`),
+ * so `./x` / `../x` references written relative to the workflow file are
+ * rewritten to project keys in the copy handed to the canvas. Saving from the
+ * canvas therefore writes root-relative keys — equally valid.
+ */
+export function canvasView(
+    doc: WorkflowDocument,
+    key: string,
+): WorkflowDocument {
+    const dir = keyDir(key);
+    const fix = (v: unknown): unknown => {
+        if (typeof v !== "string" || !isDirRelative(v) || isUrlLike(v))
+            return v;
+        const parts = dir ? dir.split("/") : [];
+        for (const seg of v.split("/")) {
+            if (seg === "." || seg === "") continue;
+            if (seg === "..") parts.pop();
+            else parts.push(seg);
+        }
+        return parts.join("/");
+    };
+    const nodes = doc.flow.nodes.map((n) => {
+        const data = (n.data ?? {}) as Record<string, unknown>;
+        if (!Array.isArray(data.fileKeys)) return n;
+        return { ...n, data: { ...data, fileKeys: data.fileKeys.map(fix) } };
+    }) as typeof doc.flow.nodes;
+    return { ...doc, flow: { nodes, edges: doc.flow.edges } };
 }
 
 export async function readWorkflowFile(
@@ -304,6 +290,7 @@ export async function writeWorkflowDocument(
     doc: WorkflowDocument,
 ): Promise<void> {
     const abs = fromProjectKey(projectRoot, key);
+    await mkdir(dirname(abs), { recursive: true });
     await writeFileAtomic(abs, `${JSON.stringify(doc, null, 2)}\n`);
 }
 
@@ -326,11 +313,11 @@ export async function summarizeWorkflow(
     key: string,
 ): Promise<WorkflowSummary> {
     const abs = fromProjectKey(projectRoot, key);
-    const [doc, st] = await Promise.all([
+    const [doc, st, outputs] = await Promise.all([
         readWorkflowFile(projectRoot, key),
         stat(abs),
+        listOutputs(projectRoot, key),
     ]);
-    const bindings = doc.meta.bindings ?? {};
     return {
         key,
         name: doc.name,
@@ -340,9 +327,6 @@ export async function summarizeWorkflow(
             name: i.name,
             type: i.type,
             required: i.required,
-            ...(bindings[i.name] !== undefined
-                ? { bound: bindings[i.name] }
-                : {}),
         })),
         outputs: (doc.executable?.outputs ?? []).map((o) => ({
             name: o.name,
@@ -350,49 +334,43 @@ export async function summarizeWorkflow(
         })),
         meta: doc.meta,
         mtime: st.mtime.toISOString(),
+        outputCount: outputs.length,
+        lastNo: outputs.reduce((m, o) => Math.max(m, o.no), 0),
     };
 }
 
-/** Every workflow file in the project: next to takes (world, shots, episodes → owner → PASS) and under workflows/ (non-recursive). */
+/** Every workflow file in the project (recursive, hidden dirs skipped), sorted by key. */
+export async function listWorkflowKeys(projectRoot: string): Promise<string[]> {
+    const keys: string[] = [];
+    const walk = async (dir: string, depth: number): Promise<void> => {
+        if (depth > 12) return;
+        let entries: import("node:fs").Dirent[];
+        try {
+            entries = await readdir(dir, { withFileTypes: true });
+        } catch {
+            return;
+        }
+        for (const e of entries) {
+            if (e.name.startsWith(".")) continue;
+            const abs = join(dir, e.name);
+            if (e.isDirectory()) await walk(abs, depth + 1);
+            else if (e.name.endsWith(WORKFLOW_EXT))
+                keys.push(toProjectKey(projectRoot, abs));
+        }
+    };
+    await walk(projectRoot, 0);
+    return keys.sort();
+}
+
 export async function listWorkflows(
     projectRoot: string,
 ): Promise<WorkflowSummary[]> {
-    const dirs: string[] = [];
-    const p = projectPaths(projectRoot);
-    const collect = async (parent: string) => {
-        if (!(await exists(parent))) return;
-        for (const owner of await readdir(parent, { withFileTypes: true })) {
-            if (!owner.isDirectory()) continue;
-            const ownerDir = join(parent, owner.name);
-            for (const pass of await readdir(ownerDir, {
-                withFileTypes: true,
-            })) {
-                if (pass.isDirectory() && isPass(pass.name))
-                    dirs.push(join(ownerDir, pass.name));
-            }
-        }
-    };
-    await collect(p.bible);
-    await collect(p.shots);
-    await collect(p.post);
-    dirs.push(p.workflows);
     const out: WorkflowSummary[] = [];
-    for (const dir of dirs) {
-        if (!(await exists(dir))) continue;
-        const names = (await readdir(dir))
-            .filter((n) => n.endsWith(WORKFLOW_EXT))
-            .sort();
-        for (const name of names) {
-            try {
-                out.push(
-                    await summarizeWorkflow(
-                        projectRoot,
-                        toProjectKey(projectRoot, join(dir, name)),
-                    ),
-                );
-            } catch {
-                // unreadable file: skip
-            }
+    for (const key of await listWorkflowKeys(projectRoot)) {
+        try {
+            out.push(await summarizeWorkflow(projectRoot, key));
+        } catch {
+            // unreadable file: skip
         }
     }
     return out;

@@ -1,79 +1,23 @@
 import { useState } from "react";
-import type { Pass, TreeNode } from "../../shared/types.ts";
-import type { T } from "../i18n.ts";
-import { passLabel, useT } from "./common.tsx";
+import type { TreeNode } from "../../shared/types.ts";
 
 const ICONS: Record<TreeNode["kind"], string> = {
     folder: "📁",
     file: "📄",
-    entity: "🎭",
-    shot: "🎬",
-    episode: "📺",
-    scene: "🎞",
     workflow: "🧩",
-    take: "🖼",
+    output: "🖼",
 };
 
-const LABEL_KEYS: Record<
-    string,
-    | "script"
-    | "bible"
-    | "episodes"
-    | "workflows"
-    | "inbox"
-    | "dailies"
-    | "delivery"
-    | "post"
-> = {
-    dev: "script",
-    bible: "bible",
-    episodes: "episodes",
-    workflows: "workflows",
-    inbox: "inbox",
-    dailies: "dailies",
-    delivery: "delivery",
-};
-
-function Dots({ meta }: { meta?: Record<string, unknown> }) {
-    const counts = (meta?.takeCounts ?? {}) as Partial<Record<Pass, number>>;
-    const circled = (meta?.circled ?? {}) as Partial<Record<Pass, string>>;
-    const passes = Object.keys({ ...counts, ...circled }) as Pass[];
-    if (passes.length === 0) return null;
-    return (
-        <span className="tfs-dots">
-            {passes.map((p) => (
-                <span
-                    key={p}
-                    className={`tfs-dot${circled[p] ? " circled" : counts[p] ? " some" : ""}`}
-                    title={`${p}: ${counts[p] ?? 0} take(s)${circled[p] ? `, circled ${circled[p]}` : ""}`}
-                />
-            ))}
-        </span>
-    );
-}
-
-/** Localized row label: pass folders read "REF · 参考图", templates folder is translated, entities show their kind. */
-function rowLabel(t: T, node: TreeNode): string {
-    if (node.kind === "folder" && node.meta?.owner && node.meta?.pass) {
-        const pass = node.meta.pass as Pass;
-        return `${pass} · ${passLabel(t, pass)}`;
+function iconFor(node: TreeNode): string {
+    const m = node.meta?.modality;
+    if (node.kind === "file" || node.kind === "output") {
+        if (m === "image") return "🖼";
+        if (m === "video") return "🎞";
+        if (m === "audio") return "🔊";
+        if (m === "model") return "◈";
+        if (m === "text") return "📝";
     }
-    if (node.id === "workflows/templates") return t("templates");
-    if (node.kind === "entity") {
-        const kind = String(node.meta?.kind ?? "");
-        const key =
-            kind === "character"
-                ? "kindCharacter"
-                : kind === "location"
-                  ? "kindLocation"
-                  : kind === "prop"
-                    ? "kindProp"
-                    : kind === "style"
-                      ? "kindStyle"
-                      : undefined;
-        return key ? `${node.label} · ${t(key)}` : node.label;
-    }
-    return node.label;
+    return ICONS[node.kind];
 }
 
 function Row({
@@ -82,43 +26,43 @@ function Row({
     selectedId,
     onSelect,
     defaultOpen,
-    label,
 }: {
     node: TreeNode;
     depth: number;
     selectedId?: string;
     onSelect: (n: TreeNode) => void;
     defaultOpen: boolean;
-    label?: string;
 }) {
-    const t = useT();
     const [open, setOpen] = useState(defaultOpen);
     const hasChildren = (node.children?.length ?? 0) > 0;
-    const isPassFolder = node.kind === "folder" && Boolean(node.meta?.owner);
     return (
         <div>
             <div
                 className={`tfs-tree-row${selectedId === node.id ? " selected" : ""}`}
                 style={{ paddingLeft: 8 + depth * 14 }}
                 onClick={() => {
-                    if (hasChildren && node.kind === "folder" && !isPassFolder)
-                        setOpen((o) => !o);
-                    else if (hasChildren)
+                    // Selecting a row opens it; a second click on the selected row toggles.
+                    if (hasChildren)
                         setOpen((o) => (selectedId === node.id ? !o : true));
                     onSelect(node);
                 }}
             >
-                <span className="tfs-tree-caret">
+                <span
+                    className="tfs-tree-caret"
+                    onClick={(e) => {
+                        if (!hasChildren) return;
+                        e.stopPropagation();
+                        setOpen((o) => !o);
+                    }}
+                >
                     {hasChildren ? (open ? "▾" : "▸") : ""}
                 </span>
-                <span className="tfs-tree-icon">
-                    {isPassFolder ? "▫" : ICONS[node.kind]}
-                </span>
-                <span className="tfs-tree-label">
-                    {label ?? rowLabel(t, node)}
-                </span>
-                {isPassFolder ? null : <Dots meta={node.meta} />}
-                {node.kind === "folder" && !isPassFolder && hasChildren ? (
+                <span className="tfs-tree-icon">{iconFor(node)}</span>
+                <span className="tfs-tree-label">{node.label}</span>
+                {node.kind === "workflow" && node.meta?.outputCount ? (
+                    <span className="tfs-badge">{node.meta.outputCount}</span>
+                ) : null}
+                {node.kind === "folder" && hasChildren ? (
                     <span className="tfs-badge">{node.children!.length}</span>
                 ) : null}
             </div>
@@ -130,7 +74,7 @@ function Row({
                           depth={depth + 1}
                           selectedId={selectedId}
                           onSelect={onSelect}
-                          defaultOpen={depth < 1}
+                          defaultOpen={c.kind === "workflow" || depth < 1}
                       />
                   ))
                 : null}
@@ -147,7 +91,6 @@ export function TreePane({
     selectedId?: string;
     onSelect: (n: TreeNode) => void;
 }) {
-    const t = useT();
     return (
         <div className="tfs-tree">
             {tree.map((n) => (
@@ -157,12 +100,7 @@ export function TreePane({
                     depth={0}
                     selectedId={selectedId}
                     onSelect={onSelect}
-                    defaultOpen={
-                        n.id === "bible" ||
-                        n.id === "episodes" ||
-                        n.id === "workflows"
-                    }
-                    label={LABEL_KEYS[n.id] ? t(LABEL_KEYS[n.id]) : undefined}
+                    defaultOpen
                 />
             ))}
         </div>
