@@ -199,17 +199,23 @@ TONGFLOW_MODEL_CATALOG = {
     "id": "id",                     # dot-path to the model id (default "id")
     "exclude": {"upcoming": True},  # drop records where the field equals the literal
     "slots": {
-        # field -> token: a record matches when every token is a substring of that
-        # field (arrays / objects are JSON-serialized first)
+        # field -> token(s): a record matches when every token is a substring of
+        # that field (arrays / objects are JSON-serialized first); a "!"-prefixed
+        # token must be absent instead
         "gen-text": {"features": "text-to-text", "endpoints": "/v1/chat/completions"},
         "image-gen": {"features": "text-to-image", "endpoints": "/v1/images/generations"},
+        "text-gen-video": {"endpoints": ["/v1/videos", "!/v1/images"]},
     },
 }
 ```
 
 The canvas fetches `url` in the browser (cached ten minutes, re-checked when the
 dropdown opens) and appends matching ids after the `TONGFLOW_SLOT_MODELS` shortlist;
-on a fetch failure the shortlist alone is shown. The registry entry carries it as
+on a fetch failure the shortlist alone is shown. If the catalog needs a bearer token
+(e.g. a per-key `GET /v1/models`), add `"authEnv": "<ENV_KEY>"`: the canvas then calls
+`GET /api/plugins/model-catalog?pluginId=…` and the app fetches the URL server-side
+with `Authorization: Bearer <value from Settings>` — the key never reaches the browser
+(see [tongflow-router-toapis](https://github.com/tong-io/tongflow-router-toapis)). The registry entry carries it as
 `modelCatalog`. Because the plugin process is what ultimately receives the pick, apply
 the same filter at run time (or accept any id the live catalog knows) rather than
 rejecting everything outside the shortlist — see

@@ -347,13 +347,17 @@ def extract_model_catalog(
 
         TONGFLOW_MODEL_CATALOG = {
             "url": "https://api.example.com/api/models",  # GET, no auth, CORS
+            "authEnv": "EXAMPLE_API_KEY",  # optional: bearer token env key; the
+                                           # app proxies the fetch server-side
             "items": "data",      # dot path to the record array (default "data")
             "id": "id",           # dot path to the model id (default "id")
             "exclude": {"upcoming": True},   # drop records where field == value
             "slots": {
-                # field -> token; a record matches when every token is a
-                # substring of that field (arrays/objects are JSON-serialized first)
+                # field -> token(s); a record matches when every token is a
+                # substring of that field (arrays/objects are JSON-serialized
+                # first); a "!"-prefixed token must be absent instead
                 "gen-text": {"features": "text-to-text", "endpoints": "/v1/chat/completions"},
+                "text-gen-video": {"endpoints": ["/v1/videos", "!/v1/images"]},
             },
         }
 
@@ -386,6 +390,8 @@ def extract_model_catalog(
         }
         if raw.get("exclude"):
             catalog["exclude"] = raw["exclude"]
+        if raw.get("authEnv"):
+            catalog["authEnv"] = raw["authEnv"]
         return catalog, problems
     return None, problems
 
@@ -395,7 +401,7 @@ def _validate_model_catalog(raw: object) -> str | None:
 
     if not isinstance(raw, dict):
         return "must be a dict literal"
-    allowed = {"url", "items", "id", "exclude", "slots"}
+    allowed = {"url", "authEnv", "items", "id", "exclude", "slots"}
     unknown = set(raw) - allowed
     if unknown:
         return f"has unknown keys {sorted(unknown)!r}"
@@ -405,6 +411,8 @@ def _validate_model_catalog(raw: object) -> str | None:
     for key in ("items", "id"):
         if key in raw and not (isinstance(raw[key], str) and raw[key].strip()):
             return f"'{key}' must be a non-empty dot-path string"
+    if "authEnv" in raw and not (isinstance(raw["authEnv"], str) and raw["authEnv"].strip()):
+        return "'authEnv' must be a non-empty env var name"
     exclude = raw.get("exclude", {})
     if not isinstance(exclude, dict) or not all(
         isinstance(k, str) and k and isinstance(v, (str, bool, int, float))
@@ -420,6 +428,12 @@ def _validate_model_catalog(raw: object) -> str | None:
         if not isinstance(rules, dict) or not rules:
             return f"'slots'[{slot!r}] must be a non-empty dict of field -> token"
         for field, token in rules.items():
-            if not (isinstance(field, str) and field and isinstance(token, str) and token):
-                return f"'slots'[{slot!r}] must map field paths to non-empty string tokens"
+            tokens = token if isinstance(token, list) else [token]
+            if not (
+                isinstance(field, str)
+                and field
+                and tokens
+                and all(isinstance(t, str) and t and t != "!" for t in tokens)
+            ):
+                return f"'slots'[{slot!r}] must map field paths to non-empty string tokens (or lists of them)"
     return None

@@ -126,6 +126,8 @@ export function useNodePluginIds(nodeSlot: string): string[] {
 // ── Live model catalogs ─────────────────────────────────────────────────────
 // A router-style plugin may declare `TONGFLOW_MODEL_CATALOG`: a public,
 // CORS-enabled URL the browser fetches directly plus per-slot filter rules.
+// Catalogs that need a bearer token (`authEnv`) go through the app's
+// `/api/plugins/model-catalog` route instead, which injects the stored key.
 // Matching ids extend the static shortlist in the model dropdown. Fetched at
 // most once per TTL per plugin; failures keep the static list (no UI error).
 
@@ -156,10 +158,17 @@ export async function loadPluginModelCatalog(pluginId: string): Promise<void> {
     if (inflight) return inflight;
     const job = (async () => {
         try {
-            const res = await fetch(catalog.url, {
-                method: "GET",
-                cache: "no-store",
-            });
+            const res = catalog.authEnv
+                ? await hostFetch(
+                      apiUrl(
+                          `/api/plugins/model-catalog?pluginId=${encodeURIComponent(pluginId)}`,
+                      ),
+                      { cache: "no-store", credentials: "same-origin" },
+                  )
+                : await fetch(catalog.url, {
+                      method: "GET",
+                      cache: "no-store",
+                  });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const bySlot = filterModelCatalog(catalog, await res.json());
             useLiveModelsStore.setState((s) => ({
