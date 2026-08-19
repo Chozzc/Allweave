@@ -17,7 +17,6 @@ import { TaskStatus } from "tongflow";
 import type { StudioApi } from "../api.ts";
 import type { RunRecord } from "../engine/runs.ts";
 import type { CanvasTaskBody } from "../engine/single-node.ts";
-import { toProjectKey } from "../project/paths.ts";
 import { getSessionProject } from "../session-projects.ts";
 import type {
     RunEvent,

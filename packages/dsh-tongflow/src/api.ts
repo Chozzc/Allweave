@@ -661,10 +661,7 @@ export class StudioApi {
         const dir = fromProjectKey(ref.root, normalizeKey(dirKey) || ".");
         await mkdir(dir, { recursive: true });
         const safe =
-            basename(fileName || "upload")
-                .replace(/[\u0000-\u001f/\\:*?"<>|]+/g, "_")
-                .replace(/\s+/g, "_")
-                .replace(/^\.+/, "") || "upload";
+            sanitizeFileName(basename(fileName || "upload")) || "upload";
         let dest = join(dir, safe);
         if (await exists(dest)) {
             const ext = safe.includes(".")
@@ -794,6 +791,18 @@ export class StudioApi {
     toKey(projectRoot: string, abs: string): string {
         return toProjectKey(projectRoot, abs);
     }
+}
+
+/** Keep a user-supplied file name safe for the project folder: no control chars, no separators, no leading dots. */
+function sanitizeFileName(name: string): string {
+    const cleaned = [...name]
+        .map((ch) =>
+            ch.charCodeAt(0) < 32 || '/\\:*?"<>|'.includes(ch) ? "_" : ch,
+        )
+        .join("")
+        .replace(/\s+/g, "_")
+        .replace(/^\.+/, "");
+    return cleaned;
 }
 
 /** The grammar preamble of the node catalog. */
