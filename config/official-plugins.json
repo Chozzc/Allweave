@@ -3,6 +3,7 @@
     "plugins": [
         "tongflow-router-openrouter",
         "tongflow-router-cometapi",
+        "tongflow-router-toapis",
         "tongflow-api-gemini",
         "tongflow-api-openai",
         "tongflow-api-deepseek",

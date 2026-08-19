@@ -42,6 +42,7 @@ export const OFFICIAL_ORG = "https://github.com/tong-io";
 export const OFFICIAL_PLUGINS: readonly string[] = [
     "tongflow-router-openrouter",
     "tongflow-router-cometapi",
+    "tongflow-router-toapis",
     "tongflow-api-gemini",
     "tongflow-api-openai",
     "tongflow-api-deepseek",

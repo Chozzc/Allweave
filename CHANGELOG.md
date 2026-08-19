@@ -16,6 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   understanding, image gen/edit/fusion (GPT Image 2, Seedream), text / image(s)
   → video (Sora 2, Veo 3.1, Seedance, Wan, MiniMax H3, HappyHorse, Vidu), video
   edit (Omni), TTS and Whisper transcription.
+- **ToAPIs router plugin** —
+  [tongflow-router-toapis](https://github.com/tong-io/tongflow-router-toapis):
+  one key behind ToAPIs' OpenAI-compatible chat route and unified async image /
+  video routes, covering **12 slots** — `gen_text` / split / combine, image
+  understanding, image gen/edit/fusion (GPT Image 2, Seedream 5, Gemini Image,
+  Flux 2, Grok), text / image(s) → video (Sora 2, Veo 3.1, Seedance 2, Kling,
+  MiniMax H3, Wan, HappyHorse, Vidu), video edit (HappyHorse). Inputs are
+  hosted through ToAPIs' upload routes; the model list is per-key, so the
+  picker is shortlist-only (any id the key can use is accepted at run time).
 - **Live model catalogs for the per-node model picker** — a plugin may declare
   `TONGFLOW_MODEL_CATALOG` (a public, CORS-enabled catalog URL plus per-slot
   filter rules); the canvas fetches it in the browser (10-minute cache,
