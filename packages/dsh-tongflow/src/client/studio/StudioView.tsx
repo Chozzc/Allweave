@@ -448,7 +448,7 @@ function NewProjectDialog({
     onCreated: (p: ProjectSummary) => void;
 }) {
     const t = useT();
-    const templates = useAsync(() => studio.templates(), []);
+    const templates = useAsync(() => studio.templates(locale), [locale]);
     const [title, setTitle] = useState("");
     const [template, setTemplate] = useState("");
     const [logline, setLogline] = useState("");

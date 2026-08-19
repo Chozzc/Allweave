@@ -207,7 +207,8 @@ function buildRoutes(env: RouteEnv): Route[] {
         {
             method: "GET",
             pattern: "/templates",
-            handler: async (c) => json(c, await api.listTemplates()),
+            handler: async (c) =>
+                json(c, await api.listTemplates(q(c.url, "locale"))),
         },
         {
             method: "GET",
