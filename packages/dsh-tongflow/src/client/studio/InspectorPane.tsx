@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { RunEvent, RunSummary } from "../../shared/types.ts";
+import type {
+    PluginConfirmation,
+    RunEvent,
+    RunSummary,
+} from "../../shared/types.ts";
 import { studio, subscribeRun } from "../api.ts";
 import { useAsync, useT } from "./common.tsx";
 
@@ -21,6 +25,12 @@ export function RunPanel({
         () => studio.workflowSummary(pid, workflowKey),
         [pid, workflowKey, refreshToken],
     );
+    // Billing checkpoint: plugins this workflow uses that the project has not approved yet.
+    const confirmations = useAsync(
+        () => studio.workflowConfirmations(pid, workflowKey),
+        [pid, workflowKey, refreshToken],
+    );
+    const pending = confirmations.data ?? [];
     const [bindings, setBindings] = useState<Record<string, string>>({});
     const [note, setNote] = useState("");
     const [run, setRun] = useState<RunSummary | undefined>();
@@ -36,6 +46,14 @@ export function RunPanel({
     const start = async () => {
         if (!summary) return;
         setLog([]);
+        // The user clicked "confirm & run": record the approvals first.
+        for (const p of pending) {
+            await studio.approvePlugin(pid, {
+                pluginId: p.pluginId,
+                note: "confirmed in the Studio run panel",
+            });
+        }
+        if (pending.length > 0) confirmations.reload();
         const inputs: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(bindings))
             if (v.trim())
@@ -105,6 +123,14 @@ export function RunPanel({
                         placeholder={t("notePlaceholder")}
                     />
                 </div>
+                {pending.length > 0 ? (
+                    <div className="tfs-billing">
+                        <div className="tfs-label">{t("billingTitle")}</div>
+                        {pending.map((p) => (
+                            <BillingRow key={p.pluginId} p={p} />
+                        ))}
+                    </div>
+                ) : null}
                 <div className="tfs-row">
                     <button
                         className="tfs-btn primary"
@@ -114,7 +140,7 @@ export function RunPanel({
                             run?.status === "queued"
                         }
                     >
-                        {t("run")}
+                        {pending.length > 0 ? t("confirmAndRun") : t("run")}
                     </button>
                     {run &&
                     (run.status === "running" || run.status === "queued") ? (
@@ -142,6 +168,40 @@ export function RunPanel({
                 <div style={{ marginTop: 6 }}>
                     {t("outputs")}:{" "}
                     {run.files.map((f) => f.fileName).join(", ")}
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
+function BillingRow({ p }: { p: PluginConfirmation }) {
+    const t = useT();
+    const missing = p.env.filter((e) => e.required && !e.set);
+    return (
+        <div className="tfs-billing-row">
+            <div>
+                <strong>{p.name ?? p.pluginId}</strong>{" "}
+                <span className="tfs-muted">
+                    · {p.slots.join(", ")} ·{" "}
+                    {t(
+                        p.billing === "modal"
+                            ? "billingModal"
+                            : p.billing === "api"
+                              ? "billingApi"
+                              : "billingLocal",
+                    )}
+                </span>
+            </div>
+            {p.models.length > 0 ? (
+                <div className="tfs-muted">
+                    {t("model")}: {p.models.join(", ")}
+                </div>
+            ) : null}
+            {missing.length > 0 ? (
+                <div className="tfs-error">
+                    {t("missingKeys", {
+                        keys: missing.map((e) => e.key).join(", "),
+                    })}
                 </div>
             ) : null}
         </div>

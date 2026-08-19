@@ -13,6 +13,45 @@ export interface ProjectManifest {
     brief?: string;
     /** Language of the project's text files / UI (en, zh, ja…). */
     locale?: string;
+    /**
+     * Plugins the user agreed to run in this project (billing checkpoint).
+     * The agent must not start a workflow whose nodes use a plugin (or a
+     * model) that is not listed here; it asks first, then records the answer.
+     */
+    plugins?: Record<string, PluginApproval>;
+}
+
+export interface PluginApproval {
+    approvedAt: string;
+    /** Models the user agreed to; absent = any model of this plugin. */
+    models?: string[];
+    note?: string;
+}
+
+/** How a plugin is billed — what the user is asked to confirm before the first run. */
+export type PluginBilling = "api" | "modal" | "local";
+
+/** One plugin a workflow needs but the project has not approved yet. */
+export interface PluginConfirmation {
+    pluginId: string;
+    name?: string;
+    billing: PluginBilling;
+    /** Plain-language billing note the agent relays to the user. */
+    billingNote: string;
+    /** Model(s) the workflow's nodes ask for (from node data), if any. */
+    models: string[];
+    /** Models the plugin advertises for the slots involved. */
+    availableModels: string[];
+    /** Env keys the plugin needs and whether they are set. */
+    env: { key: string; required: boolean; set: boolean }[];
+    /** Node slots this plugin serves in the workflow. */
+    slots: string[];
+    /** Other installed plugins for the same slots (id → slots). */
+    alternatives: {
+        pluginId: string;
+        billing: PluginBilling;
+        slots: string[];
+    }[];
 }
 
 /** One entry of `<stem>.runs.json` — how a numbered output came to be. */

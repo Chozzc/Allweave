@@ -351,6 +351,44 @@ function buildRoutes(env: RouteEnv): Route[] {
         },
         {
             method: "GET",
+            pattern: "/p/:pid/workflow/confirmations",
+            handler: async (c) =>
+                json(
+                    c,
+                    await api.unapprovedPlugins(
+                        c.params.pid,
+                        requireQ(c.url, "key"),
+                    ),
+                ),
+        },
+        {
+            method: "POST",
+            pattern: "/p/:pid/plugins/approve",
+            handler: async (c) => {
+                const body = await readJson<{
+                    pluginId?: string;
+                    model?: string;
+                    note?: string;
+                    revoke?: boolean;
+                }>(c.req);
+                if (!body.pluginId)
+                    throw new HttpError(400, "pluginId is required");
+                if (body.revoke) {
+                    await api.revokePlugin(c.params.pid, body.pluginId);
+                    json(c, { ok: true });
+                    return;
+                }
+                json(
+                    c,
+                    await api.approvePlugin(c.params.pid, body.pluginId, {
+                        ...(body.model ? { model: body.model } : {}),
+                        ...(body.note ? { note: body.note } : {}),
+                    }),
+                );
+            },
+        },
+        {
+            method: "GET",
             pattern: "/p/:pid/workflow/outputs",
             handler: async (c) =>
                 json(

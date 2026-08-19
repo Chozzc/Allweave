@@ -50,9 +50,10 @@ The user may change any of it by hand at any time (rename, move, delete). Always
 
 1. `tongflow_project_status` — see what exists; `tongflow_node_catalog` — node types and installed plugins.
 2. `tongflow_workflow_new({ path: '<folder>/<asset>' })` — one file per asset → `tongflow_workflow_patch` (write the concrete prompt / file refs / params into the nodes; `copy_from` another workflow of the project when the shape is the same) → `tongflow_workflow_read` (verify wires + validation).
-3. `tongflow_workflow_run` — foreground for a single image, `run_in_background` for video/batches; keep working meanwhile.
-4. Review: `tongflow_look` (images, video contact sheets) and `tongflow_perceive` (video/audio understanding, transcripts). Write findings into a notes file next to the asset or in a `notes/` folder.
-5. If it is off, fix *that* workflow (or the text it includes) and run again — the next number lands beside the old one. When it is right, use that file's path downstream (e.g. `./mei_ref.02.png` as the reference for a shot). Tell the user which number you picked and why.
+3. **Billing checkpoint.** Every run costs the user money (a paid API key, or GPU seconds on their Modal account — a Modal plugin also deploys on first run). The first time a plugin or model is used in a project, `tongflow_workflow_run` refuses and returns `needs_confirmation`: which plugins, how each is billed, whether its API keys are set, which models it offers, and installed alternatives. Put that to the user in plain words ("这一步用 Gemini 生图,按次计费到你的 GEMINI_API_KEY;也可以换 X;要用哪个模型?"), let them choose, then `tongflow_plugin_approve` (with the model if they picked one) and run again. Never approve on your own; the answer is remembered per project so you ask once, not every run.
+4. `tongflow_workflow_run` — foreground for a single image, `run_in_background` for video/batches; keep working meanwhile.
+5. Review: `tongflow_look` (images, video contact sheets) and `tongflow_perceive` (video/audio understanding, transcripts). Write findings into a notes file next to the asset or in a `notes/` folder.
+6. If it is off, fix *that* workflow (or the text it includes) and run again — the next number lands beside the old one. When it is right, use that file's path downstream (e.g. `./mei_ref.02.png` as the reference for a shot). Tell the user which number you picked and why.
 
 Rules of thumb:
 - Patch incrementally; never rebuild a workflow from scratch; never invent node ids. Read the patch result: `ok:false` steps must be fixed before running.

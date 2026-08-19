@@ -334,3 +334,112 @@ describe("studio tree", () => {
         });
     });
 });
+
+describe("billing checkpoint", () => {
+    it("stops on plugins the project has not approved, then remembers the answer", async () => {
+        const api = new StudioApi(
+            new Studio({ config: Config({ studioRoot: studio }) }),
+        );
+        // A fake registry: one API plugin with models, one Modal plugin, same slot.
+        (
+            api.studio.registry as unknown as {
+                cache: unknown;
+            }
+        ).cache = {
+            registry: {
+                plugins: {
+                    "tongflow-api-gemini": {
+                        name: "Gemini",
+                        needsDeploy: false,
+                        methodsByNodeSlot: {
+                            "image-gen": {
+                                methodName: "image_gen",
+                                models: ["gemini-3-pro-image", "imagen-4"],
+                            },
+                        },
+                    },
+                    "tongflow-modal-flux": {
+                        needsDeploy: true,
+                        methodsByNodeSlot: {
+                            "image-gen": { methodName: "image_gen" },
+                        },
+                    },
+                },
+                nodePluginMap: {
+                    "image-gen": ["tongflow-api-gemini", "tongflow-modal-flux"],
+                },
+            },
+            meta: {
+                "tongflow-api-gemini": {
+                    env: [{ key: "GEMINI_API_KEY", required: true }],
+                },
+                "tongflow-modal-flux": { env: [] },
+            },
+            scannedAt: "now",
+        };
+        const wf = "hero/hero_shot.tongflow.json";
+        await writeWorkflowDocument(root, wf, {
+            name: "hero_shot",
+            flow: { nodes: [], edges: [] },
+            executable: {
+                inputs: [],
+                outputs: [],
+                dataNodes: [],
+                executableNodes: [
+                    {
+                        id: "g",
+                        feature: "image-gen",
+                        pluginId: "tongflow-api-gemini",
+                        model: "imagen-4",
+                        bindings: {},
+                        outputs: [],
+                    },
+                ],
+            } as never,
+            meta: {},
+        });
+        let pending = await api.unapprovedPlugins(projectId, wf);
+        expect(pending).toHaveLength(1);
+        expect(pending[0]).toMatchObject({
+            pluginId: "tongflow-api-gemini",
+            name: "Gemini",
+            billing: "api",
+            models: ["imagen-4"],
+            availableModels: ["gemini-3-pro-image", "imagen-4"],
+            slots: ["image-gen"],
+            env: [{ key: "GEMINI_API_KEY", required: true, set: false }],
+            alternatives: [
+                {
+                    pluginId: "tongflow-modal-flux",
+                    billing: "modal",
+                    slots: ["image-gen"],
+                },
+            ],
+        });
+        // Approve a different model only → still pending for imagen-4.
+        await api.approvePlugin(projectId, "tongflow-api-gemini", {
+            model: "gemini-3-pro-image",
+        });
+        pending = await api.unapprovedPlugins(projectId, wf);
+        expect(pending).toHaveLength(1);
+        // Approve the model the workflow uses → clear.
+        await api.approvePlugin(projectId, "tongflow-api-gemini", {
+            model: "imagen-4",
+            note: "user said ok",
+        });
+        expect(await api.unapprovedPlugins(projectId, wf)).toEqual([]);
+        const ref = await loadProject(studio, projectId);
+        expect(ref.manifest.plugins?.["tongflow-api-gemini"]).toMatchObject({
+            models: ["gemini-3-pro-image", "imagen-4"],
+            note: "user said ok",
+        });
+        // Revoke → asked again; approving without a model covers every model.
+        await api.revokePlugin(projectId, "tongflow-api-gemini");
+        expect(await api.unapprovedPlugins(projectId, wf)).toHaveLength(1);
+        await api.approvePlugin(projectId, "tongflow-api-gemini");
+        expect(await api.unapprovedPlugins(projectId, wf)).toEqual([]);
+        await expect(
+            api.approvePlugin(projectId, "not-installed"),
+        ).rejects.toThrow(/not installed/);
+    });
+});

@@ -524,3 +524,14 @@
     color: inherit;
     white-space: nowrap;
 }
+/* billing checkpoint in the run panel */
+.tfs-billing {
+    border: 1px solid var(--tfs-warn);
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: color-mix(in srgb, var(--tfs-warn) 10%, transparent);
+    font-size: 13px;
+}
+.tfs-billing-row {
+    padding: 4px 0;
+}

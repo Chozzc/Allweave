@@ -22,11 +22,14 @@ import {
     singleNodeDocument,
 } from "./engine/single-node.ts";
 import {
+    approvePlugin,
     type CreateProjectInput,
     createProject,
+    isPluginApproved,
     listProjects,
     loadProject,
     type ProjectRef,
+    revokePlugin,
     summarize,
 } from "./project/manifest.ts";
 import { listOutputs, readRunsLog, runsLogKey } from "./project/outputs.ts";
@@ -52,6 +55,8 @@ import {
 } from "./project/workflow-file.ts";
 import type {
     OutputInfo,
+    PluginBilling,
+    PluginConfirmation,
     ProjectSummary,
     TreeNode,
     WorkflowFileMeta,
@@ -99,6 +104,7 @@ export class StudioApi {
         ]);
         return {
             project: summary,
+            approvedPlugins: summary.plugins ?? {},
             tree: renderTree(tree),
             workflows: workflows.map((w) => ({
                 key: w.key,
@@ -313,6 +319,143 @@ export class StudioApi {
             (await this.project(projectId)).root,
             normalizeWorkflowKey(key),
         );
+    }
+
+    /* ---------------- billing checkpoint ---------------- */
+
+    /** How a plugin is billed, from what the registry knows about it. */
+    private async pluginBilling(
+        pluginId: string,
+    ): Promise<{ billing: PluginBilling; note: string }> {
+        const { registry, meta } = await this.studio.registry.get();
+        const plugin = registry.plugins[pluginId] as
+            | { needsDeploy?: boolean }
+            | undefined;
+        const env = meta[pluginId]?.env ?? [];
+        if (plugin?.needsDeploy) {
+            return {
+                billing: "modal",
+                note: "Runs on your Modal account: GPU time is billed per second while it runs (plus a cold start); the first run deploys the app, which can take minutes.",
+            };
+        }
+        if (env.some((e) => e.required)) {
+            return {
+                billing: "api",
+                note: `Calls a paid API with your own key (${env
+                    .filter((e) => e.required)
+                    .map((e) => e.key)
+                    .join(", ")}); every run is billed by that provider.`,
+            };
+        }
+        return {
+            billing: "local",
+            note: "Runs locally / free of charge as far as the studio knows.",
+        };
+    }
+
+    /**
+     * Plugins (and models) a workflow's nodes use that the project has not
+     * approved yet. Empty means the run may start without asking.
+     */
+    async unapprovedPlugins(
+        projectId: string,
+        keyInput: string,
+    ): Promise<PluginConfirmation[]> {
+        const ref = await this.project(projectId);
+        const key = normalizeWorkflowKey(keyInput);
+        const doc = await readWorkflowFile(ref.root, key);
+        const nodes = doc.executable?.executableNodes ?? [];
+        const byPlugin = new Map<
+            string,
+            { slots: Set<string>; models: Set<string> }
+        >();
+        for (const n of nodes) {
+            if (!n.pluginId) continue;
+            if (isPluginApproved(ref.manifest, n.pluginId, n.model)) continue;
+            const e = byPlugin.get(n.pluginId) ?? {
+                slots: new Set<string>(),
+                models: new Set<string>(),
+            };
+            e.slots.add(n.feature);
+            if (n.model) e.models.add(n.model);
+            byPlugin.set(n.pluginId, e);
+        }
+        if (byPlugin.size === 0) return [];
+        const { registry, meta } = await this.studio.registry.get();
+        const envNow = await this.studio.pluginEnv();
+        const out: PluginConfirmation[] = [];
+        for (const [pluginId, e] of byPlugin) {
+            const { billing, note } = await this.pluginBilling(pluginId);
+            const plugin = registry.plugins[pluginId] as
+                | {
+                      name?: string;
+                      methodsByNodeSlot?: Record<string, { models?: string[] }>;
+                  }
+                | undefined;
+            const slots = [...e.slots];
+            const availableModels = [
+                ...new Set(
+                    slots.flatMap(
+                        (slot) =>
+                            plugin?.methodsByNodeSlot?.[slot]?.models ?? [],
+                    ),
+                ),
+            ];
+            const alternatives: PluginConfirmation["alternatives"] = [];
+            for (const [otherId, otherPlugin] of Object.entries(
+                registry.plugins,
+            )) {
+                if (otherId === pluginId) continue;
+                const shared = slots.filter(
+                    (slot) =>
+                        (
+                            otherPlugin as {
+                                methodsByNodeSlot?: Record<string, unknown>;
+                            }
+                        ).methodsByNodeSlot?.[slot],
+                );
+                if (shared.length === 0) continue;
+                alternatives.push({
+                    pluginId: otherId,
+                    billing: (await this.pluginBilling(otherId)).billing,
+                    slots: shared,
+                });
+            }
+            out.push({
+                pluginId,
+                ...(plugin?.name ? { name: plugin.name } : {}),
+                billing,
+                billingNote: note,
+                models: [...e.models],
+                availableModels,
+                env: (meta[pluginId]?.env ?? []).map((v) => ({
+                    key: v.key,
+                    required: Boolean(v.required),
+                    set: Boolean(envNow[v.key] || process.env[v.key]),
+                })),
+                slots,
+                alternatives,
+            });
+        }
+        return out;
+    }
+
+    async approvePlugin(
+        projectId: string,
+        pluginId: string,
+        options: { model?: string; note?: string } = {},
+    ) {
+        const ref = await this.project(projectId);
+        const { registry } = await this.studio.registry.get();
+        if (!registry.plugins[pluginId])
+            throw new Error(
+                `plugin "${pluginId}" is not installed — tongflow_plugins_install first`,
+            );
+        return approvePlugin(ref, pluginId, options);
+    }
+
+    async revokePlugin(projectId: string, pluginId: string) {
+        await revokePlugin(await this.project(projectId), pluginId);
     }
 
     /* ---------------- runs ---------------- */

@@ -63,6 +63,15 @@ const en = {
         "What do you want to make? Genre, length, style, references, deliverables…",
     briefHint:
         "The agent reads this first and proposes a folder structure for it. You can change everything later.",
+    billingTitle:
+        "This run will use (first time in this project — please confirm):",
+    billingApi: "paid API, billed to your key per call",
+    billingModal:
+        "Modal GPU, billed to your Modal account per second (first run deploys)",
+    billingLocal: "local / free",
+    model: "model",
+    missingKeys: "missing API keys: {keys} — set them under Plugins & keys",
+    confirmAndRun: "▶ Confirm & run",
 } as const;
 
 export type UiKey = keyof typeof en;
@@ -129,6 +138,13 @@ const zh: Record<UiKey, string> = {
     titlePlaceholder: "我的短片",
     briefPlaceholder: "想做什么?题材、时长、风格、参考、交付物……",
     briefHint: "Agent 会先读这段话,据此提出文件夹结构;之后随时可改。",
+    billingTitle: "本次运行会用到(本项目首次使用,请确认):",
+    billingApi: "付费 API,按次计费到你的 key",
+    billingModal: "Modal GPU,按秒计费到你的 Modal 账户(首次运行需部署)",
+    billingLocal: "本地 / 免费",
+    model: "模型",
+    missingKeys: "缺少 API 密钥:{keys} — 请到「插件与密钥」设置",
+    confirmAndRun: "▶ 确认并运行",
 };
 
 const dicts: Record<string, Record<UiKey, string>> = { en, zh };

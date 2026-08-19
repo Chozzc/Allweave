@@ -74,7 +74,8 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
             description:
                 "Execute a workflow file with the TongFlow engine. Its outputs land next to the file as <name>.NN.<ext> (NN = this run's number; a run never overwrites earlier outputs) and the run is logged in <name>.runs.json. " +
                 "Media generation takes seconds to minutes; use run_in_background for long jobs (video, batches) and continue working — you are notified when it completes. " +
-                "After a run, inspect the result with tongflow_look (images) or tongflow_perceive (video/audio) before moving on; if it is off, fix the workflow and run again.",
+                "After a run, inspect the result with tongflow_look (images) or tongflow_perceive (video/audio) before moving on; if it is off, fix the workflow and run again. " +
+                "BILLING CHECKPOINT: a run costs money (API keys or Modal GPU time). The first time a plugin (or a model) is used in a project this tool does NOT run — it returns needs_confirmation with the plugins, how each is billed, available models and alternatives. Present that to the user in plain words, let them choose, then record the choice with tongflow_plugin_approve and run again. Never approve on the user's behalf.",
             parameters: {
                 project: PROJECT_PARAM,
                 workflow: WORKFLOW_PARAM,
@@ -98,6 +99,15 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
             output: { schema: { type: "json" }, render: (_a, v) => text(v) },
             async execute(args, exec) {
                 const pid = await resolveProjectId(env, exec, args.project);
+                const pending = await api.unapprovedPlugins(pid, args.workflow);
+                if (pending.length > 0) {
+                    return compact({
+                        ok: false,
+                        needs_confirmation: true,
+                        plugins: pending,
+                        hint: "Ask the user which plugin / model to use and confirm they accept the billing (mention alternatives when there are any and whether the required API keys are set). Once they agree, call tongflow_plugin_approve for each plugin (with the model if they picked one), then run again. Do not approve without an explicit yes from the user.",
+                    });
+                }
                 const record = await api.startRun({
                     projectId: pid,
                     workflowKey: args.workflow,
@@ -180,6 +190,48 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
                 }
                 const pid = await resolveProjectId(env, exec, args.project);
                 return compact(api.listRuns(pid).slice(0, 20));
+            },
+        }),
+        defineTool({
+            name: "tongflow_plugin_approve",
+            description:
+                "Record that the USER agreed to run a plugin (optionally a specific model) in this project — the billing checkpoint tongflow_workflow_run enforces. Call it only after the user explicitly said yes to that plugin / model and its billing; never pre-emptively. Approval is per project and remembered in project.json.",
+            parameters: {
+                project: PROJECT_PARAM,
+                pluginId: {
+                    type: "string",
+                    required: true,
+                    description:
+                        "Installed plugin id, e.g. tongflow-api-gemini.",
+                },
+                model: {
+                    type: "string",
+                    description:
+                        "Approve only this model of the plugin (omit to approve every model it offers).",
+                },
+                note: {
+                    type: "string",
+                    description:
+                        "What the user said / why (kept with the approval).",
+                },
+                revoke: {
+                    type: "boolean",
+                    description:
+                        "Withdraw the approval instead (the next run asks again).",
+                },
+            },
+            output: { schema: { type: "json" }, render: (_a, v) => text(v) },
+            async execute(args, exec) {
+                const pid = await resolveProjectId(env, exec, args.project);
+                if (args.revoke) {
+                    await api.revokePlugin(pid, args.pluginId);
+                    return compact({ ok: true, revoked: args.pluginId });
+                }
+                const approval = await api.approvePlugin(pid, args.pluginId, {
+                    ...(args.model ? { model: args.model } : {}),
+                    ...(args.note ? { note: args.note } : {}),
+                });
+                return compact({ ok: true, pluginId: args.pluginId, approval });
             },
         }),
         defineTool({

@@ -1,7 +1,11 @@
 /** Project discovery, creation and `project.json` handling. */
 import { mkdir, readdir } from "node:fs/promises";
 import { join } from "node:path";
-import type { ProjectManifest, ProjectSummary } from "../shared/types.ts";
+import type {
+    PluginApproval,
+    ProjectManifest,
+    ProjectSummary,
+} from "../shared/types.ts";
 import { exists, isDir, nowIso, readJson, writeJson } from "../util/fsx.ts";
 import {
     isProjectId,
@@ -142,4 +146,58 @@ export async function createProject(
     };
     await writeJson(join(root, PROJECT_MANIFEST), manifest);
     return { id, root, manifest };
+}
+
+/** Record that the user agreed to run `pluginId` (optionally only `model`) in this project. */
+export async function approvePlugin(
+    ref: ProjectRef,
+    pluginId: string,
+    options: { model?: string; note?: string } = {},
+): Promise<PluginApproval> {
+    const plugins = { ...(ref.manifest.plugins ?? {}) };
+    const prev = plugins[pluginId];
+    let models: string[] | undefined;
+    if (options.model) {
+        // Widening from "any model" to a list is never intended: keep "any".
+        models = prev && !prev.models ? undefined : [...(prev?.models ?? [])];
+        if (models && !models.includes(options.model))
+            models.push(options.model);
+    }
+    const next: PluginApproval = {
+        approvedAt: nowIso(),
+        ...(models ? { models } : {}),
+        ...(options.note
+            ? { note: options.note }
+            : prev?.note
+              ? { note: prev.note }
+              : {}),
+    };
+    plugins[pluginId] = next;
+    ref.manifest.plugins = plugins;
+    await saveManifest(ref.root, ref.manifest);
+    return next;
+}
+
+/** Revoke a plugin's approval (the next run asks again). */
+export async function revokePlugin(
+    ref: ProjectRef,
+    pluginId: string,
+): Promise<void> {
+    if (!ref.manifest.plugins?.[pluginId]) return;
+    const plugins = { ...ref.manifest.plugins };
+    delete plugins[pluginId];
+    ref.manifest.plugins = plugins;
+    await saveManifest(ref.root, ref.manifest);
+}
+
+/** True when the manifest allows running `pluginId` with `model` (undefined model = plugin default). */
+export function isPluginApproved(
+    manifest: ProjectManifest,
+    pluginId: string,
+    model?: string,
+): boolean {
+    const a = manifest.plugins?.[pluginId];
+    if (!a) return false;
+    if (!a.models || !model) return true;
+    return a.models.includes(model);
 }
