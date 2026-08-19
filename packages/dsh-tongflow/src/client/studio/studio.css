@@ -181,26 +181,6 @@
     color: var(--tfs-fg-2);
     margin-left: 4px;
 }
-.tfs-dots {
-    display: inline-flex;
-    gap: 3px;
-    margin-left: 6px;
-}
-.tfs-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--tfs-bg-2);
-    border: 1px solid var(--tfs-border);
-}
-.tfs-dot.some {
-    background: var(--tfs-warn);
-    border-color: transparent;
-}
-.tfs-dot.circled {
-    background: var(--tfs-ok);
-    border-color: transparent;
-}
 /* preview */
 .tfs-preview {
     display: flex;
@@ -293,8 +273,8 @@
     margin: 0;
     overflow-wrap: anywhere;
 }
-/* takes grid */
-.tfs-takes {
+/* media tiles */
+.tfs-tiles {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 10px;
@@ -307,13 +287,7 @@
     cursor: pointer;
     position: relative;
 }
-.tfs-take.circled {
-    outline: 2px solid var(--tfs-ok);
-}
-.tfs-take.selected {
-    outline: 2px solid var(--tfs-accent);
-}
-.tfs-take-thumb {
+.tfs-tile-thumb {
     aspect-ratio: 16 / 10;
     display: flex;
     align-items: center;
@@ -321,26 +295,52 @@
     background: var(--tfs-bg-2);
     overflow: hidden;
 }
-.tfs-take-thumb img,
-.tfs-take-thumb video {
+.tfs-tile-thumb img,
+.tfs-tile-thumb video {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
-.tfs-take-thumb .glyph {
+.tfs-tile-thumb .glyph {
     font-size: 30px;
     opacity: 0.6;
 }
-.tfs-take-foot {
+.tfs-tile-foot {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 4px 8px;
     font-size: 12px;
 }
-.tfs-take-foot .circle {
-    color: var(--tfs-ok);
-    font-weight: 600;
+/* plain file list (folder view) */
+.tfs-list {
+    margin-top: 10px;
+    border: 1px solid var(--tfs-border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.tfs-list-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 10px;
+    font-size: 13px;
+    cursor: pointer;
+    border-top: 1px solid var(--tfs-border);
+}
+.tfs-list-row:first-child {
+    border-top: 0;
+}
+.tfs-list-row:hover {
+    background: var(--tfs-bg-2);
+}
+/* generated files under the canvas */
+.tfs-outputs {
+    padding: 8px 12px 12px;
+    border-top: 1px solid var(--tfs-border);
+}
+.tfs-outputs .tfs-tiles {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
 }
 /* drawer */
 .tfs-drawer {

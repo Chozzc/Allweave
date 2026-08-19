@@ -1,22 +1,18 @@
 /**
- * One workflow run against one project: bind inputs (resolving `tf://`
- * refs), launch the engine, ingest outputs as takes, write provenance.
+ * One workflow run against one project: bind inputs, resolve file references
+ * and `{{file}}` includes, launch the engine, place outputs next to the
+ * workflow, log provenance.
  */
 import { mkdir, rm } from "node:fs/promises";
-import { isAbsolute, join } from "node:path";
+import { join } from "node:path";
 import type { ExecutableWorkflow } from "tongflow";
 import type { ProjectRef } from "../project/manifest.ts";
-import { assertPassForOwner } from "../project/naming.ts";
+import { RUNS_DIR, toProjectKey } from "../project/paths.ts";
 import {
-    fromProjectKey,
-    projectPaths,
-    toProjectKey,
-} from "../project/paths.ts";
-import {
+    baseDirOf,
     expandTemplate,
     hasTemplateRefs,
-    isTfRef,
-    resolveRef,
+    resolveFileRef,
 } from "../project/refs.ts";
 import {
     readWorkflowFile,
@@ -24,15 +20,14 @@ import {
     workflowHash,
 } from "../project/workflow-file.ts";
 import type {
-    Pass,
-    Provenance,
+    OutputInfo,
+    OutputRecord,
     RunEvent,
     RunSummary,
-    TakeInfo,
 } from "../shared/types.ts";
 import type { Studio } from "../studio.ts";
 import { nowIso } from "../util/fsx.ts";
-import { type IngestTarget, ingestOutputs } from "./ingest.ts";
+import { ingestOutputs } from "./ingest.ts";
 import type { EngineRequest, EngineResult } from "./runner.ts";
 import { runEngine } from "./runner.ts";
 
@@ -42,10 +37,8 @@ export interface RunRequest {
     workflowKey?: string;
     /** In-memory document (canvas single-node runs). */
     document?: WorkflowDocument;
-    /** Input name → value; overrides the file's meta.bindings. Values may be tf:// refs, project keys, URLs or literal text. */
+    /** Input name → value: text, or file paths (relative to the workflow file or the project root), or URLs. */
     inputs?: Record<string, unknown>;
-    target?: IngestTarget;
-    targets?: Record<string, IngestTarget>;
     /** Free-form note recorded in provenance. */
     note?: string;
     /** Display label (defaults to workflow name). */
@@ -59,6 +52,8 @@ export interface RunOutcome {
     result: EngineResult;
     texts: Record<string, string[]>;
     loose: { output: string; key: string }[];
+    /** Output number this run was given (0 for inline documents). */
+    no: number;
 }
 
 type InputValue = { texts?: string[]; fileKeys?: string[] };
@@ -82,11 +77,7 @@ export async function executeRun(
             `workflow "${request.workflowKey ?? doc.name}" has no executable graph${doc.exportError ? `: ${doc.exportError}` : " — save it once it validates"}`,
         );
     }
-    if (request.target)
-        assertPassForOwner(request.target.owner, request.target.pass);
-    const targets = request.targets ?? doc.meta.targets;
-    for (const t of Object.values(targets ?? {}))
-        assertPassForOwner(t.owner, t.pass);
+    const baseDir = baseDirOf(project.root, request.workflowKey);
 
     const workflow = structuredClone(doc.executable) as ExecutableWorkflow;
     const missingPlugins = workflow.executableNodes
@@ -99,41 +90,41 @@ export async function executeRun(
     }
 
     // 1. Bind inputs.
-    const bindings: Record<string, string | string[]> = {
-        ...(doc.meta.bindings ?? {}),
-    };
+    const given: Record<string, string | string[]> = {};
     for (const [k, v] of Object.entries(request.inputs ?? {})) {
         if (v === undefined || v === null) continue;
-        bindings[k] = Array.isArray(v)
+        given[k] = Array.isArray(v)
             ? v.map(String)
             : typeof v === "object"
               ? JSON.stringify(v)
               : String(v);
     }
     const inputs: Record<string, InputValue> = {};
-    const resolved: Record<string, string[]> = {};
     const missing: string[] = [];
     for (const spec of workflow.inputs) {
-        const bound = bindings[spec.name];
+        const bound = given[spec.name];
         if (bound === undefined) {
             if (spec.required && spec.defaultValue === undefined)
                 missing.push(`${spec.name} (${spec.type})`);
             continue;
         }
-        const value = await bindValue(project.root, spec.type, bound);
-        inputs[spec.name] = value;
-        resolved[spec.name] = value.texts ?? value.fileKeys ?? [];
+        inputs[spec.name] = await bindValue(
+            project.root,
+            baseDir,
+            spec.type,
+            bound,
+        );
     }
     if (missing.length > 0) {
         throw new Error(
-            `unbound required inputs: ${missing.join(", ")} — pass them via inputs or set meta.bindings (tf:// refs, project keys or text)`,
+            `unbound required inputs: ${missing.join(", ")} — pass them via inputs (text, or file paths relative to the workflow / project root), or write the values into the workflow's nodes`,
         );
     }
-    // 2. Resolve tf:// refs embedded in static data / static bindings.
-    await resolveEmbeddedRefs(project.root, workflow);
+    // 2. Resolve file references and {{file}} includes in static data / config.
+    await resolveEmbeddedRefs(project.root, baseDir, workflow);
 
     // 3. Engine.
-    const runDir = join(projectPaths(project.root).runs, runId);
+    const runDir = join(project.root, RUNS_DIR, runId);
     await mkdir(runDir, { recursive: true });
     const python = await studio.python(emitLog(emit));
     const engineRequest: EngineRequest = {
@@ -168,15 +159,12 @@ export async function executeRun(
         throw new Error(detail);
     }
 
-    // 4. Ingest.
+    // 4. Place outputs next to the workflow.
     const finishedAt = nowIso();
-    const provenance: Omit<Provenance, "output"> = {
+    const record: Omit<OutputRecord, "no" | "files" | "texts"> = {
         runId,
-        workflow: request.workflowKey ?? `(inline) ${doc.name}`,
         workflowHash: workflowHash(doc),
-        workflowName: doc.name,
-        bindings,
-        resolved,
+        inputs: given,
         pluginIds: [
             ...new Set(workflow.executableNodes.map((n) => n.pluginId)),
         ],
@@ -188,23 +176,28 @@ export async function executeRun(
     const ingest = await ingestOutputs({
         projectRoot: project.root,
         result,
-        ...(request.target ? { target: request.target } : {}),
-        ...(targets ? { targets } : {}),
-        provenance,
+        ...(request.workflowKey ? { workflowKey: request.workflowKey } : {}),
+        record,
     });
     if (!request.keepRunDir && ingest.loose.length === 0) {
         await rm(runDir, { recursive: true, force: true }).catch(
             () => undefined,
         );
     }
-    summary.takes = ingest.takes;
+    summary.files = ingest.files;
     emit({
         type: "ingested",
         at: nowIso(),
-        takes: ingest.takes,
+        files: ingest.files,
         outputs: result.outputs,
     });
-    return { summary, result, texts: ingest.texts, loose: ingest.loose };
+    return {
+        summary,
+        result,
+        texts: ingest.texts,
+        loose: ingest.loose,
+        no: ingest.no,
+    };
 }
 
 function emitLog(emit: (e: RunEvent) => void): (line: string) => void {
@@ -214,95 +207,62 @@ function emitLog(emit: (e: RunEvent) => void): (line: string) => void {
 /** Resolve one bound value into the engine's `{texts}` / `{fileKeys}` input form. */
 async function bindValue(
     projectRoot: string,
+    baseDir: string,
     type: string,
     bound: string | string[],
 ): Promise<InputValue> {
     const values = Array.isArray(bound) ? bound : [bound];
     const isText = type === "text" || type === "text[]";
-    const texts: string[] = [];
-    const fileKeys: string[] = [];
-    for (const v of values) {
-        if (isTfRef(v)) {
-            const r = await resolveRef(projectRoot, v);
-            if (r.kind === "texts") texts.push(...r.texts);
-            else fileKeys.push(...r.paths);
-            continue;
-        }
-        if (isText) {
+    if (isText) {
+        const texts: string[] = [];
+        for (const v of values)
             texts.push(
-                hasTemplateRefs(v) ? await expandTemplate(projectRoot, v) : v,
+                hasTemplateRefs(v)
+                    ? await expandTemplate(projectRoot, baseDir, v)
+                    : v,
             );
-            continue;
-        }
-        if (/^(https?:|data:)/.test(v) || isAbsolute(v)) {
-            fileKeys.push(v);
-            continue;
-        }
-        fileKeys.push(fromProjectKey(projectRoot, v));
+        return { texts };
     }
-    if (isText) return { texts };
-    if (texts.length > 0 && fileKeys.length === 0) {
-        throw new Error(
-            `input of type ${type} was bound to text (${texts.map((t) => t.slice(0, 40)).join(", ")}) — bind a file, project key or tf:// asset ref`,
-        );
-    }
+    const fileKeys: string[] = [];
+    for (const v of values)
+        fileKeys.push(await resolveFileRef(projectRoot, baseDir, v));
     return { fileKeys };
 }
 
-/** Replace `tf://` refs inside static data nodes / static bindings with absolute paths (or texts). */
+/** Replace file references inside static data nodes / static bindings with absolute paths, and expand `{{file}}` includes in texts. */
 async function resolveEmbeddedRefs(
     projectRoot: string,
+    baseDir: string,
     workflow: ExecutableWorkflow,
 ): Promise<void> {
     for (const dn of workflow.dataNodes) {
         const sd = dn.staticData;
         if (!sd) continue;
-        if (sd.fileKeys?.some(isTfRef)) {
+        if (sd.fileKeys?.length) {
             const out: string[] = [];
-            for (const k of sd.fileKeys) {
-                if (!isTfRef(k)) {
-                    out.push(k);
-                    continue;
-                }
-                const r = await resolveRef(projectRoot, k);
-                if (r.kind !== "files")
-                    throw new Error(
-                        `${k} resolves to text but is used as a file`,
-                    );
-                out.push(...r.paths);
-            }
+            for (const k of sd.fileKeys)
+                out.push(await resolveFileRef(projectRoot, baseDir, k));
             sd.fileKeys = out;
         }
-        if (sd.texts?.some((t) => isTfRef(t) || hasTemplateRefs(t))) {
+        if (sd.texts?.some(hasTemplateRefs)) {
             const out: string[] = [];
-            for (const t of sd.texts) {
-                if (isTfRef(t)) {
-                    const r = await resolveRef(projectRoot, t);
-                    out.push(...(r.kind === "texts" ? r.texts : r.keys));
-                } else if (hasTemplateRefs(t)) {
-                    out.push(await expandTemplate(projectRoot, t));
-                } else {
-                    out.push(t);
-                }
-            }
+            for (const t of sd.texts)
+                out.push(
+                    hasTemplateRefs(t)
+                        ? await expandTemplate(projectRoot, baseDir, t)
+                        : t,
+                );
             sd.texts = out;
         }
     }
     for (const node of workflow.executableNodes) {
-        for (const [field, binding] of Object.entries(node.bindings)) {
+        for (const binding of Object.values(node.bindings)) {
             if (binding.kind !== "static" && binding.kind !== "config")
                 continue;
-            if (isTfRef(binding.value)) {
-                const r = await resolveRef(projectRoot, binding.value);
-                if (r.kind === "texts") binding.value = r.texts.join("\n");
-                else if (r.paths.length === 1) binding.value = r.paths[0];
-                else
-                    throw new Error(
-                        `${binding.value} (in ${field}) resolves to ${r.paths.length} files; a config field takes one`,
-                    );
-            } else if (hasTemplateRefs(binding.value)) {
+            if (hasTemplateRefs(binding.value)) {
                 binding.value = await expandTemplate(
                     projectRoot,
+                    baseDir,
                     binding.value,
                 );
             }
@@ -314,19 +274,17 @@ export function newRunSummary(
     runId: string,
     projectId: string,
     workflow: string,
-    target?: IngestTarget,
 ): RunSummary {
     return {
         runId,
         projectId,
         workflow,
-        ...(target ? { target } : {}),
         status: "queued",
         startedAt: nowIso(),
-        takes: [],
+        files: [],
         nodes: {},
     };
 }
 
-export type { IngestTarget, Pass, TakeInfo };
+export type { OutputInfo };
 export { toProjectKey };

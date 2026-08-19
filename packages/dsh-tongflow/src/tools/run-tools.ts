@@ -1,6 +1,6 @@
 /**
  * Execution & perception tools: run a workflow (foreground or as a dsh
- * background job), look at an image take (returned as an image block so a
+ * background job), look at a generated image (returned as an image block so a
  * vision model sees it), perceive video/audio through TongFlow's own
  * describe / transcribe slots, and manage plugins.
  */
@@ -18,13 +18,10 @@ import type { JsonValue } from "@deepseek-ai/dsh-session";
 import { defineTool, type ToolDefinition } from "@deepseek-ai/dsh-tools";
 import type { RunRecord } from "../engine/runs.ts";
 import { formatEvent } from "../engine/runs.ts";
-import type { Pass } from "../shared/types.ts";
 import { modalityOfExt } from "../shared/types.ts";
 import {
     compact,
     errorMessage,
-    OWNER_DESC,
-    PASS_DESC,
     PROJECT_PARAM,
     resolveProjectId,
     type ToolEnv,
@@ -43,7 +40,7 @@ const WORKFLOW_PARAM = {
     type: "string",
     required: true,
     description:
-        "Workflow file, e.g. 'shot-keyframe' or 'workflows/shot-keyframe.tongflow.json'.",
+        "Workflow file, project-relative, e.g. 'characters/mei/mei_ref' or 'characters/mei/mei_ref.tongflow.json'.",
 } as const;
 
 const IMAGE_MIME: Record<string, ImageMediaType> = {
@@ -60,13 +57,8 @@ function runResult(record: RunRecord): JsonValue {
         runId: s.runId,
         status: s.status,
         ...(s.error ? { error: s.error } : {}),
-        takes: s.takes.map((t) => ({
-            owner: t.owner,
-            pass: t.pass,
-            take: t.take,
-            key: t.key,
-            circled: t.circled,
-        })),
+        no: record.outcome?.no ?? 0,
+        files: s.files.map((f) => f.key),
         texts: record.outcome?.texts ?? {},
         loose: record.outcome?.loose ?? [],
         nodes: s.nodes,
@@ -80,9 +72,9 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
         defineTool({
             name: "tongflow_workflow_run",
             description:
-                "Execute a workflow file with the TongFlow engine and ingest its outputs as takes of the target owner/pass (numbered T01, T02…; the first take of a pass is circled automatically). " +
-                "Inputs given here override the file's bindings for this run. Media generation takes seconds to minutes; use run_in_background for long jobs (video, batches) and continue planning — you are notified when it completes. " +
-                "After a run, inspect the result with tongflow_look (images) or tongflow_perceive (video/audio) before circling or moving on.",
+                "Execute a workflow file with the TongFlow engine. Its outputs land next to the file as <name>.NN.<ext> (NN = this run's number; a run never overwrites earlier outputs) and the run is logged in <name>.runs.json. " +
+                "Media generation takes seconds to minutes; use run_in_background for long jobs (video, batches) and continue working — you are notified when it completes. " +
+                "After a run, inspect the result with tongflow_look (images) or tongflow_perceive (video/audio) before moving on; if it is off, fix the workflow and run again.",
             parameters: {
                 project: PROJECT_PARAM,
                 workflow: WORKFLOW_PARAM,
@@ -90,25 +82,7 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
                     type: "object",
                     additionalProperties: true,
                     description:
-                        "input name → tf:// ref | project key | text | array. Overrides meta.bindings for this run.",
-                },
-                target: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                        owner: {
-                            type: "string",
-                            required: true,
-                            description: OWNER_DESC,
-                        },
-                        pass: {
-                            type: "string",
-                            required: true,
-                            description: PASS_DESC,
-                        },
-                    },
-                    description:
-                        "Where outputs land as takes. Defaults to the workflow's meta.target. Omit both to leave outputs loose under .runs/.",
+                        "input name → text | file path (relative to the workflow file or the project root) | URL | array of those. Only for workflows that left inputs open.",
                 },
                 note: {
                     type: "string",
@@ -130,14 +104,6 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
                     ...(args.inputs
                         ? { inputs: args.inputs as Record<string, unknown> }
                         : {}),
-                    ...(args.target
-                        ? {
-                              target: {
-                                  owner: args.target.owner,
-                                  pass: args.target.pass as Pass,
-                              },
-                          }
-                        : {}),
                     ...(args.note ? { note: args.note } : {}),
                 });
                 if (args.run_in_background) {
@@ -149,7 +115,7 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
                     }
                     const jobId = jobs.start({
                         kind: "tongflow",
-                        label: `tongflow ${args.workflow}${args.target ? ` → ${args.target.owner}/${args.target.pass}` : ""}`,
+                        label: `tongflow ${args.workflow}`,
                         ...(exec.agent ? { owner: exec.agent } : {}),
                         run: () => ({
                             cancel: (reason) => record.cancel(reason),
@@ -170,7 +136,7 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
                         kind: "background",
                         jobId,
                         runId: record.summary.runId,
-                        hint: "poll with job_output or wait for the completion notice; then tongflow_take_list / tongflow_look",
+                        hint: "poll with job_output or wait for the completion notice; then tongflow_look the new file",
                     });
                 }
                 const finished = await Promise.race([
@@ -220,13 +186,13 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
             name: "tongflow_look",
             description:
                 "Look at an asset. Images are returned as an image you can see (requires a vision-capable model route). Videos are returned as a contact sheet of sampled frames plus duration/resolution. " +
-                "Audio returns metadata only — use tongflow_perceive for content. Accepts a tf:// ref (tf://CHR_MEI/REF, tf://EP01_SC001_SH0010/ANI/T02) or a project key.",
+                "Audio returns metadata only — use tongflow_perceive for content. Takes a project-relative path (e.g. 'characters/mei/mei_ref.02.png').",
             parameters: {
                 project: PROJECT_PARAM,
                 ref: {
                     type: "string",
                     required: true,
-                    description: "tf:// ref or project-relative key.",
+                    description: "Project-relative path of the file.",
                 },
                 frames: {
                     type: "integer",
@@ -345,8 +311,7 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
                 ref: {
                     type: "string",
                     required: true,
-                    description:
-                        "tf:// ref or project-relative key of the media.",
+                    description: "Project-relative path of the media file.",
                 },
                 question: {
                     type: "string",
@@ -510,15 +475,6 @@ async function resolveToFile(
     projectId: string,
     ref: string,
 ): Promise<string> {
-    if (ref.startsWith("tf://")) {
-        const r = await env.api.resolveRef(projectId, ref);
-        if (r.kind !== "files") throw new Error(`${ref} resolves to text`);
-        if (r.paths.length !== 1)
-            throw new Error(
-                `${ref} resolves to ${r.paths.length} files; be specific (…/T01)`,
-            );
-        return r.paths[0];
-    }
     return env.api.filePath(projectId, ref);
 }
 

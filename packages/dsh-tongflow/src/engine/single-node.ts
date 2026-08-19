@@ -9,12 +9,7 @@ import {
     getAbiNodeBySlot,
     getAbiOutputRoutesBySlot,
 } from "tongflow";
-import {
-    expandTemplate,
-    hasTemplateRefs,
-    isTfRef,
-    resolveRef,
-} from "../project/refs.ts";
+import { expandTemplate, hasTemplateRefs } from "../project/refs.ts";
 import type { WorkflowDocument } from "../project/workflow-file.ts";
 
 export interface CanvasTaskBody {
@@ -100,28 +95,20 @@ function outputType(
     ) as ExecutableWorkflow["outputs"][number]["type"];
 }
 
-/** Deep-walk the prompt: `tf://` strings become absolute paths (files) or text; `/api/uploads/` prefixes are stripped. */
+/** Deep-walk the prompt: `{{file}}` includes inside strings are expanded (canvas prompts are otherwise passed through). */
 async function resolvePromptRefs(
     projectRoot: string,
     value: unknown,
 ): Promise<Record<string, unknown>> {
     const walk = async (v: unknown): Promise<unknown> => {
         if (typeof v === "string") {
-            if (isTfRef(v)) {
-                const r = await resolveRef(projectRoot, v);
-                if (r.kind === "texts") return r.texts.join("\n");
-                return r.paths.length === 1 ? r.paths[0] : r.paths;
-            }
-            if (hasTemplateRefs(v)) return expandTemplate(projectRoot, v);
+            if (hasTemplateRefs(v))
+                return expandTemplate(projectRoot, projectRoot, v);
             return v;
         }
         if (Array.isArray(v)) {
             const out: unknown[] = [];
-            for (const item of v) {
-                const w = await walk(item);
-                if (Array.isArray(w)) out.push(...w);
-                else out.push(w);
-            }
+            for (const item of v) out.push(await walk(item));
             return out;
         }
         if (v && typeof v === "object") {

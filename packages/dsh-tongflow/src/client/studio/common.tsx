@@ -1,8 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import type { Pass, TakeInfo } from "../../shared/types.ts";
-import { modalityOfExt } from "../../shared/types.ts";
+import type { Modality } from "../../shared/types.ts";
 import { fileUrl } from "../api.ts";
-import { makeT, type T, type UiKey } from "../i18n.ts";
+import { makeT, type T } from "../i18n.ts";
 
 export const TContext = createContext<T>(makeT("en"));
 export function useT(): T {
@@ -50,59 +49,31 @@ export function useAsync<T>(
     };
 }
 
-export function TakeThumb({ pid, take }: { pid: string; take: TakeInfo }) {
-    const url = fileUrl(pid, take.key);
-    const modality = modalityOfExt(take.ext);
+/** Small media thumbnail for a project file (image / video inline, a glyph otherwise). */
+export function Thumb({
+    pid,
+    fileKey,
+    modality,
+}: {
+    pid: string;
+    fileKey: string;
+    modality: Modality;
+}) {
+    const url = fileUrl(pid, fileKey);
     if (modality === "image")
-        return <img src={url} alt={take.fileName} loading="lazy" />;
+        return <img src={url} alt={fileKey} loading="lazy" />;
     if (modality === "video")
         return <video src={url} muted preload="metadata" />;
     return (
         <span className="glyph">
-            {modality === "audio" ? "♪" : modality === "model" ? "◈" : "▤"}
+            {modality === "audio"
+                ? "♪"
+                : modality === "model"
+                  ? "◈"
+                  : modality === "text"
+                    ? "¶"
+                    : "▤"}
         </span>
-    );
-}
-
-export function TakesGrid({
-    pid,
-    takes,
-    selected,
-    onSelect,
-}: {
-    pid: string;
-    takes: TakeInfo[];
-    selected?: TakeInfo;
-    onSelect: (take: TakeInfo) => void;
-}) {
-    const t = useT();
-    if (takes.length === 0)
-        return <div className="tfs-muted">{t("noTakes")}</div>;
-    return (
-        <div className="tfs-takes">
-            {takes.map((tk) => (
-                <div
-                    key={tk.key}
-                    className={`tfs-take${tk.circled ? " circled" : ""}${selected?.key === tk.key ? " selected" : ""}`}
-                    onClick={() => onSelect(tk)}
-                    title={tk.fileName}
-                >
-                    <div className="tfs-take-thumb">
-                        <TakeThumb pid={pid} take={tk} />
-                    </div>
-                    <div className="tfs-take-foot">
-                        <span>{tk.take}</span>
-                        {tk.circled ? (
-                            <span className="circle">{t("circled")}</span>
-                        ) : (
-                            <span className="tfs-muted">
-                                {fmtBytes(tk.size)}
-                            </span>
-                        )}
-                    </div>
-                </div>
-            ))}
-        </div>
     );
 }
 
@@ -116,22 +87,6 @@ export function fmtTime(iso: string | undefined): string {
     if (!iso) return "";
     const d = new Date(iso);
     return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
-}
-
-const PASS_KEY: Record<Pass, UiKey> = {
-    REF: "reference",
-    VO: "voiceRef",
-    SB: "storyboard",
-    KF: "keyframe",
-    ANI: "animation",
-    DLG: "dialogueAudio",
-    MUS: "music",
-    SFX: "sfx",
-    MIX: "mix",
-    CUT: "cut",
-};
-export function passLabel(t: T, pass: Pass): string {
-    return t(PASS_KEY[pass]);
 }
 
 export function Modal({

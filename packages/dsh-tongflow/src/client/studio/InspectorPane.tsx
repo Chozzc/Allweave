@@ -1,158 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type {
-    Pass,
-    RunEvent,
-    RunSummary,
-    TakeInfo,
-} from "../../shared/types.ts";
-import { fileUrl, studio, subscribeRun } from "../api.ts";
-import { fmtBytes, fmtTime, useAsync, useT } from "./common.tsx";
-
-/* ---------------- take card ---------------- */
-
-export function TakeCard({
-    pid,
-    take,
-    onChanged,
-    onOpenTake,
-    onOpenWorkflow,
-}: {
-    pid: string;
-    take: TakeInfo;
-    onChanged: () => void;
-    onOpenTake: (t: TakeInfo) => void;
-    onOpenWorkflow?: (key: string) => void;
-}) {
-    const t = useT();
-    const prov = take.provenance;
-    return (
-        <div className="tfs-card">
-            <h3>
-                {take.owner} / {take.pass} / {take.take}{" "}
-                {take.circled ? (
-                    <span style={{ color: "var(--tfs-ok)" }}>
-                        {t("circled")}
-                    </span>
-                ) : null}
-            </h3>
-            <dl className="tfs-kv">
-                <dt>{t("file")}</dt>
-                <dd>
-                    <a
-                        href={fileUrl(pid, take.key)}
-                        target="_blank"
-                        rel="noreferrer"
-                    >
-                        {take.fileName}
-                    </a>{" "}
-                    <span className="tfs-muted">{fmtBytes(take.size)}</span>
-                </dd>
-                <dt>{t("ref")}</dt>
-                <dd>
-                    tf://{take.owner}/{take.pass}/{take.take}
-                </dd>
-                <dt>{t("made")}</dt>
-                <dd>{fmtTime(take.mtime)}</dd>
-                {prov ? (
-                    <>
-                        <dt>{t("workflow")}</dt>
-                        <dd>
-                            {prov.workflow}{" "}
-                            <span className="tfs-muted">
-                                #{prov.workflowHash.slice(0, 8)}
-                            </span>
-                        </dd>
-                        <dt>{t("plugins")}</dt>
-                        <dd>{prov.pluginIds.join(", ")}</dd>
-                        <dt>{t("bindings")}</dt>
-                        <dd>
-                            {Object.entries(prov.bindings).map(([k, v]) => (
-                                <div key={k}>
-                                    <b>{k}</b> ={" "}
-                                    {Array.isArray(v) ? v.join(", ") : v}
-                                </div>
-                            ))}
-                        </dd>
-                        <dt>{t("took")}</dt>
-                        <dd>{(prov.durationMs / 1000).toFixed(1)} s</dd>
-                        {prov.note ? (
-                            <>
-                                <dt>{t("note")}</dt>
-                                <dd>{prov.note}</dd>
-                            </>
-                        ) : null}
-                    </>
-                ) : null}
-            </dl>
-            <div className="tfs-row" style={{ marginTop: 10 }}>
-                {!take.circled ? (
-                    <button
-                        className="tfs-btn primary"
-                        onClick={async () => {
-                            await studio.circle(
-                                pid,
-                                take.owner,
-                                take.pass,
-                                take.take,
-                            );
-                            onChanged();
-                        }}
-                    >
-                        {t("circleTake")}
-                    </button>
-                ) : null}
-                <button className="tfs-btn" onClick={() => onOpenTake(take)}>
-                    {t("preview")}
-                </button>
-                {prov &&
-                onOpenWorkflow &&
-                !prov.workflow.startsWith("(inline)") ? (
-                    <button
-                        className="tfs-btn"
-                        onClick={() => onOpenWorkflow(prov.workflow)}
-                    >
-                        {t("workflow")} ↗
-                    </button>
-                ) : null}
-                <button
-                    className="tfs-btn danger"
-                    onClick={async () => {
-                        if (
-                            !confirm(
-                                t("deleteConfirm", { name: take.fileName }),
-                            )
-                        )
-                            return;
-                        await studio.deleteTake(
-                            pid,
-                            take.owner,
-                            take.pass,
-                            take.take,
-                        );
-                        onChanged();
-                    }}
-                >
-                    {t("delete")}
-                </button>
-            </div>
-        </div>
-    );
-}
+import type { RunEvent, RunSummary } from "../../shared/types.ts";
+import { studio, subscribeRun } from "../api.ts";
+import { useAsync, useT } from "./common.tsx";
 
 /* ---------------- run panel ---------------- */
-
-const PASSES: Pass[] = [
-    "REF",
-    "VO",
-    "SB",
-    "KF",
-    "ANI",
-    "DLG",
-    "MUS",
-    "SFX",
-    "MIX",
-    "CUT",
-];
 
 export function RunPanel({
     pid,
@@ -166,26 +17,11 @@ export function RunPanel({
     onChanged: () => void;
 }) {
     const t = useT();
-    const {
-        data: summary,
-        error,
-        reload,
-    } = useAsync(
-        () =>
-            studio
-                .workflows(pid)
-                .then((ws) =>
-                    ws.find(
-                        (w) =>
-                            w.key === workflowKey ||
-                            w.key === `workflows/${workflowKey}`,
-                    ),
-                ),
+    const { data: summary, error } = useAsync(
+        () => studio.workflowSummary(pid, workflowKey),
         [pid, workflowKey, refreshToken],
     );
     const [bindings, setBindings] = useState<Record<string, string>>({});
-    const [owner, setOwner] = useState("");
-    const [pass, setPass] = useState<Pass | "">("");
     const [note, setNote] = useState("");
     const [run, setRun] = useState<RunSummary | undefined>();
     const [log, setLog] = useState<string[]>([]);
@@ -193,13 +29,8 @@ export function RunPanel({
     useEffect(() => {
         if (!summary) return;
         const next: Record<string, string> = {};
-        for (const i of summary.inputs)
-            next[i.name] = Array.isArray(i.bound)
-                ? i.bound.join(", ")
-                : (i.bound ?? "");
+        for (const i of summary.inputs) next[i.name] = "";
         setBindings(next);
-        setOwner(summary.meta.target?.owner ?? "");
-        setPass(summary.meta.target?.pass ?? "");
     }, [summary]);
     useEffect(() => () => unsub.current?.(), []);
     const start = async () => {
@@ -215,7 +46,6 @@ export function RunPanel({
             const s = await studio.startRun(pid, {
                 workflowKey: summary.key,
                 inputs,
-                ...(owner && pass ? { target: { owner, pass } } : {}),
                 ...(note ? { note } : {}),
             });
             setRun(s);
@@ -266,32 +96,6 @@ export function RunPanel({
                         />
                     </div>
                 ))}
-                <div className="tfs-row">
-                    <div style={{ flex: 1 }}>
-                        <div className="tfs-label">{t("targetOwner")}</div>
-                        <input
-                            className="tfs-input"
-                            placeholder={t("ownerPlaceholder")}
-                            value={owner}
-                            onChange={(e) => setOwner(e.target.value.trim())}
-                        />
-                    </div>
-                    <div>
-                        <div className="tfs-label">{t("pass")}</div>
-                        <select
-                            className="tfs-select"
-                            value={pass}
-                            onChange={(e) => setPass(e.target.value as Pass)}
-                        >
-                            <option value="">—</option>
-                            {PASSES.map((p) => (
-                                <option key={p} value={p}>
-                                    {p}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
                 <div>
                     <div className="tfs-label">{t("note")}</div>
                     <input
@@ -321,24 +125,6 @@ export function RunPanel({
                             {t("cancel")}
                         </button>
                     ) : null}
-                    <button
-                        className="tfs-btn"
-                        onClick={async () => {
-                            const b: Record<string, string> = {};
-                            for (const [k, v] of Object.entries(bindings))
-                                if (v.trim()) b[k] = v.trim();
-                            await studio.bindWorkflow(pid, summary.key, {
-                                bindings: b,
-                                ...(owner && pass
-                                    ? { target: { owner, pass } }
-                                    : {}),
-                            });
-                            reload();
-                            onChanged();
-                        }}
-                    >
-                        {t("saveDefaults")}
-                    </button>
                     {run ? (
                         <span className={`tfs-status ${run.status}`}>
                             {run.status}
@@ -352,12 +138,10 @@ export function RunPanel({
                     {log.join("\n")}
                 </div>
             ) : null}
-            {run?.takes.length ? (
+            {run?.files.length ? (
                 <div style={{ marginTop: 6 }}>
-                    {t("takesLabel")}:{" "}
-                    {run.takes
-                        .map((tk) => `${tk.owner}/${tk.pass}/${tk.take}`)
-                        .join(", ")}
+                    {t("outputs")}:{" "}
+                    {run.files.map((f) => f.fileName).join(", ")}
                 </div>
             ) : null}
         </div>
@@ -406,8 +190,8 @@ export function describeEvent(e: RunEvent): string {
         case "workflow_failed":
             return `✗ workflow failed: ${e.error ?? ""}`;
         case "ingested":
-            return e.takes?.length
-                ? `★ ${e.takes.map((tk) => `${tk.owner}/${tk.pass}/${tk.take}`).join(", ")}`
+            return e.files?.length
+                ? `★ ${e.files.map((f) => f.fileName).join(", ")}`
                 : "";
         case "error":
             return `✗ ${e.error ?? ""}`;
@@ -466,14 +250,9 @@ export function RecentRuns({
                         }}
                         title={r.workflow}
                     >
-                        {r.workflow.replace(/^workflows\//, "")}
+                        {r.workflow}
                     </span>
                     <span className="tfs-row">
-                        {r.target ? (
-                            <span className="tfs-muted">
-                                {r.target.owner}/{r.target.pass}
-                            </span>
-                        ) : null}
                         <span className={`tfs-status ${r.status}`}>
                             {r.status}
                         </span>

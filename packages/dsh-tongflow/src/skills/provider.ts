@@ -1,6 +1,6 @@
 /**
- * Packaged skills: the studio working method and one skill per template
- * genre, shipped as markdown under `<package>/skills/`.
+ * Packaged skills: the studio working method, shipped as markdown under
+ * `<package>/skills/`.
  */
 import { readdir, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";

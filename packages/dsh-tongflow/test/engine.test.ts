@@ -12,9 +12,8 @@ import type { ExecutableWorkflow } from "tongflow";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Config } from "../src/config.ts";
 import { runEngine } from "../src/engine/runner.ts";
-import { upsertEntity } from "../src/project/bible.ts";
-import { addTake, listTakes } from "../src/project/takes.ts";
-import { createProject } from "../src/project/templates.ts";
+import { createProject } from "../src/project/manifest.ts";
+import { listOutputs, readRunsLog } from "../src/project/outputs.ts";
 import { writeWorkflowDocument } from "../src/project/workflow-file.ts";
 import { Studio } from "../src/studio.ts";
 
@@ -142,63 +141,76 @@ describe("engine bridge", () => {
         ]);
     });
 
-    it("runs a workflow end to end: binds tf:// refs, ingests takes with provenance", async () => {
+    it("runs a workflow end to end: resolves file refs, places numbered outputs next to the workflow, logs provenance", async () => {
         const config = Config({ studioRoot, maxConcurrentRuns: 1 });
         const studio = new TestStudio({ config });
         await studio.init();
-        const { id, root } = await createProject(studioRoot, {
-            title: "Demo",
-            template: "manga-drama",
-        });
-        await upsertEntity(root, { id: "CHR_MEI", card: "# Mei\n" });
-        await mkdir(join(studioRoot, "tmp"), { recursive: true });
-        const refSrc = join(studioRoot, "tmp", "ref.png");
-        await writeFile(refSrc, "ref");
-        await addTake(root, "CHR_MEI", "REF", refSrc, { move: false });
-        await writeWorkflowDocument(root, "workflows/kf.tongflow.json", {
-            name: "kf",
+        const { id, root } = await createProject(studioRoot, { title: "Demo" });
+        await mkdir(join(root, "characters", "mei"), { recursive: true });
+        await writeFile(
+            join(root, "characters", "mei", "mei_ref.01.png"),
+            "ref",
+        );
+        const wfKey = "characters/mei/mei_sheet.tongflow.json";
+        await writeWorkflowDocument(root, wfKey, {
+            name: "mei_sheet",
             flow: { nodes: [], edges: [] },
             executable: workflow(),
-            meta: {
-                bindings: { ref: "tf://CHR_MEI/REF" },
-                target: { owner: "CHR_MEI", pass: "REF" },
-            },
+            meta: {},
         });
         const project = await studio.project(id);
         const record = studio.runs.start(project, {
             projectId: id,
-            workflowKey: "workflows/kf.tongflow.json",
-            inputs: { prompt: "a girl on a rooftop" },
-            target: { owner: "CHR_MEI", pass: "REF" },
+            workflowKey: wfKey,
+            inputs: { prompt: "a girl on a rooftop", ref: "./mei_ref.01.png" },
             note: "smoke",
         });
         await record.done;
         expect(record.summary.status).toBe("completed");
-        expect(record.summary.takes.map((t) => t.take)).toEqual(["T02"]);
-        const takes = await listTakes(root, "CHR_MEI", "REF");
-        expect(takes).toHaveLength(2);
-        const t2 = takes[1];
-        expect(t2.provenance?.bindings).toEqual({
-            ref: "tf://CHR_MEI/REF",
+        expect(record.summary.files.map((f) => f.fileName)).toEqual([
+            "mei_sheet.01.png",
+        ]);
+        const outputs = await listOutputs(root, wfKey);
+        expect(outputs).toHaveLength(1);
+        expect(outputs[0].key).toBe("characters/mei/mei_sheet.01.png");
+        const log = await readRunsLog(root, wfKey);
+        expect(log).toHaveLength(1);
+        expect(log[0].no).toBe(1);
+        expect(log[0].inputs).toEqual({
             prompt: "a girl on a rooftop",
+            ref: "./mei_ref.01.png",
         });
-        expect(t2.provenance?.resolved.ref[0]).toMatch(/CHR_MEI_REF_T01\.png$/);
-        expect(t2.provenance?.note).toBe("smoke");
-        expect(t2.provenance?.pluginIds).toEqual(["tongflow-modal-fake"]);
-        const body = await readFile(join(root, t2.key), "utf8");
+        expect(log[0].note).toBe("smoke");
+        expect(log[0].pluginIds).toEqual(["tongflow-modal-fake"]);
+        const body = await readFile(join(root, outputs[0].key), "utf8");
         expect(body).toContain('"texts":["a girl on a rooftop"]');
-        expect(record.readOutput()).toContain("★ takes: CHR_MEI/REF/T02");
+        // The dir-relative ref was resolved to the absolute file next to the workflow.
+        expect(body).toContain(join(root, "characters/mei/mei_ref.01.png"));
+        expect(record.readOutput()).toContain(
+            "★ outputs: characters/mei/mei_sheet.01.png",
+        );
         expect(record.summary.nodes.n1.status).toBe("completed");
+
+        // A second run gets the next number and never overwrites.
+        const again = studio.runs.start(project, {
+            projectId: id,
+            workflowKey: wfKey,
+            inputs: { prompt: "again" },
+        });
+        await again.done;
+        expect(again.summary.files.map((f) => f.fileName)).toEqual([
+            "mei_sheet.02.png",
+        ]);
+        expect((await listOutputs(root, wfKey)).map((o) => o.no)).toEqual([
+            1, 2,
+        ]);
     });
 
     it("reports failures and unbound inputs", async () => {
         const config = Config({ studioRoot });
         const studio = new TestStudio({ config });
         await studio.init();
-        const { id, root } = await createProject(studioRoot, {
-            title: "Demo",
-            template: "manga-drama",
-        });
+        const { id, root } = await createProject(studioRoot, { title: "Demo" });
         await writeWorkflowDocument(root, "workflows/kf.tongflow.json", {
             name: "kf",
             flow: { nodes: [], edges: [] },

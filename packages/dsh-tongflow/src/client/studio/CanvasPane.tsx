@@ -1,8 +1,9 @@
 /**
  * Embeds `tongflow/canvas` for one workflow file. The canvas talks to our
  * canvas-compat routes (`/tongflow/p/<pid>/api/...`) through its host config,
- * shows assets via `/tongflow/p/<pid>/files/<key>` (or tf:// refs through
- * `/ref`), and the document is synced file ↔ canvas: load on open, debounced
+ * shows assets via `/tongflow/p/<pid>/files/<key>` (the host hands it a copy
+ * whose `./x` refs are rewritten to project keys), and the document is
+ * synced file ↔ canvas: load on open, debounced
  * save on change (the host re-exports the executable on save).
  */
 import "@xyflow/react/dist/style.css";

@@ -1,23 +1,15 @@
 import { useEffect, useState } from "react";
-import type {
-    EntityDetail,
-    EpisodeBreakdown,
-    Pass,
-    TakeInfo,
-    TreeNode,
-} from "../../shared/types.ts";
+import type { OutputInfo, TreeNode } from "../../shared/types.ts";
 import { modalityOfExt } from "../../shared/types.ts";
 import { fileUrl, studio } from "../api.ts";
 import { CanvasPane } from "./CanvasPane.tsx";
-import { Modal, passLabel, TakesGrid, useAsync, useT } from "./common.tsx";
+import { fmtBytes, fmtTime, Modal, Thumb, useAsync, useT } from "./common.tsx";
 
 export interface PreviewProps {
     pid: string;
     node: TreeNode | undefined;
     locale: string;
     refreshToken: number;
-    selectedTake?: TakeInfo;
-    onSelectTake: (t: TakeInfo | undefined) => void;
     onChanged: () => void;
     onCanvasSave: (
         state: "saving" | "saved" | "error",
@@ -25,66 +17,8 @@ export interface PreviewProps {
     ) => void;
     /** Open the run drawer for the current workflow. */
     onRun: (workflowKey: string) => void;
-    /** Select a workflow file (e.g. after composing). */
-    onOpenWorkflow: (key: string) => void;
-}
-
-/** "Compose whole shot / episode / entity" button; opens the result on the canvas. */
-function ComposeButton({
-    pid,
-    owner,
-    kind,
-    onOpenWorkflow,
-    onChanged,
-}: {
-    pid: string;
-    owner: string;
-    kind: "shot" | "episode" | "entity";
-    onOpenWorkflow: (key: string) => void;
-    onChanged: () => void;
-}) {
-    const t = useT();
-    const [busy, setBusy] = useState(false);
-    const [msg, setMsg] = useState<string | undefined>();
-    return (
-        <span className="tfs-row">
-            <button
-                className="tfs-btn small"
-                disabled={busy}
-                onClick={async () => {
-                    setBusy(true);
-                    setMsg(undefined);
-                    try {
-                        const r = await studio.compose(pid, owner);
-                        setMsg(
-                            t("composed", {
-                                n: r.nodeCount,
-                                links: r.links,
-                                key: r.key.split("/").pop() ?? r.key,
-                            }),
-                        );
-                        onChanged();
-                        onOpenWorkflow(r.key);
-                    } catch (e) {
-                        setMsg(e instanceof Error ? e.message : String(e));
-                    } finally {
-                        setBusy(false);
-                    }
-                }}
-            >
-                {busy
-                    ? "…"
-                    : t(
-                          kind === "shot"
-                              ? "composeShot"
-                              : kind === "episode"
-                                ? "composeEpisode"
-                                : "composeEntity",
-                      )}
-            </button>
-            {msg ? <span className="tfs-muted">{msg}</span> : null}
-        </span>
-    );
+    /** Select a file / workflow in the tree. */
+    onOpen: (node: TreeNode) => void;
 }
 
 export function PreviewPane(p: PreviewProps) {
@@ -92,480 +26,193 @@ export function PreviewPane(p: PreviewProps) {
     const { node } = p;
     if (!node) return <div className="tfs-empty">{t("selectHint")}</div>;
     switch (node.kind) {
-        case "entity":
-            return <EntityView key={node.id} {...p} entityId={node.id} />;
-        case "shot":
-            return <ShotView key={node.id} {...p} shotId={node.id} />;
-        case "episode":
-            return <EpisodeView key={node.id} {...p} episode={node.id} />;
         case "workflow":
             return (
-                <WorkflowView
-                    key={node.key ?? node.id}
-                    {...p}
-                    workflowKey={node.key ?? node.id}
-                />
+                <WorkflowView key={node.key} {...p} workflowKey={node.key} />
             );
         case "file":
-            return (
-                <FileView
-                    key={node.key ?? node.id}
-                    {...p}
-                    fileKey={node.key ?? node.id}
-                />
-            );
+        case "output":
+            return <FileView key={node.key} {...p} fileKey={node.key} />;
         case "folder":
-            if (node.meta?.owner && node.meta?.pass)
-                return (
-                    <PassView
-                        key={node.id}
-                        {...p}
-                        owner={String(node.meta.owner)}
-                        pass={node.meta.pass as Pass}
-                    />
-                );
-            return <div className="tfs-empty">{node.label}</div>;
+            return <FolderView key={node.key} {...p} folder={node} />;
         default:
             return <div className="tfs-empty">{node.label}</div>;
     }
 }
 
-/* ---------------- entity ---------------- */
+/* ---------------- folder ---------------- */
 
-function EntityView({
+/** A folder: its media as thumbnails, other files as a list — click to open. */
+function FolderView({
     pid,
-    entityId,
-    refreshToken,
-    selectedTake,
-    onSelectTake,
-    onChanged,
-    onOpenWorkflow,
-}: PreviewProps & { entityId: string }) {
+    folder,
+    onOpen,
+}: PreviewProps & { folder: TreeNode }) {
     const t = useT();
-    const { data, error, reload } = useAsync(
-        () => studio.entity(pid, entityId),
-        [pid, entityId, refreshToken],
-    );
-    const takes = useAsync(
-        () => studio.takes(pid, entityId),
-        [pid, entityId, refreshToken],
-    );
-    const [editing, setEditing] = useState<
-        { card: string; consistency: string } | undefined
-    >();
-    if (error) return <div className="tfs-empty tfs-error">{error}</div>;
-    if (!data) return <div className="tfs-empty">…</div>;
-    const save = async () => {
-        if (!editing) return;
-        let consistency: Record<string, unknown>;
-        try {
-            consistency = JSON.parse(editing.consistency || "{}");
-        } catch {
-            alert("consistency.json is not valid JSON");
-            return;
+    const flat: TreeNode[] = [];
+    const walk = (nodes: TreeNode[]) => {
+        for (const n of nodes) {
+            if (n.kind === "folder") continue;
+            flat.push(n);
+            if (n.children) walk(n.children);
         }
-        const patch: Record<string, unknown> = { ...consistency };
-        for (const k of Object.keys(data.consistency))
-            if (!(k in consistency)) patch[k] = null;
-        await studio.upsertEntity(pid, entityId, {
-            card: editing.card,
-            consistency: patch,
-        });
-        setEditing(undefined);
-        reload();
-        onChanged();
     };
+    walk(folder.children ?? []);
+    const media = flat.filter((n) => {
+        const m = n.meta?.modality;
+        return m === "image" || m === "video";
+    });
+    const others = flat.filter((n) => !media.includes(n));
+    const subfolders = (folder.children ?? []).filter(
+        (n) => n.kind === "folder",
+    );
     return (
         <div className="tfs-preview">
             <div className="tfs-preview-head">
-                <h2>
-                    {data.name}{" "}
-                    <span className="tfs-muted">
-                        {data.id} · {data.kind}
-                    </span>
-                </h2>
-                <span className="tfs-spacer" />
-                <ComposeButton
-                    pid={pid}
-                    owner={entityId}
-                    kind="entity"
-                    onOpenWorkflow={onOpenWorkflow}
-                    onChanged={onChanged}
-                />
-                {editing ? (
-                    <>
-                        <button
-                            className="tfs-btn small primary"
-                            onClick={save}
-                        >
-                            {t("save")}
-                        </button>
-                        <button
-                            className="tfs-btn small"
-                            onClick={() => setEditing(undefined)}
-                        >
-                            {t("cancel")}
-                        </button>
-                    </>
-                ) : (
-                    <button
-                        className="tfs-btn small"
-                        onClick={() =>
-                            setEditing({
-                                card: data.card,
-                                consistency: JSON.stringify(
-                                    data.consistency,
-                                    null,
-                                    2,
-                                ),
-                            })
-                        }
-                    >
-                        {t("edit")}
-                    </button>
-                )}
+                <h2>{folder.key || "/"}</h2>
+                <span className="tfs-muted">
+                    {t("folderCount", {
+                        folders: subfolders.length,
+                        files: flat.length,
+                    })}
+                </span>
             </div>
             <div className="tfs-preview-body">
-                <div className="tfs-two-col">
-                    <div className="tfs-card">
-                        <h3>card.md</h3>
-                        {editing ? (
-                            <textarea
-                                className="tfs-textarea"
-                                style={{ minHeight: 220 }}
-                                value={editing.card}
-                                onChange={(e) =>
-                                    setEditing({
-                                        ...editing,
-                                        card: e.target.value,
-                                    })
-                                }
-                            />
-                        ) : (
-                            <div className="tfs-md">
-                                {data.card || "(empty)"}
-                            </div>
-                        )}
-                    </div>
-                    <div className="tfs-card">
-                        <h3>consistency.json</h3>
-                        {editing ? (
-                            <textarea
-                                className="tfs-textarea"
-                                style={{ minHeight: 220 }}
-                                value={editing.consistency}
-                                onChange={(e) =>
-                                    setEditing({
-                                        ...editing,
-                                        consistency: e.target.value,
-                                    })
-                                }
-                            />
-                        ) : (
-                            <ConsistencyKit kit={data as EntityDetail} />
-                        )}
-                    </div>
-                </div>
-                {(["REF", "VO"] as Pass[]).map((pass) => (
-                    <div className="tfs-card" key={pass}>
-                        <h3>
-                            {pass} · {passLabel(t, pass)}{" "}
-                            <span className="tfs-muted">
-                                tf://{entityId}/{pass}
-                            </span>
-                        </h3>
-                        <TakesGrid
-                            pid={pid}
-                            takes={takes.data?.[pass] ?? []}
-                            selected={selectedTake}
-                            onSelect={onSelectTake}
-                        />
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
-
-function ConsistencyKit({ kit }: { kit: EntityDetail }) {
-    const t = useT();
-    const entries = Object.entries(kit.consistency).filter(
-        ([, v]) => v !== undefined && v !== null && v !== "",
-    );
-    if (entries.length === 0)
-        return <div className="tfs-muted">{t("kitEmpty")}</div>;
-    return (
-        <dl className="tfs-kv">
-            {entries.map(([k, v]) => (
-                <div key={k} style={{ display: "contents" }}>
-                    <dt>{k}</dt>
-                    <dd>{typeof v === "string" ? v : JSON.stringify(v)}</dd>
-                </div>
-            ))}
-        </dl>
-    );
-}
-
-/* ---------------- shot ---------------- */
-
-function ShotView({
-    pid,
-    shotId,
-    node,
-    refreshToken,
-    selectedTake,
-    onSelectTake,
-    onChanged,
-    onOpenWorkflow,
-}: PreviewProps & { shotId: string }) {
-    const t = useT();
-    const takes = useAsync(
-        () => studio.takes(pid, shotId),
-        [pid, shotId, refreshToken],
-    );
-    const bd = (node?.meta?.breakdown ?? {}) as Record<string, unknown>;
-    return (
-        <div className="tfs-preview">
-            <div className="tfs-preview-head">
-                <h2>
-                    {shotId}{" "}
-                    <span className="tfs-muted">
-                        {String(bd.size ?? "")} {String(bd.camera ?? "")}
-                    </span>
-                </h2>
-                <span className="tfs-spacer" />
-                <ComposeButton
-                    pid={pid}
-                    owner={shotId}
-                    kind="shot"
-                    onOpenWorkflow={onOpenWorkflow}
-                    onChanged={onChanged}
-                />
-            </div>
-            <div className="tfs-preview-body">
-                <div className="tfs-card">
-                    <h3>{t("breakdown")}</h3>
-                    <dl className="tfs-kv">
-                        {(
-                            [
-                                "duration",
-                                "characters",
-                                "props",
-                                "action",
-                                "notes",
-                            ] as const
-                        ).map((k) =>
-                            bd[k] !== undefined ? (
-                                <div key={k} style={{ display: "contents" }}>
-                                    <dt>{k}</dt>
-                                    <dd>
-                                        {Array.isArray(bd[k])
-                                            ? (bd[k] as string[]).join(", ")
-                                            : String(bd[k])}
-                                    </dd>
+                {media.length > 0 ? (
+                    <div className="tfs-tiles">
+                        {media.map((n) => (
+                            <div
+                                key={n.key}
+                                className="tfs-take"
+                                onClick={() => onOpen(n)}
+                                title={n.key}
+                            >
+                                <div className="tfs-tile-thumb">
+                                    <Thumb
+                                        pid={pid}
+                                        fileKey={n.key}
+                                        modality={n.meta?.modality ?? "file"}
+                                    />
                                 </div>
-                            ) : null,
-                        )}
-                        {Array.isArray(bd.dialogue)
-                            ? (
-                                  bd.dialogue as {
-                                      character: string;
-                                      line: string;
-                                      direction?: string;
-                                  }[]
-                              ).map((d, i) => (
-                                  <div key={i} style={{ display: "contents" }}>
-                                      <dt>
-                                          {t("dialogue")}/{i + 1}
-                                      </dt>
-                                      <dd>
-                                          <b>{d.character}</b>: {d.line}{" "}
-                                          {d.direction ? (
-                                              <span className="tfs-muted">
-                                                  ({d.direction})
-                                              </span>
-                                          ) : null}
-                                      </dd>
-                                  </div>
-                              ))
-                            : null}
-                        {bd.prompts && typeof bd.prompts === "object"
-                            ? Object.entries(
-                                  bd.prompts as Record<string, string>,
-                              ).map(([k, v]) => (
-                                  <div key={k} style={{ display: "contents" }}>
-                                      <dt>
-                                          {t("prompt")}/{k}
-                                      </dt>
-                                      <dd>{v}</dd>
-                                  </div>
-                              ))
-                            : null}
-                    </dl>
-                </div>
-                {(["SB", "KF", "ANI", "DLG"] as Pass[]).map((pass) => (
-                    <div className="tfs-card" key={pass}>
-                        <h3>
-                            {pass} · {passLabel(t, pass)}{" "}
-                            <span className="tfs-muted">
-                                tf://{shotId}/{pass}
+                                <div className="tfs-tile-foot">
+                                    <span>{n.label}</span>
+                                    <span className="tfs-muted">
+                                        {fmtBytes(n.meta?.size ?? 0)}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : null}
+                {subfolders.length > 0 || others.length > 0 ? (
+                    <div className="tfs-list">
+                        {subfolders.map((n) => (
+                            <div
+                                key={n.key}
+                                className="tfs-list-row"
+                                onClick={() => onOpen(n)}
+                            >
+                                <span>📁 {n.label}/</span>
+                                <span className="tfs-muted">
+                                    {n.children?.length ?? 0}
+                                </span>
+                            </div>
+                        ))}
+                        {others.map((n) => (
+                            <div
+                                key={n.key}
+                                className="tfs-list-row"
+                                onClick={() => onOpen(n)}
+                            >
+                                <span>
+                                    {n.kind === "workflow" ? "🧩 " : ""}
+                                    {n.kind === "workflow"
+                                        ? `${n.label}.tongflow.json`
+                                        : n.label}
+                                </span>
+                                <span className="tfs-muted">
+                                    {fmtBytes(n.meta?.size ?? 0)}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                ) : null}
+                {flat.length === 0 && subfolders.length === 0 ? (
+                    <div className="tfs-muted">{t("emptyFolder")}</div>
+                ) : null}
+            </div>
+        </div>
+    );
+}
+
+/* ---------------- workflow ---------------- */
+
+/** Files a workflow generated, newest first, with the run note. */
+function OutputsStrip({
+    pid,
+    workflowKey,
+    refreshToken,
+    onOpen,
+}: {
+    pid: string;
+    workflowKey: string;
+    refreshToken: number;
+    onOpen: (node: TreeNode) => void;
+}) {
+    const t = useT();
+    const { data } = useAsync(
+        () => studio.workflowOutputs(pid, workflowKey),
+        [pid, workflowKey, refreshToken],
+    );
+    if (!data || data.length === 0) return null;
+    const newestFirst = [...data].reverse();
+    const toNode = (o: OutputInfo): TreeNode => ({
+        id: o.key,
+        label: o.fileName,
+        kind: "output",
+        key: o.key,
+        meta: {
+            size: o.size,
+            mtime: o.mtime,
+            modality: modalityOfExt(o.ext),
+            no: o.no,
+        },
+    });
+    return (
+        <div className="tfs-outputs">
+            <div className="tfs-label">
+                {t("outputs")} ({data.length})
+            </div>
+            <div className="tfs-tiles">
+                {newestFirst.map((o) => (
+                    <div
+                        key={o.key}
+                        className="tfs-take"
+                        onClick={() => onOpen(toNode(o))}
+                        title={`${o.fileName}\n${fmtTime(o.mtime)}${o.record?.note ? `\n${o.record.note}` : ""}`}
+                    >
+                        <div className="tfs-tile-thumb">
+                            <Thumb
+                                pid={pid}
+                                fileKey={o.key}
+                                modality={modalityOfExt(o.ext)}
+                            />
+                        </div>
+                        <div className="tfs-tile-foot">
+                            <span>
+                                #{o.no}
+                                {o.output ? ` ${o.output}` : ""}
                             </span>
-                        </h3>
-                        <TakesGrid
-                            pid={pid}
-                            takes={takes.data?.[pass] ?? []}
-                            selected={selectedTake}
-                            onSelect={onSelectTake}
-                        />
+                            <span className="tfs-muted">
+                                {fmtBytes(o.size)}
+                            </span>
+                        </div>
                     </div>
                 ))}
             </div>
         </div>
     );
 }
-
-function PassView({
-    pid,
-    owner,
-    pass,
-    refreshToken,
-    selectedTake,
-    onSelectTake,
-}: PreviewProps & { owner: string; pass: Pass }) {
-    const t = useT();
-    const takes = useAsync(
-        () => studio.takes(pid, owner),
-        [pid, owner, refreshToken],
-    );
-    return (
-        <div className="tfs-preview">
-            <div className="tfs-preview-head">
-                <h2>
-                    {owner} / {pass}{" "}
-                    <span className="tfs-muted">{passLabel(t, pass)}</span>
-                </h2>
-            </div>
-            <div className="tfs-preview-body">
-                <TakesGrid
-                    pid={pid}
-                    takes={takes.data?.[pass] ?? []}
-                    selected={selectedTake}
-                    onSelect={onSelectTake}
-                />
-            </div>
-        </div>
-    );
-}
-
-/* ---------------- episode ---------------- */
-
-function EpisodeView({
-    pid,
-    episode,
-    refreshToken,
-    selectedTake,
-    onSelectTake,
-    onChanged,
-    onOpenWorkflow,
-}: PreviewProps & { episode: string }) {
-    const t = useT();
-    const { data, error } = useAsync(
-        () => studio.breakdown(pid, episode).catch(() => undefined),
-        [pid, episode, refreshToken],
-    );
-    const post = useAsync(
-        () => studio.takes(pid, episode),
-        [pid, episode, refreshToken],
-    );
-    const bd = data?.breakdown as EpisodeBreakdown | undefined;
-    return (
-        <div className="tfs-preview">
-            <div className="tfs-preview-head">
-                <h2>
-                    {episode}{" "}
-                    <span className="tfs-muted">{bd?.title ?? ""}</span>
-                </h2>
-                <span className="tfs-spacer" />
-                <ComposeButton
-                    pid={pid}
-                    owner={episode}
-                    kind="episode"
-                    onOpenWorkflow={onOpenWorkflow}
-                    onChanged={onChanged}
-                />
-            </div>
-            <div className="tfs-preview-body">
-                {error ? <div className="tfs-error">{error}</div> : null}
-                {bd ? (
-                    <div className="tfs-card">
-                        <h3>{t("shotBreakdown")}</h3>
-                        {bd.synopsis ? <p>{bd.synopsis}</p> : null}
-                        <table className="tfs-table tfs-shot-table">
-                            <thead>
-                                <tr>
-                                    <th>shot</th>
-                                    <th>size</th>
-                                    <th>dur</th>
-                                    <th>action</th>
-                                    <th>{t("dialogue")}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {bd.scenes.flatMap((s) => [
-                                    <tr key={s.id}>
-                                        <td colSpan={5}>
-                                            <b>{s.id}</b> {s.title ?? ""}{" "}
-                                            <span className="tfs-muted">
-                                                {s.location ?? ""}{" "}
-                                                {s.timeOfDay ?? ""}
-                                            </span>
-                                        </td>
-                                    </tr>,
-                                    ...s.shots.map((h) => (
-                                        <tr key={h.id}>
-                                            <td>{h.id.slice(-6)}</td>
-                                            <td>{h.size ?? ""}</td>
-                                            <td>{h.duration ?? ""}</td>
-                                            <td>{h.action ?? ""}</td>
-                                            <td>
-                                                {(h.dialogue ?? [])
-                                                    .map(
-                                                        (d) =>
-                                                            `${d.character}: ${d.line}`,
-                                                    )
-                                                    .join(" / ")}
-                                            </td>
-                                        </tr>
-                                    )),
-                                ])}
-                            </tbody>
-                        </table>
-                    </div>
-                ) : (
-                    <div className="tfs-muted">{t("noBreakdown")}</div>
-                )}
-                {(["MUS", "SFX", "MIX", "CUT"] as Pass[]).map((pass) => (
-                    <div className="tfs-card" key={pass}>
-                        <h3>
-                            {pass} · {passLabel(t, pass)}{" "}
-                            <span className="tfs-muted">
-                                tf://{episode}/{pass}
-                            </span>
-                        </h3>
-                        <TakesGrid
-                            pid={pid}
-                            takes={post.data?.[pass] ?? []}
-                            selected={selectedTake}
-                            onSelect={onSelectTake}
-                        />
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
-
-/* ---------------- workflow (canvas) ---------------- */
 
 function WorkflowView({
     pid,
@@ -574,13 +221,14 @@ function WorkflowView({
     refreshToken,
     onCanvasSave,
     onRun,
+    onOpen,
 }: PreviewProps & { workflowKey: string }) {
     const t = useT();
     const [state, setState] = useState<string>("");
     return (
         <div className="tfs-preview">
             <div className="tfs-preview-head">
-                <h2>{workflowKey.replace(/^workflows\//, "")}</h2>
+                <h2>{workflowKey}</h2>
                 <span className="tfs-muted">{state}</span>
                 <span className="tfs-spacer" />
                 <button
@@ -613,6 +261,12 @@ function WorkflowView({
                     );
                     onCanvasSave(s, detail);
                 }}
+            />
+            <OutputsStrip
+                pid={pid}
+                workflowKey={workflowKey}
+                refreshToken={refreshToken}
+                onOpen={onOpen}
             />
         </div>
     );

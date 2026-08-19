@@ -3,17 +3,12 @@ import type {} from "@deepseek-ai/dsh-client-runtime/client";
 import type {} from "@deepseek-ai/dsh-client-ui-conversation/client";
 import type { PropsRuntime } from "@deepseek-ai/dsh-client-ui-slots";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ProjectSummary, TakeInfo, TreeNode } from "../../shared/types.ts";
+import type { ProjectSummary, TreeNode } from "../../shared/types.ts";
 import { studio } from "../api.ts";
 import { makeT } from "../i18n.ts";
 import { ChatPane } from "./ChatPane.tsx";
 import { Drawer, Modal, TContext, useAsync, useT } from "./common.tsx";
-import {
-    RecentRuns,
-    RunPanel,
-    TakeCard,
-    useActiveRuns,
-} from "./InspectorPane.tsx";
+import { RecentRuns, RunPanel, useActiveRuns } from "./InspectorPane.tsx";
 import { PluginsDialog } from "./PluginsDialog.tsx";
 import { PreviewPane } from "./PreviewPane.tsx";
 import { TreePane } from "./TreePane.tsx";
@@ -41,7 +36,6 @@ export type StudioViewProps = Pick<
 const LS_KEY = "dsh-tongflow:project";
 
 type DrawerState =
-    | { kind: "take"; take: TakeInfo }
     | { kind: "run"; workflowKey: string }
     | { kind: "runs" }
     | undefined;
@@ -208,9 +202,9 @@ function StudioBody(props: StudioViewProps) {
 
     const onSelect = (n: TreeNode) => {
         setSelected(n);
-        if (drawer?.kind === "take") setDrawer(undefined);
+        if (drawer?.kind === "run" && n.key !== drawer.workflowKey)
+            setDrawer(undefined);
     };
-    const selectedTake = drawer?.kind === "take" ? drawer.take : undefined;
 
     return (
         <div
@@ -325,12 +319,6 @@ function StudioBody(props: StudioViewProps) {
                             node={selected}
                             locale={locale}
                             refreshToken={refresh}
-                            selectedTake={selectedTake}
-                            onSelectTake={(tk) =>
-                                setDrawer(
-                                    tk ? { kind: "take", take: tk } : undefined,
-                                )
-                            }
                             onChanged={bump}
                             onCanvasSave={(s) => {
                                 if (s === "saved") tree.reload();
@@ -338,13 +326,8 @@ function StudioBody(props: StudioViewProps) {
                             onRun={(key) =>
                                 setDrawer({ kind: "run", workflowKey: key })
                             }
-                            onOpenWorkflow={(key) => {
-                                setSelected({
-                                    id: key,
-                                    label: key.split("/").pop() ?? key,
-                                    kind: "workflow",
-                                    key,
-                                });
+                            onOpen={(n) => {
+                                setSelected(n);
                                 setDrawer(undefined);
                             }}
                         />
@@ -362,45 +345,13 @@ function StudioBody(props: StudioViewProps) {
                     {pid && drawer ? (
                         <Drawer
                             title={
-                                drawer.kind === "take"
-                                    ? `${t("take")} · ${drawer.take.owner}/${drawer.take.pass}/${drawer.take.take}`
-                                    : drawer.kind === "run"
-                                      ? t("run").replace("▶ ", "")
-                                      : t("runs")
+                                drawer.kind === "run"
+                                    ? t("run").replace("▶ ", "")
+                                    : t("runs")
                             }
                             onClose={() => setDrawer(undefined)}
                         >
-                            {drawer.kind === "take" ? (
-                                <TakeCard
-                                    pid={pid}
-                                    take={drawer.take}
-                                    onChanged={() => {
-                                        bump();
-                                        setDrawer(undefined);
-                                    }}
-                                    onOpenTake={(tk) => {
-                                        setSelected({
-                                            id: tk.key,
-                                            label: tk.fileName,
-                                            kind: "file",
-                                            key: tk.key,
-                                        });
-                                        setDrawer(undefined);
-                                    }}
-                                    onOpenWorkflow={(key) => {
-                                        setSelected({
-                                            id: key,
-                                            label: key.replace(
-                                                /^workflows\//,
-                                                "",
-                                            ),
-                                            kind: "workflow",
-                                            key,
-                                        });
-                                        setDrawer(undefined);
-                                    }}
-                                />
-                            ) : drawer.kind === "run" ? (
+                            {drawer.kind === "run" ? (
                                 <RunPanel
                                     pid={pid}
                                     workflowKey={drawer.workflowKey}
@@ -448,16 +399,10 @@ function NewProjectDialog({
     onCreated: (p: ProjectSummary) => void;
 }) {
     const t = useT();
-    const templates = useAsync(() => studio.templates(locale), [locale]);
     const [title, setTitle] = useState("");
-    const [template, setTemplate] = useState("");
-    const [logline, setLogline] = useState("");
+    const [brief, setBrief] = useState("");
     const [busy, setBusy] = useState(false);
     const [err, setErr] = useState<string | undefined>();
-    useEffect(() => {
-        if (!template && templates.data?.[0]) setTemplate(templates.data[0].id);
-    }, [templates.data, template]);
-    const tpl = templates.data?.find((x) => x.id === template);
     return (
         <Modal title={t("newProjectTitle")} onClose={onClose}>
             <div className="tfs-form">
@@ -467,50 +412,36 @@ function NewProjectDialog({
                         className="tfs-input"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        placeholder="Rooftop Rain"
+                        placeholder={t("titlePlaceholder")}
                     />
                 </div>
                 <div>
-                    <div className="tfs-label">{t("template")}</div>
-                    <select
-                        className="tfs-select"
-                        value={template}
-                        onChange={(e) => setTemplate(e.target.value)}
-                    >
-                        {(templates.data ?? []).map((x) => (
-                            <option key={x.id} value={x.id}>
-                                {x.title}
-                            </option>
-                        ))}
-                    </select>
+                    <div className="tfs-label">{t("brief")}</div>
+                    <textarea
+                        className="tfs-textarea"
+                        style={{ minHeight: 90 }}
+                        value={brief}
+                        onChange={(e) => setBrief(e.target.value)}
+                        placeholder={t("briefPlaceholder")}
+                    />
                     <div className="tfs-muted" style={{ marginTop: 4 }}>
-                        {tpl?.description}
+                        {t("briefHint")}
                     </div>
-                </div>
-                <div>
-                    <div className="tfs-label">{t("logline")}</div>
-                    <input
-                        className="tfs-input"
-                        value={logline}
-                        onChange={(e) => setLogline(e.target.value)}
-                        placeholder={t("oneSentence")}
-                    />
                 </div>
                 {err ? <div className="tfs-error">{err}</div> : null}
                 <div className="tfs-row">
                     <button
                         className="tfs-btn primary"
-                        disabled={!title.trim() || !template || busy}
+                        disabled={!title.trim() || busy}
                         onClick={async () => {
                             setBusy(true);
                             setErr(undefined);
                             try {
                                 const p = await studio.createProject({
                                     title: title.trim(),
-                                    template,
                                     locale,
-                                    ...(logline.trim()
-                                        ? { logline: logline.trim() }
+                                    ...(brief.trim()
+                                        ? { brief: brief.trim() }
                                         : {}),
                                 });
                                 onCreated(p);
