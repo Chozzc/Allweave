@@ -1,0 +1,190 @@
+import { createContext, useContext, useEffect, useState } from "react";
+import type { Pass, TakeInfo } from "../../shared/types.ts";
+import { modalityOfExt } from "../../shared/types.ts";
+import { fileUrl } from "../api.ts";
+import { makeT, type T, type UiKey } from "../i18n.ts";
+
+export const TContext = createContext<T>(makeT("en"));
+export function useT(): T {
+    return useContext(TContext);
+}
+
+export function useAsync<T>(
+    fn: () => Promise<T>,
+    deps: unknown[],
+): {
+    data: T | undefined;
+    error: string | undefined;
+    loading: boolean;
+    reload: () => void;
+} {
+    const [state, setState] = useState<{
+        data?: T;
+        error?: string;
+        loading: boolean;
+    }>({ loading: true });
+    const [tick, setTick] = useState(0);
+    useEffect(() => {
+        let alive = true;
+        setState((s) => ({ ...s, loading: true }));
+        fn().then(
+            (data) => alive && setState({ data, loading: false }),
+            (error: unknown) =>
+                alive &&
+                setState({
+                    error:
+                        error instanceof Error ? error.message : String(error),
+                    loading: false,
+                }),
+        );
+        return () => {
+            alive = false;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [...deps, tick]);
+    return {
+        data: state.data,
+        error: state.error,
+        loading: state.loading,
+        reload: () => setTick((t) => t + 1),
+    };
+}
+
+export function TakeThumb({ pid, take }: { pid: string; take: TakeInfo }) {
+    const url = fileUrl(pid, take.key);
+    const modality = modalityOfExt(take.ext);
+    if (modality === "image")
+        return <img src={url} alt={take.fileName} loading="lazy" />;
+    if (modality === "video")
+        return <video src={url} muted preload="metadata" />;
+    return (
+        <span className="glyph">
+            {modality === "audio" ? "♪" : modality === "model" ? "◈" : "▤"}
+        </span>
+    );
+}
+
+export function TakesGrid({
+    pid,
+    takes,
+    selected,
+    onSelect,
+}: {
+    pid: string;
+    takes: TakeInfo[];
+    selected?: TakeInfo;
+    onSelect: (take: TakeInfo) => void;
+}) {
+    const t = useT();
+    if (takes.length === 0)
+        return <div className="tfs-muted">{t("noTakes")}</div>;
+    return (
+        <div className="tfs-takes">
+            {takes.map((tk) => (
+                <div
+                    key={tk.key}
+                    className={`tfs-take${tk.circled ? " circled" : ""}${selected?.key === tk.key ? " selected" : ""}`}
+                    onClick={() => onSelect(tk)}
+                    title={tk.fileName}
+                >
+                    <div className="tfs-take-thumb">
+                        <TakeThumb pid={pid} take={tk} />
+                    </div>
+                    <div className="tfs-take-foot">
+                        <span>{tk.take}</span>
+                        {tk.circled ? (
+                            <span className="circle">{t("circled")}</span>
+                        ) : (
+                            <span className="tfs-muted">
+                                {fmtBytes(tk.size)}
+                            </span>
+                        )}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+export function fmtBytes(n: number): string {
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+    return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+export function fmtTime(iso: string | undefined): string {
+    if (!iso) return "";
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
+}
+
+const PASS_KEY: Record<Pass, UiKey> = {
+    REF: "reference",
+    VO: "voiceRef",
+    SB: "storyboard",
+    KF: "keyframe",
+    ANI: "animation",
+    DLG: "dialogueAudio",
+    MUS: "music",
+    SFX: "sfx",
+    MIX: "mix",
+    CUT: "cut",
+};
+export function passLabel(t: T, pass: Pass): string {
+    return t(PASS_KEY[pass]);
+}
+
+export function Modal({
+    title,
+    onClose,
+    children,
+    wide,
+}: {
+    title: string;
+    onClose: () => void;
+    children: React.ReactNode;
+    wide?: boolean;
+}) {
+    return (
+        <div className="tfs-modal-backdrop" onClick={onClose}>
+            <div
+                className={`tfs-modal${wide ? " wide" : ""}`}
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div
+                    className="tfs-row"
+                    style={{ justifyContent: "space-between", marginBottom: 8 }}
+                >
+                    <h2>{title}</h2>
+                    <button className="tfs-btn small" onClick={onClose}>
+                        ✕
+                    </button>
+                </div>
+                {children}
+            </div>
+        </div>
+    );
+}
+
+/** Right-side drawer inside the studio root (details, run, takes). */
+export function Drawer({
+    title,
+    onClose,
+    children,
+}: {
+    title: string;
+    onClose: () => void;
+    children: React.ReactNode;
+}) {
+    return (
+        <div className="tfs-drawer">
+            <div className="tfs-drawer-head">
+                <h2>{title}</h2>
+                <button className="tfs-btn small" onClick={onClose}>
+                    ✕
+                </button>
+            </div>
+            <div className="tfs-drawer-body">{children}</div>
+        </div>
+    );
+}

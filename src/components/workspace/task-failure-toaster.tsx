@@ -1,22 +1,24 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { showErrorToast } from "@/components/ui/error-toast";
+import { TaskStatus, WorkflowStatus } from "tongflow";
+import type { SSEMessage } from "tongflow/canvas";
+import {
+    getClientTranslator,
+    SSE_TASK_MESSAGE_EVENT,
+    showErrorToast,
+} from "tongflow/canvas";
 import { CommunitySupportRow } from "@/components/workspace/community-support-row";
 import {
     MissingKeyDialog,
     type MissingKeyRequest,
 } from "@/components/workspace/missing-key-dialog";
-import { TaskStatus, WorkflowStatus } from "@/constants/task-status";
-import { getClientTranslator } from "@/i18n/client";
 import type { SerializedWorkflowFailure } from "@/lib/task/error-envelope";
 import { buildTaskErrorDetail } from "@/lib/task/error-format";
 import {
     localizeTaskError,
     shouldOfferSupport,
 } from "@/lib/task/error-localize";
-import { SSE_TASK_MESSAGE_EVENT } from "@/lib/task/sse-events";
-import type { SSEMessage } from "@/types/sse";
 
 /**
  * Global listener that surfaces every task / workflow failure as a persistent

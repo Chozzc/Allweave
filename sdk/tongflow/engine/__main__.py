@@ -10,7 +10,11 @@ Request shape::
      "inputs": {<name>: ...},
      "options": {"plugins_dir", "data_dir", "out_dir", "abi_path",
                  "file_key_base", "inline_outputs", "asset_endpoint",
-                 "asset_token", "auto_install", "org", "task_id"}}
+                 "asset_token", "auto_install", "org", "task_id",
+                 "env": {<NAME>: <value>}}}
+
+The first line written is ``{"ready": {"version": ...}}`` once the request
+parsed, so a host can tell "engine up" from "still starting".
 
 The TongFlow desktop app uses this to delegate workflow execution to the SDK
 engine (one execution core) while keeping its own DB / SSE / abort shell. The
@@ -24,6 +28,7 @@ import json
 import sys
 from typing import Any
 
+from .. import __version__
 from .runner import run_workflow
 
 
@@ -38,6 +43,8 @@ def main() -> int:
     except Exception as e:  # noqa: BLE001
         _emit({"error": f"invalid request JSON: {e}"})
         return 1
+
+    _emit({"ready": {"version": __version__}})
 
     workflow = req.get("workflow")
     inputs = req.get("inputs") or {}
@@ -67,6 +74,7 @@ def main() -> int:
             plugin_git_urls=opts.get("plugin_git_urls"),
             on_progress=on_progress,
             task_id=opts.get("task_id") or "tongflow-engine",
+            env=opts.get("env") or None,
         )
     except Exception as e:  # noqa: BLE001 - report as a final error line
         _emit({"error": str(e)})

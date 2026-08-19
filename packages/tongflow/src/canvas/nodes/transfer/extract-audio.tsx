@@ -1,0 +1,31 @@
+import { Music } from "lucide-react";
+import { memo } from "react";
+import { useTranslations } from "use-intl";
+import type { TongflowPluginNodeProps } from "../../../core";
+import { useAbiForm } from "../../hooks/use-abi-form";
+
+import { AbiNodeShell } from "../base/abi-node-shell";
+
+const ExtractAudioNode = ({
+    selected,
+    data,
+}: TongflowPluginNodeProps<"extract-audio", "extractAudioNode">) => {
+    const t = useTranslations("Workspace.nodes");
+    const form = useAbiForm("extract-audio");
+    const fileKeys = data.fileKeys;
+
+    return (
+        <AbiNodeShell
+            feature="extract-audio"
+            form={form}
+            selected={selected}
+            data={data}
+            title={t("titles.extractAudioTrack")}
+            icon={<Music className="h-5 w-5" />}
+            executeLabel={t("actions.extractAudioTrack")}
+            executeDisabled={!fileKeys?.length}
+        />
+    );
+};
+
+export default memo(ExtractAudioNode);

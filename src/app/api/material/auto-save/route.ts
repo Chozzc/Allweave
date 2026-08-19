@@ -5,9 +5,9 @@
 
 import { eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
+import { logger } from "tongflow";
 import { getDb } from "@/db";
 import { materials, tasks, workflows } from "@/db/schema";
-import { logger } from "@/lib/logger";
 
 const WEBHOOK_TOKEN = process.env.TASK_WEBHOOK_TOKEN;
 

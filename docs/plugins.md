@@ -13,7 +13,7 @@ document is for plugin **authors**.
 ## 1. What a plugin is
 
 Every runnable node on the TongFlow canvas is backed by a **contract**, not by hard-wired
-code. That contract is [`config/tongflow.abi.json`](../config/tongflow.abi.json) — the ABI.
+code. That contract is [`packages/tongflow/abi/tongflow.abi.json`](../packages/tongflow/abi/tongflow.abi.json) — the ABI.
 The ABI defines *what capabilities exist* and *what each one's input and output look like*.
 Each capability is a typed **node slot**: `gen-text`, `image-gen`, `gen-video`, `transcribe`,
 and so on. The ABI describes only the contract — text in, image out, which fields are
@@ -84,7 +84,8 @@ it plays no part in discovery or execution.
 The naming convention the scanner enforces:
 
 - The directory name must be **all lowercase**.
-- It must begin with `tongflow-api-…` or `tongflow-modal-…`. **The prefix no longer selects an
+- It must begin with `tongflow-api-…`, `tongflow-modal-…`, or `tongflow-router-…` (aggregator
+  plugins routing one key to many third-party models). **The prefix no longer selects an
   execution backend** — every plugin runs the same way (see [§5](#5-what-registers-a-handler)).
   It is now just a **label** shown in the node's plugin picker, a hint about where the work
   tends to run (a local/API adapter vs. hosted compute).
@@ -102,8 +103,6 @@ One entry point per plugin, by convention:
   `modal`.
 
 Beyond that, your code can be laid out however you like.
-
----
 
 ## 4. The SDK contract
 
@@ -356,7 +355,7 @@ two buckets:
 
 Workflow when you do change it:
 
-1. Edit [`config/tongflow.abi.json`](../config/tongflow.abi.json) — prefer explicit `required`
+1. Edit [`packages/tongflow/abi/tongflow.abi.json`](../packages/tongflow/abi/tongflow.abi.json) — prefer explicit `required`
    when the product guarantees a value.
 2. Regenerate the TypeScript types: `pnpm gen:abi`.
 3. Regenerate and publish the Python SDK so plugins can import the new types:

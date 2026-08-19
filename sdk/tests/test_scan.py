@@ -111,3 +111,15 @@ def test_scan_accepts_router_prefix(tmp_path):
     payload = _entry(root, _write_abi(tmp_path))
     assert payload["errors"] == []
     assert "tongflow-router-fake" in payload["plugins"]
+
+
+def test_scan_accepts_local_prefix(tmp_path):
+    # tongflow-local-* (on-device engine plugins) are entry.py runners like -api-.
+    root = tmp_path / "plugins"
+    pdir = root / "tongflow-local-fake"
+    pdir.mkdir(parents=True)
+    (pdir / "entry.py").write_text(_HANDLERS, encoding="utf-8")
+    payload = _entry(root, _write_abi(tmp_path))
+    assert payload["errors"] == []
+    assert "tongflow-local-fake" in payload["plugins"]
+

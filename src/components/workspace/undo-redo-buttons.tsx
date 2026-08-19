@@ -6,12 +6,12 @@
 
 import { Redo2, Undo2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
 import {
+    Button,
     Tooltip,
     TooltipContent,
     TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "tongflow/canvas";
 import { useUndoRedo } from "@/hooks/use-undo-redo";
 
 const BUTTON_CLASS =

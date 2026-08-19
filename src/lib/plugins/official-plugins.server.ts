@@ -4,7 +4,7 @@ import fs, { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as git from "isomorphic-git";
 import http from "isomorphic-git/http/node";
-import { logger } from "@/lib/logger";
+import { logger } from "tongflow";
 import { loadPluginMetaMap } from "@/lib/plugins/plugin-env-manifests.server";
 import { pluginsDir, resourcesDir } from "@/lib/runtime/paths.server";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { Play, Square } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "tongflow/canvas";
 
 interface ExecutionButtonProps {
     isRunning: boolean;

@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { delimiter, join } from "node:path";
 
-import { PluginsRegistrySchema } from "../src/lib/plugins/plugins-registry-schema";
+import { PluginsRegistrySchema } from "tongflow";
 
 const pluginsRoot = join(process.cwd(), "plugins");
 
@@ -43,7 +43,13 @@ function main(): void {
             "--root",
             pluginsRoot,
             "--abi",
-            join(process.cwd(), "config", "tongflow.abi.json"),
+            join(
+                process.cwd(),
+                "packages",
+                "tongflow",
+                "abi",
+                "tongflow.abi.json",
+            ),
         ],
         {
             cwd: process.cwd(),

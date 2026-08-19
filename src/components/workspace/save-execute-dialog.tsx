@@ -2,18 +2,18 @@
 
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
 import {
+    Button,
     Dialog,
     DialogClose,
     DialogContent,
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+    Input,
+    Label,
+    Textarea,
+} from "tongflow/canvas";
 
 interface SaveExecuteDialogProps {
     open: boolean;

@@ -2,21 +2,19 @@
 
 import { ExternalLink, Eye, EyeOff } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
+    Button,
+    Input,
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import {
+    Switch,
     Tooltip,
     TooltipContent,
     TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "tongflow/canvas";
 import { openExternalUrl } from "@/lib/desktop/open-external";
 import {
     resolveEnvKeyOptions,

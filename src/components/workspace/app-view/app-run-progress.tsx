@@ -1,8 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Progress } from "@/components/ui/progress";
-import { useTaskStore } from "@/hooks/use-task";
+import { Progress, useTaskStore } from "tongflow/canvas";
 
 /**
  * Step progress for an app-mode run: progress bar + "step n/m · node label".

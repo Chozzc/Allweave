@@ -1,4 +1,4 @@
-"""Generated from config/tongflow.abi.json. DO NOT EDIT."""
+"""Generated from packages/tongflow/abi/tongflow.abi.json. DO NOT EDIT."""
 
 from __future__ import annotations
 

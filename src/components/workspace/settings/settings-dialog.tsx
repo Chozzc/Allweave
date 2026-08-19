@@ -12,9 +12,9 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
+    Badge,
+    Button,
     Dialog,
     DialogContent,
     DialogDescription,
@@ -22,13 +22,11 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import {
+    Input,
     Tooltip,
     TooltipContent,
     TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "tongflow/canvas";
 import {
     HF_TOKEN_ENV,
     MODAL_TOKEN_ID_ENV,

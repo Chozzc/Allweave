@@ -1,6 +1,6 @@
 {
-    "name": "tongflow",
-    "version": "0.3.1",
+    "name": "tongflow-app",
+    "version": "0.3.2",
     "description": "A multi-modal AIGC studio for building generative AI workflows",
     "author": "tong-io",
     "keywords": [
@@ -41,11 +41,12 @@
         "lint": "pnpm exec biome format --write",
         "lint:check": "pnpm exec biome check --error-on-warnings .",
         "typecheck": "tsc --noEmit",
-        "gen:abi": "tsx scripts/gen-abi-types.ts",
-        "gen:agent-docs": "node scripts/gen-agent-docs.mjs",
+        "gen:abi": "tsx packages/tongflow/scripts/gen-abi-types.ts",
         "abi:generate": "node scripts/generate-tongflow-abi.mjs",
         "tongflow:publish": "bash scripts/publish-tongflow-pypi.sh",
         "test": "vitest run",
+        "build:packages": "pnpm -r --filter \"./packages/*\" build",
+        "test:packages": "pnpm -r --filter \"./packages/*\" test",
         "verify:plugins": "tsx scripts/verify-plugins-scan.ts"
     },
     "dependencies": {
@@ -80,7 +81,6 @@
         "nanoid": "5.1.6",
         "next": "15.5.19",
         "next-intl": "4.6.1",
-        "openai": "6.33.0",
         "react": "19.2.1",
         "react-dom": "19.2.1",
         "react-hook-form": "7.62.0",
@@ -88,6 +88,8 @@
         "server-only": "0.0.1",
         "tailwind-merge": "3.3.1",
         "three": "0.183.2",
+        "tongflow": "workspace:*",
+        "use-intl": "4.8.3",
         "uuid": "13.0.0",
         "zod": "4.1.8",
         "zustand": "5.0.8"

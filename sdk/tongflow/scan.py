@@ -17,7 +17,7 @@ from ._ast_utils import (
 )
 from .parse_deploy import _slot_to_ident, parse_deploy_py
 
-SCANNER_VERSION = 3
+SCANNER_VERSION = 5
 
 SKIP_DIR_NAMES = frozenset(
     {
@@ -61,6 +61,7 @@ def _detect_runner(plugin_dir: Path) -> tuple[str | None, str | None]:
         lowered.startswith("tongflow-modal-")
         or lowered.startswith("tongflow-api-")
         or lowered.startswith("tongflow-router-")
+        or lowered.startswith("tongflow-local-")
     ):
         return None, (
             f"{plugin_dir}:1: pluginId must be all lowercase; "
@@ -91,10 +92,15 @@ def _detect_runner(plugin_dir: Path) -> tuple[str | None, str | None]:
         # Aggregator/router plugins (one key routing to many third-party models)
         # are entry.py-based local runners — identical execution to "api".
         prefix_runner = "api"
+    elif plugin_id.startswith("tongflow-local-"):
+        # On-device engine plugins (e.g. a native Metal binary) — entry.py-based
+        # local runners like "api", named honestly: no key, no remote calls.
+        prefix_runner = "api"
     else:
         return None, (
             f"{plugin_dir}:1: unknown pluginId prefix; "
-            "fix: use tongflow-modal-<name>, tongflow-api-<name>, or tongflow-router-<name>"
+            "fix: use tongflow-modal-<name>, tongflow-api-<name>, "
+            "tongflow-router-<name>, or tongflow-local-<name>"
         )
 
     if not has_deploy and not has_entry:
@@ -438,10 +444,7 @@ def _iso_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(
-        description="Scan Tongflow local plugins/ and print registry JSON (stdout).",
-    )
+def add_scan_arguments(ap: argparse.ArgumentParser) -> None:
     ap.add_argument(
         "--root",
         type=Path,
@@ -451,12 +454,23 @@ def main() -> int:
     ap.add_argument(
         "--abi",
         type=Path,
-        default=Path("config/tongflow.abi.json"),
-        help="Path to tongflow.abi.json",
+        default=None,
+        help=(
+            "Path to tongflow.abi.json (default: $TONGFLOW_ABI_PATH, then the "
+            "ABI bundled with this SDK, then ./packages/tongflow/abi/tongflow.abi.json)."
+        ),
     )
-    ns = ap.parse_args()
+
+
+def run_scan(ns: argparse.Namespace) -> int:
+    # Imported lazily: the engine module tree is optional for pure scanning.
+    from .engine.abi_schema import resolve_abi_path
+
     root = ns.root if ns.root.is_absolute() else (Path.cwd() / ns.root).resolve()
-    abi = ns.abi if ns.abi.is_absolute() else (Path.cwd() / ns.abi).resolve()
+    if ns.abi is None:
+        abi = resolve_abi_path()
+    else:
+        abi = ns.abi if ns.abi.is_absolute() else (Path.cwd() / ns.abi).resolve()
     if not abi.is_file():
         err = {
             "version": 1,
@@ -479,5 +493,14 @@ def main() -> int:
     return 0
 
 
+def main(argv: "list[str] | None" = None) -> int:
+    ap = argparse.ArgumentParser(
+        prog="python -m tongflow scan",
+        description="Scan Tongflow local plugins/ and print registry JSON (stdout).",
+    )
+    add_scan_arguments(ap)
+    return run_scan(ap.parse_args(argv))
+
+
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

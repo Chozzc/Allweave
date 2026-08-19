@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { and, eq, inArray } from "drizzle-orm";
 import * as git from "isomorphic-git";
 import http from "isomorphic-git/http/node";
+import { logger } from "tongflow";
 import { getDb, tasks } from "@/db";
-import { logger } from "@/lib/logger";
 import {
     isPluginInstalled,
     loadOfficialPluginManifest,
@@ -23,7 +23,7 @@ const PLUGIN_GIT_AUTHOR = { name: "tongflow", email: "tongflow@local" };
 // The scanner only detects directories that follow the naming convention; a
 // plugin cloned under any other name is silently ignored. We enforce the prefix
 // up front so a custom git URL either yields a usable plugin or a clear error.
-const PLUGIN_ID_RE = /^tongflow-(modal|api)-[a-z0-9][a-z0-9-]*$/;
+const PLUGIN_ID_RE = /^tongflow-(modal|api|router|local)-[a-z0-9][a-z0-9-]*$/;
 
 export interface InstallResult {
     id: string;
@@ -70,7 +70,7 @@ function assertSafeGitUrl(gitUrl: string): void {
 function assertValidPluginId(id: string): void {
     if (!PLUGIN_ID_RE.test(id)) {
         throw new PluginInstallError(
-            `Plugin directory "${id}" must match the tongflow-modal-* or tongflow-api-* convention, otherwise the scanner cannot detect it.`,
+            `Plugin directory "${id}" must match the tongflow-modal-*, tongflow-api-*, tongflow-router-* or tongflow-local-* convention, otherwise the scanner cannot detect it.`,
         );
     }
 }

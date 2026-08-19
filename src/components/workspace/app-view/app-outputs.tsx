@@ -3,8 +3,7 @@
 import { Check, Copy, Download, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { useFileAsyncLoader, useFileUrl } from "@/hooks/use-file-async-loader";
+import { Button, useFileAsyncLoader, useFileUrl } from "tongflow/canvas";
 import type { AppOutputItem } from "./use-app-form-model";
 
 function CopyTextButton({ text }: { text: string }) {

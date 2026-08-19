@@ -35,8 +35,8 @@ def _candidate_abi_paths() -> Iterator[Path]:
         yield Path(env)
     # Bundled with the SDK (so a pip-installed tongflow can run standalone).
     yield Path(__file__).resolve().parent.parent / "_data" / "tongflow.abi.json"
-    # Repo / self-hosted layout.
-    yield Path.cwd() / "config" / "tongflow.abi.json"
+    # Repo / self-hosted layout (the npm package owns the canonical JSON).
+    yield Path.cwd() / "packages" / "tongflow" / "abi" / "tongflow.abi.json"
 
 
 def resolve_abi_path(explicit: Optional[Union[str, Path]] = None) -> Path:

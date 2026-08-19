@@ -205,6 +205,7 @@ def run_workflow(
     on_progress: Optional[EventCb] = None,
     task_id: str = "tongflow-engine",
     invoker: Optional[InvokerCb] = None,
+    env: Optional[dict[str, str]] = None,
 ) -> dict[str, Any]:
     """Execute an exported workflow and return its results.
 
@@ -233,6 +234,9 @@ def run_workflow(
         auto_install: clone missing plugins and provision a shared venv.
         org / plugin_git_urls: where to clone official / custom plugins from.
         on_progress: optional callback receiving progress event dicts.
+        env: extra environment variables for every plugin subprocess (API
+            keys, proxies, ...). Merged over the inherited environment; a
+            host embedding the engine passes its stored settings here.
 
     Returns:
         ``{"status", "outputs", "outputs_by_name", "errors", "failures"}``.
@@ -382,6 +386,7 @@ def run_workflow(
                             task_id=task_id,
                             model=model,
                             on_progress=on_progress,
+                            env_extra=env,
                         )
                     item = convert_asset_outputs_to_file_refs(
                         slot, raw, abi, store

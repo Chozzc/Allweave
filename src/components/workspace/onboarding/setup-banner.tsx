@@ -3,7 +3,7 @@
 import { Zap } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "tongflow/canvas";
 import { MODAL_CONNECT } from "../settings/connect-configs";
 import { TokenConnectDialog } from "../settings/token-connect";
 
