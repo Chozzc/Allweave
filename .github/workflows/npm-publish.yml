@@ -1,6 +1,12 @@
 # Publish the workspace npm packages via npm Trusted Publishing (OIDC): no
 # token, no 2FA prompt, provenance attached.
 #
+# Always publish with `pnpm publish`, never `npm publish`: only pnpm rewrites
+# `workspace:` dependency specs (dsh-tongflow depends on `tongflow: workspace:^`)
+# to the real version in the tarball manifest. `npm publish` ships the literal
+# `workspace:^` and every consumer install fails with
+# ERR_PNPM_WORKSPACE_PKG_NOT_FOUND (dsh-tongflow@0.1.1, issue #157).
+#
 #   packages/tongflow      npm "tongflow"      tag  npm-vX.Y.Z
 #   packages/dsh-tongflow  npm "dsh-tongflow"  tag  dsh-npm-vX.Y.Z
 #
@@ -79,11 +85,24 @@ jobs:
         working-directory: ${{ env.PKG_DIR }}
         run: pnpm typecheck && pnpm test
 
-      - name: Pack (dry run)
+      # Pack with pnpm (rewrites workspace: specs) and refuse to publish a
+      # manifest that still carries a workspace: dependency.
+      - name: Pack and verify manifest
         working-directory: ${{ env.PKG_DIR }}
-        run: npm pack --dry-run
+        run: |
+          pnpm pack --pack-destination /tmp/pack
+          TGZ="$(ls /tmp/pack/*.tgz)"
+          tar -xOzf "$TGZ" package/package.json > /tmp/pack/manifest.json
+          cat /tmp/pack/manifest.json
+          if grep -q '"workspace:' /tmp/pack/manifest.json; then
+            echo "packed package.json still contains a workspace: dependency" >&2
+            exit 1
+          fi
 
+      # pnpm rewrites workspace: specs at publish time and delegates to the npm
+      # CLI (>= 11.5.1) for the OIDC trusted-publishing exchange. --no-git-checks:
+      # tag builds run on a detached HEAD.
       - name: Publish
         if: github.ref_type == 'tag' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
         working-directory: ${{ env.PKG_DIR }}
-        run: npm publish --access public --provenance
+        run: pnpm publish --access public --provenance --no-git-checks
