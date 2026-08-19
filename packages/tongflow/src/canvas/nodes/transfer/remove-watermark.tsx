@@ -25,7 +25,7 @@ const RemoveWatermarkNode = ({ selected, data }: RemoveWatermarkRfProps) => {
             executeLabel={t("actions.removeWatermark")}
             executeDisabled={!fileKeys?.length}
         >
-            <Card className="p-5 space-y-4">
+            <Card className="mx-4 mb-4 p-4 space-y-4">
                 <div className="text-sm text-muted-foreground">
                     {t("removeWatermark.hint")}
                 </div>
