@@ -138,7 +138,7 @@ const zh: Record<UiKey, string> = {
     titlePlaceholder: "我的短片",
     briefPlaceholder: "想做什么?题材、时长、风格、参考、交付物……",
     briefHint: "Agent 会先读这段话,据此提出文件夹结构;之后随时可改。",
-    billingTitle: "本次运行会用到(本项目首次使用,请确认):",
+    billingTitle: "本次运行会产生费用,将用到:",
     billingApi: "付费 API,按次计费到你的 key",
     billingModal: "Modal GPU,按秒计费到你的 Modal 账户(首次运行需部署)",
     billingLocal: "本地 / 免费",

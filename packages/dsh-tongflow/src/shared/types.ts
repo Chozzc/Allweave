@@ -13,25 +13,15 @@ export interface ProjectManifest {
     brief?: string;
     /** Language of the project's text files / UI (en, zh, ja…). */
     locale?: string;
-    /**
-     * Plugins the user agreed to run in this project (billing checkpoint).
-     * The agent must not start a workflow whose nodes use a plugin (or a
-     * model) that is not listed here; it asks first, then records the answer.
-     */
-    plugins?: Record<string, PluginApproval>;
-}
-
-export interface PluginApproval {
-    approvedAt: string;
-    /** Models the user agreed to; absent = any model of this plugin. */
-    models?: string[];
-    note?: string;
 }
 
 /** How a plugin is billed — what the user is asked to confirm before the first run. */
 export type PluginBilling = "api" | "modal" | "local";
 
-/** One plugin a workflow needs but the project has not approved yet. */
+/**
+ * One paid plugin a workflow run would use. Every run that costs money is
+ * confirmed by the user each time; nothing is remembered.
+ */
 export interface PluginConfirmation {
     pluginId: string;
     name?: string;

@@ -22,14 +22,11 @@ import {
     singleNodeDocument,
 } from "./engine/single-node.ts";
 import {
-    approvePlugin,
     type CreateProjectInput,
     createProject,
-    isPluginApproved,
     listProjects,
     loadProject,
     type ProjectRef,
-    revokePlugin,
     summarize,
 } from "./project/manifest.ts";
 import { listOutputs, readRunsLog, runsLogKey } from "./project/outputs.ts";
@@ -104,7 +101,6 @@ export class StudioApi {
         ]);
         return {
             project: summary,
-            approvedPlugins: summary.plugins ?? {},
             tree: renderTree(tree),
             workflows: workflows.map((w) => ({
                 key: w.key,
@@ -354,10 +350,11 @@ export class StudioApi {
     }
 
     /**
-     * Plugins (and models) a workflow's nodes use that the project has not
-     * approved yet. Empty means the run may start without asking.
+     * Paid plugins (API / Modal) a workflow run would use, with what the user
+     * needs to know to say yes. Empty means the run is free and may start
+     * without asking.
      */
-    async unapprovedPlugins(
+    async paidPlugins(
         projectId: string,
         keyInput: string,
     ): Promise<PluginConfirmation[]> {
@@ -371,7 +368,6 @@ export class StudioApi {
         >();
         for (const n of nodes) {
             if (!n.pluginId) continue;
-            if (isPluginApproved(ref.manifest, n.pluginId, n.model)) continue;
             const e = byPlugin.get(n.pluginId) ?? {
                 slots: new Set<string>(),
                 models: new Set<string>(),
@@ -386,6 +382,7 @@ export class StudioApi {
         const out: PluginConfirmation[] = [];
         for (const [pluginId, e] of byPlugin) {
             const { billing, note } = await this.pluginBilling(pluginId);
+            if (billing === "local") continue;
             const plugin = registry.plugins[pluginId] as
                 | {
                       name?: string;
@@ -438,24 +435,6 @@ export class StudioApi {
             });
         }
         return out;
-    }
-
-    async approvePlugin(
-        projectId: string,
-        pluginId: string,
-        options: { model?: string; note?: string } = {},
-    ) {
-        const ref = await this.project(projectId);
-        const { registry } = await this.studio.registry.get();
-        if (!registry.plugins[pluginId])
-            throw new Error(
-                `plugin "${pluginId}" is not installed — tongflow_plugins_install first`,
-            );
-        return approvePlugin(ref, pluginId, options);
-    }
-
-    async revokePlugin(projectId: string, pluginId: string) {
-        await revokePlugin(await this.project(projectId), pluginId);
     }
 
     /* ---------------- runs ---------------- */

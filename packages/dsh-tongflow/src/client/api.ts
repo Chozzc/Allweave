@@ -1,7 +1,6 @@
 /** Same-origin client for the plugin's HTTP routes (`/tongflow/…`). */
 import type {
     OutputInfo,
-    PluginApproval,
     PluginConfirmation,
     ProjectSummary,
     RunEvent,
@@ -104,15 +103,6 @@ export const studio = {
             "GET",
             `/p/${pid}/workflow/confirmations?key=${encodeURIComponent(key)}`,
         ),
-    approvePlugin: (
-        pid: string,
-        body: {
-            pluginId: string;
-            model?: string;
-            note?: string;
-            revoke?: boolean;
-        },
-    ) => call<PluginApproval>("POST", `/p/${pid}/plugins/approve`, body),
     workflowOutputs: (pid: string, key: string) =>
         call<OutputInfo[]>(
             "GET",

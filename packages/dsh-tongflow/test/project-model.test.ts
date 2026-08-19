@@ -336,16 +336,11 @@ describe("studio tree", () => {
 });
 
 describe("billing checkpoint", () => {
-    it("stops on plugins the project has not approved, then remembers the answer", async () => {
+    it("lists the paid plugins a run would use, with billing, keys, models and alternatives; local plugins are free", async () => {
         const api = new StudioApi(
             new Studio({ config: Config({ studioRoot: studio }) }),
         );
-        // A fake registry: one API plugin with models, one Modal plugin, same slot.
-        (
-            api.studio.registry as unknown as {
-                cache: unknown;
-            }
-        ).cache = {
+        (api.studio.registry as unknown as { cache: unknown }).cache = {
             registry: {
                 plugins: {
                     "tongflow-api-gemini": {
@@ -364,9 +359,16 @@ describe("billing checkpoint", () => {
                             "image-gen": { methodName: "image_gen" },
                         },
                     },
+                    "tongflow-local-ffmpeg": {
+                        needsDeploy: false,
+                        methodsByNodeSlot: {
+                            "video-concat": { methodName: "concat" },
+                        },
+                    },
                 },
                 nodePluginMap: {
                     "image-gen": ["tongflow-api-gemini", "tongflow-modal-flux"],
+                    "video-concat": ["tongflow-local-ffmpeg"],
                 },
             },
             meta: {
@@ -374,9 +376,23 @@ describe("billing checkpoint", () => {
                     env: [{ key: "GEMINI_API_KEY", required: true }],
                 },
                 "tongflow-modal-flux": { env: [] },
+                "tongflow-local-ffmpeg": { env: [] },
             },
             scannedAt: "now",
         };
+        const node = (
+            id: string,
+            feature: string,
+            pluginId: string,
+            model?: string,
+        ) => ({
+            id,
+            feature,
+            pluginId,
+            ...(model ? { model } : {}),
+            bindings: {},
+            outputs: [],
+        });
         const wf = "hero/hero_shot.tongflow.json";
         await writeWorkflowDocument(root, wf, {
             name: "hero_shot",
@@ -386,21 +402,15 @@ describe("billing checkpoint", () => {
                 outputs: [],
                 dataNodes: [],
                 executableNodes: [
-                    {
-                        id: "g",
-                        feature: "image-gen",
-                        pluginId: "tongflow-api-gemini",
-                        model: "imagen-4",
-                        bindings: {},
-                        outputs: [],
-                    },
+                    node("g", "image-gen", "tongflow-api-gemini", "imagen-4"),
+                    node("c", "video-concat", "tongflow-local-ffmpeg"),
                 ],
             } as never,
             meta: {},
         });
-        let pending = await api.unapprovedPlugins(projectId, wf);
-        expect(pending).toHaveLength(1);
-        expect(pending[0]).toMatchObject({
+        const paid = await api.paidPlugins(projectId, wf);
+        expect(paid).toHaveLength(1);
+        expect(paid[0]).toMatchObject({
             pluginId: "tongflow-api-gemini",
             name: "Gemini",
             billing: "api",
@@ -416,30 +426,39 @@ describe("billing checkpoint", () => {
                 },
             ],
         });
-        // Approve a different model only → still pending for imagen-4.
-        await api.approvePlugin(projectId, "tongflow-api-gemini", {
-            model: "gemini-3-pro-image",
+        // A workflow of only local plugins is free.
+        const free = "cut/final.tongflow.json";
+        await writeWorkflowDocument(root, free, {
+            name: "final",
+            flow: { nodes: [], edges: [] },
+            executable: {
+                inputs: [],
+                outputs: [],
+                dataNodes: [],
+                executableNodes: [
+                    node("c", "video-concat", "tongflow-local-ffmpeg"),
+                ],
+            } as never,
+            meta: {},
         });
-        pending = await api.unapprovedPlugins(projectId, wf);
-        expect(pending).toHaveLength(1);
-        // Approve the model the workflow uses → clear.
-        await api.approvePlugin(projectId, "tongflow-api-gemini", {
-            model: "imagen-4",
-            note: "user said ok",
+        expect(await api.paidPlugins(projectId, free)).toEqual([]);
+        // Modal plugins are paid too.
+        const modal = "hero/hero_flux.tongflow.json";
+        await writeWorkflowDocument(root, modal, {
+            name: "hero_flux",
+            flow: { nodes: [], edges: [] },
+            executable: {
+                inputs: [],
+                outputs: [],
+                dataNodes: [],
+                executableNodes: [
+                    node("g", "image-gen", "tongflow-modal-flux"),
+                ],
+            } as never,
+            meta: {},
         });
-        expect(await api.unapprovedPlugins(projectId, wf)).toEqual([]);
-        const ref = await loadProject(studio, projectId);
-        expect(ref.manifest.plugins?.["tongflow-api-gemini"]).toMatchObject({
-            models: ["gemini-3-pro-image", "imagen-4"],
-            note: "user said ok",
-        });
-        // Revoke → asked again; approving without a model covers every model.
-        await api.revokePlugin(projectId, "tongflow-api-gemini");
-        expect(await api.unapprovedPlugins(projectId, wf)).toHaveLength(1);
-        await api.approvePlugin(projectId, "tongflow-api-gemini");
-        expect(await api.unapprovedPlugins(projectId, wf)).toEqual([]);
-        await expect(
-            api.approvePlugin(projectId, "not-installed"),
-        ).rejects.toThrow(/not installed/);
+        expect(
+            (await api.paidPlugins(projectId, modal)).map((p) => p.billing),
+        ).toEqual(["modal"]);
     });
 });

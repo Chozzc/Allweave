@@ -25,7 +25,7 @@ export function RunPanel({
         () => studio.workflowSummary(pid, workflowKey),
         [pid, workflowKey, refreshToken],
     );
-    // Billing checkpoint: plugins this workflow uses that the project has not approved yet.
+    // Billing checkpoint: paid plugins this run would use — confirmed by the user every time.
     const confirmations = useAsync(
         () => studio.workflowConfirmations(pid, workflowKey),
         [pid, workflowKey, refreshToken],
@@ -46,14 +46,7 @@ export function RunPanel({
     const start = async () => {
         if (!summary) return;
         setLog([]);
-        // The user clicked "confirm & run": record the approvals first.
-        for (const p of pending) {
-            await studio.approvePlugin(pid, {
-                pluginId: p.pluginId,
-                note: "confirmed in the Studio run panel",
-            });
-        }
-        if (pending.length > 0) confirmations.reload();
+
         const inputs: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(bindings))
             if (v.trim())
