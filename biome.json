@@ -26,7 +26,8 @@
             "!data",
             "!.claude",
             "!plugins",
-            "!packages/*/dist"
+            "!packages/*/dist",
+            "!packages/*/lib"
         ]
     },
     "formatter": {

@@ -35,5 +35,10 @@
         "**/*.tsx",
         ".next/types/**/*.ts"
     ],
-    "exclude": ["node_modules", "desktop", "packages/*/dist"]
+    "exclude": [
+        "node_modules",
+        "desktop",
+        "packages/*/dist",
+        "packages/dsh-tongflow"
+    ]
 }

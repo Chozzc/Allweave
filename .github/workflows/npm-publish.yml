@@ -1,19 +1,27 @@
-# Publish the `tongflow` npm package (packages/tongflow) via npm Trusted
-# Publishing (OIDC): no token, no 2FA prompt, provenance attached.
+# Publish the workspace npm packages via npm Trusted Publishing (OIDC): no
+# token, no 2FA prompt, provenance attached.
 #
-# One-time setup on npmjs.com → package "tongflow" → Settings → Trusted
-# Publisher: GitHub Actions, owner `tong-io`, repository `tongflow`,
-# workflow filename `npm-publish.yml`, environment `npm`.
+#   packages/tongflow      npm "tongflow"      tag  npm-vX.Y.Z
+#   packages/dsh-tongflow  npm "dsh-tongflow"  tag  dsh-npm-vX.Y.Z
 #
-# Trigger: push a tag `npm-vX.Y.Z` whose version matches
-# packages/tongflow/package.json (or run manually with `dry_run`).
+# One-time setup on npmjs.com → package → Settings → Trusted Publisher:
+# GitHub Actions, owner `tong-io`, repository `tongflow`, workflow filename
+# `npm-publish.yml`, environment `npm`.
+#
+# Trigger: push the package's tag whose version matches its package.json (or
+# run manually with `dry_run` and pick the package).
 name: npm publish
 
 on:
   push:
-    tags: ["npm-v*"]
+    tags: ["npm-v*", "dsh-npm-v*"]
   workflow_dispatch:
     inputs:
+      package:
+        description: "Which package"
+        type: choice
+        options: [tongflow, dsh-tongflow]
+        default: tongflow
       dry_run:
         description: "Build + pack only, do not publish"
         type: boolean
@@ -25,12 +33,12 @@ permissions:
 
 jobs:
   publish:
-    name: Build, test, publish tongflow
+    name: Build, test, publish
     runs-on: ubuntu-latest
     environment: npm
-    defaults:
-      run:
-        working-directory: packages/tongflow
+    env:
+      # dsh-npm-v* tags publish packages/dsh-tongflow; npm-v* tags publish packages/tongflow.
+      PKG_DIR: ${{ (github.ref_type == 'tag' && startsWith(github.ref_name, 'dsh-npm-v')) && 'packages/dsh-tongflow' || (github.event_name == 'workflow_dispatch' && inputs.package == 'dsh-tongflow') && 'packages/dsh-tongflow' || 'packages/tongflow' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -50,24 +58,32 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-        working-directory: .
 
       - name: Verify tag matches package version
         if: github.ref_type == 'tag'
+        working-directory: ${{ env.PKG_DIR }}
         run: |
           PKG_VERSION="$(node -p "require('./package.json').version")"
-          TAG_VERSION="${GITHUB_REF_NAME#npm-v}"
+          TAG_VERSION="${GITHUB_REF_NAME#dsh-npm-v}"
+          TAG_VERSION="${TAG_VERSION#npm-v}"
           if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
-            echo "tag npm-v$TAG_VERSION does not match package.json version $PKG_VERSION" >&2
+            echo "tag $GITHUB_REF_NAME does not match package.json version $PKG_VERSION" >&2
             exit 1
           fi
 
-      - name: Typecheck, test, build
-        run: pnpm typecheck && pnpm test && pnpm build
+      # dsh-tongflow consumes tongflow's built dist; build the workspace deps first.
+      - name: Build workspace packages
+        run: pnpm build:packages
+
+      - name: Typecheck and test
+        working-directory: ${{ env.PKG_DIR }}
+        run: pnpm typecheck && pnpm test
 
       - name: Pack (dry run)
+        working-directory: ${{ env.PKG_DIR }}
         run: npm pack --dry-run
 
       - name: Publish
         if: github.ref_type == 'tag' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
+        working-directory: ${{ env.PKG_DIR }}
         run: npm publish --access public --provenance

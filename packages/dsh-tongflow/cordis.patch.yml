@@ -1,0 +1,7 @@
+# Layer applied when a dsh profile lists the `dsh-tongflow` bundle
+# (`dsh plugin --profile web add dsh-tongflow`). Users override any of these
+# rows by id in their profile's cordis.patch.yml.
+- insert:
+    - id: tongflow
+      name: dsh-tongflow
+      config: {}
