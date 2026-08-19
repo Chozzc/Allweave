@@ -442,9 +442,7 @@ function buildRoutes(env: RouteEnv): Route[] {
             pattern: "/plugins",
             handler: async (c) => {
                 const { registry, meta, scannedAt } = await api.registry();
-                const { OFFICIAL_PLUGINS } = await import(
-                    "../engine/registry.ts"
-                );
+                const OFFICIAL_PLUGINS = await studio.registry.officialIds();
                 json(c, {
                     registry,
                     meta,

@@ -38,7 +38,11 @@ export interface StudioRegistry {
 
 export const OFFICIAL_ORG = "https://github.com/tong-io";
 
-/** Official plugin ids (mirrors config/official-plugins.json in the TongFlow repo). */
+/**
+ * Official plugin ids — fallback snapshot of `config/official-plugins.json`
+ * in the TongFlow repo; `RegistryManager.officialIds()` fetches the live list
+ * and falls back to this one offline.
+ */
 export const OFFICIAL_PLUGINS: readonly string[] = [
     "tongflow-router-openrouter",
     "tongflow-router-cometapi",
@@ -56,10 +60,9 @@ export const OFFICIAL_PLUGINS: readonly string[] = [
     "tongflow-modal-pyscenedetect",
     "tongflow-modal-z-image",
     "tongflow-modal-ernie-image",
+    "tongflow-modal-krea2",
     "tongflow-modal-flux2-klein9b",
     "tongflow-modal-boogu",
-    "tongflow-modal-ltx",
-    "tongflow-modal-fastwan",
     "tongflow-modal-infinitetalk",
     "tongflow-modal-wan-animate",
     "tongflow-modal-scail2",
@@ -69,14 +72,29 @@ export const OFFICIAL_PLUGINS: readonly string[] = [
     "tongflow-modal-triposplat",
     "tongflow-modal-sam-3d-objects",
     "tongflow-modal-sam-3d-body",
-    "tongflow-modal-sam-audio",
     "tongflow-modal-sapiens2",
+    "tongflow-modal-sensenova-vision",
+    "tongflow-modal-seedvr2",
+    "tongflow-modal-gemma4",
     "tongflow-modal-qwen38",
+    "tongflow-modal-qwen3asr",
+    "tongflow-modal-qwen3tts",
     "tongflow-modal-indextts2",
-    "tongflow-modal-acestep",
+    "tongflow-modal-whisper",
+    "tongflow-modal-ace-step",
+    "tongflow-modal-levo",
     "tongflow-modal-minimax-music3",
-    "tongflow-modal-krea2",
+    "tongflow-modal-sam-audio",
+    "tongflow-modal-docling",
+    "tongflow-modal-paddle",
+    "tongflow-modal-unlimited-ocr",
+    "tongflow-modal-crawl4ai",
+    "tongflow-modal-scrapling",
 ];
+
+/** Where the live official list is fetched from. */
+export const OFFICIAL_PLUGINS_URL =
+    "https://raw.githubusercontent.com/tong-io/tongflow/main/config/official-plugins.json";
 
 const PLUGIN_ID_RE = /^tongflow-(modal|api|router|local)-[a-z0-9-]+$/;
 
@@ -87,6 +105,7 @@ export function isPluginId(id: string): boolean {
 export class RegistryManager {
     private cache: StudioRegistry | undefined;
     private inflight: Promise<StudioRegistry> | undefined;
+    private officialCache: { ids: string[]; at: number } | undefined;
 
     constructor(
         private readonly opts: {
@@ -135,6 +154,78 @@ export class RegistryManager {
         }
         this.cache = { registry, meta, scannedAt: new Date().toISOString() };
         return this.cache;
+    }
+
+    /** The official plugin list: live from GitHub (cached 1 h), else the built-in snapshot. */
+    async officialIds(): Promise<string[]> {
+        const now = Date.now();
+        if (this.officialCache && now - this.officialCache.at < 3_600_000)
+            return this.officialCache.ids;
+        let ids: string[] = [...OFFICIAL_PLUGINS];
+        try {
+            const res = await fetch(OFFICIAL_PLUGINS_URL, {
+                signal: AbortSignal.timeout(8000),
+            });
+            if (res.ok) {
+                const body = (await res.json()) as { plugins?: unknown };
+                if (
+                    Array.isArray(body.plugins) &&
+                    body.plugins.every(
+                        (p) => typeof p === "string" && isPluginId(p),
+                    )
+                )
+                    ids = body.plugins as string[];
+            }
+        } catch {
+            // offline: keep the snapshot
+        }
+        this.officialCache = { ids, at: now };
+        return ids;
+    }
+
+    /**
+     * Clone every official plugin that is not installed yet (shallow, a few
+     * hundred KB each) so the canvas offers the full catalog like the hosted
+     * app. Runs in the background at studio start; failures are logged, not
+     * thrown. Returns the ids that were newly installed.
+     */
+    async ensureOfficialInstalled(concurrency = 4): Promise<string[]> {
+        const [official, installed] = await Promise.all([
+            this.officialIds(),
+            this.installedIds(),
+        ]);
+        const have = new Set(installed);
+        const missing = official.filter((id) => !have.has(id));
+        if (missing.length === 0) return [];
+        this.opts.log(
+            `dsh-tongflow: installing ${missing.length} official plugin(s)…`,
+        );
+        const done: string[] = [];
+        let next = 0;
+        const worker = async () => {
+            while (next < missing.length) {
+                const id = missing[next++];
+                try {
+                    const r = await this.install(id);
+                    if (!r.alreadyInstalled) done.push(id);
+                } catch (error) {
+                    this.opts.log(
+                        `dsh-tongflow: install ${id} failed: ${error instanceof Error ? error.message : String(error)}`,
+                    );
+                }
+            }
+        };
+        await Promise.all(
+            Array.from(
+                { length: Math.min(concurrency, missing.length) },
+                worker,
+            ),
+        );
+        if (done.length > 0) this.invalidate();
+        this.opts.log(
+            `dsh-tongflow: installed ${done.length} official plugin(s)`,
+        );
+        return done;
     }
 
     /** Installed plugin ids (directories under pluginsDir). */
