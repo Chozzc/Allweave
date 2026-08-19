@@ -8,8 +8,10 @@ from pathlib import Path
 from .abi import load_abi
 from ._ast_utils import (
     DEFAULT_SLOTS_CONST,
+    MODEL_CATALOG_CONST,
     SLOT_MODELS_CONST,
     extract_default_slots,
+    extract_model_catalog,
     extract_node_slot_decorators,
     extract_node_slot_defaults,
     extract_slot_models,
@@ -17,7 +19,7 @@ from ._ast_utils import (
 )
 from .parse_deploy import _slot_to_ident, parse_deploy_py
 
-SCANNER_VERSION = 5
+SCANNER_VERSION = 6
 
 SKIP_DIR_NAMES = frozenset(
     {
@@ -221,6 +223,43 @@ def _scan_slot_models_in_dir(
     return models_by_slot, problems
 
 
+def _scan_model_catalog_in_dir(
+    plugin_dir: Path,
+) -> tuple[dict | None, list[str]]:
+    """Collect the optional TONGFLOW_MODEL_CATALOG declaration (one per plugin)."""
+
+    catalog: dict | None = None
+    problems: list[str] = []
+    for p in _iter_plugin_py_files(plugin_dir):
+        try:
+            tree = ast.parse(p.read_text(encoding="utf-8"), filename=str(p))
+        except (OSError, SyntaxError):
+            continue
+        found, file_problems = extract_model_catalog(tree)
+        for lineno, reason in file_problems:
+            problems.append(
+                _scan_error(
+                    p,
+                    reason,
+                    "declare a pure literal dict with 'url' and 'slots'",
+                    line=lineno,
+                )
+            )
+        if found is None:
+            continue
+        if catalog is not None:
+            problems.append(
+                _scan_error(
+                    p,
+                    f"{MODEL_CATALOG_CONST} is declared more than once across files",
+                    "keep one declaration per plugin",
+                )
+            )
+            continue
+        catalog = found
+    return catalog, problems
+
+
 def _scan_default_slots_in_dir(plugin_dir: Path) -> tuple[list[str], list[str]]:
     """Collect TONGFLOW_DEFAULT_SLOTS declarations across the plugin's files."""
 
@@ -367,6 +406,30 @@ def scan(plugins_root: Path, abi_path: Path) -> dict[str, object]:
                 continue
             llm_methods[slot]["models"] = models
 
+        # Optional live model catalog (router-style plugins): the canvas fetches
+        # it client-side and extends the per-slot dropdown beyond the shortlist.
+        model_catalog, catalog_problems = _scan_model_catalog_in_dir(pdir)
+        for message in catalog_problems:
+            errors.append({"pluginId": plugin_id, "message": message})
+        if model_catalog is not None:
+            for slot in list(model_catalog["slots"]):
+                if slot in llm_methods:
+                    continue
+                errors.append(
+                    {
+                        "pluginId": plugin_id,
+                        "message": _scan_error(
+                            pdir / "entry.py",
+                            f"{MODEL_CATALOG_CONST} filters slot {slot!r} but the "
+                            "plugin has no @node_slot handler for it",
+                            "remove the entry or add the matching handler",
+                        ),
+                    }
+                )
+                del model_catalog["slots"][slot]
+            if not model_catalog["slots"]:
+                model_catalog = None
+
         # Optional default-implementation claims. The module constant is the
         # portable form (never executed, so any SDK version imports it);
         # `@node_slot(..., default=True)` is equivalent but needs tongflow>=0.2.15
@@ -397,6 +460,8 @@ def scan(plugins_root: Path, abi_path: Path) -> dict[str, object]:
             "entryFile": "entry.py",
             "needsDeploy": needs_deploy,
         }
+        if model_catalog is not None:
+            plugins[plugin_id]["modelCatalog"] = model_catalog
 
     # de-dupe lists, preserve order
     for k in list(node_plugin_map.keys()):

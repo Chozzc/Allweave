@@ -29,6 +29,8 @@ type NodePluginSelectProps = {
     options: NodePluginSelectOption[];
     /** Card label; defaults to the plugin implementation title. */
     title?: string;
+    /** Dropdown open/close notification (e.g. to refresh a live list). */
+    onOpenChange?: (open: boolean) => void;
 };
 
 /** Monogram fallback shown when a plugin has no icon (or it fails to load). */
@@ -70,6 +72,7 @@ export function NodePluginSelect({
     onValueChange,
     options,
     title,
+    onOpenChange,
 }: NodePluginSelectProps) {
     const t = useTranslations("Workspace.nodes.base");
     return (
@@ -78,7 +81,11 @@ export function NodePluginSelect({
                 <Label className="text-sm font-medium text-muted-foreground">
                     {title ?? t("pluginImplementationTitle")}
                 </Label>
-                <Select value={value} onValueChange={onValueChange}>
+                <Select
+                    value={value}
+                    onValueChange={onValueChange}
+                    onOpenChange={onOpenChange}
+                >
                     <SelectTrigger className="w-full" size="sm">
                         <SelectValue
                             placeholder={t("pluginSelectPlaceholder")}

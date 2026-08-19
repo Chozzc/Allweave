@@ -5,7 +5,10 @@ import { useEffect, useMemo } from "react";
 import { useTranslations } from "use-intl";
 import type { BaseNodeData } from "../../../core";
 import useFlow from "../../hooks/use-flow";
-import { useNodePluginModels } from "../../hooks/use-plugins-registry";
+import {
+    loadPluginModelCatalog,
+    useNodePluginModels,
+} from "../../hooks/use-plugins-registry";
 import { useResolvedPluginId } from "./node-plugin-id-select";
 import { NodePluginSelect } from "./node-plugin-select";
 
@@ -16,10 +19,12 @@ type NodePluginModelSelectProps = {
 
 /**
  * Model selector for router-style plugins that declare per-slot model lists
- * (`TONGFLOW_SLOT_MODELS`). Renders nothing when the active plugin declares no
- * models, so single-model plugins are visually unchanged. The selection is
- * stored as `data.pluginModel` and travels top-level (like `pluginId`) through
- * the create-task API and workflow export.
+ * (`TONGFLOW_SLOT_MODELS`, optionally extended live via
+ * `TONGFLOW_MODEL_CATALOG` — re-checked each time the dropdown opens). Renders
+ * nothing when the active plugin declares no models, so single-model plugins
+ * are visually unchanged. The selection is stored as `data.pluginModel` and
+ * travels top-level (like `pluginId`) through the create-task API and workflow
+ * export.
  */
 export function NodePluginModelSelect({
     nodeSlot,
@@ -60,6 +65,9 @@ export function NodePluginModelSelect({
             }
             options={options}
             title={t("pluginModelTitle")}
+            onOpenChange={(open) => {
+                if (open) void loadPluginModelCatalog(pluginId);
+            }}
         />
     );
 }

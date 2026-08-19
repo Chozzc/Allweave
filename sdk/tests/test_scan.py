@@ -123,3 +123,60 @@ def test_scan_accepts_local_prefix(tmp_path):
     assert payload["errors"] == []
     assert "tongflow-local-fake" in payload["plugins"]
 
+
+
+_CATALOG = (
+    "TONGFLOW_MODEL_CATALOG = {\n"
+    '    "url": "https://api.example.com/api/models",\n'
+    '    "exclude": {"upcoming": True},\n'
+    '    "slots": {"image-gen": {"features": "text-to-image"}},\n'
+    "}\n"
+)
+
+
+def test_scan_model_catalog_attaches_to_plugin(tmp_path):
+    payload = _entry(_write_plugin(tmp_path, _CATALOG + _HANDLERS), _write_abi(tmp_path))
+    assert payload["errors"] == []
+    assert payload["plugins"]["tongflow-api-fake"]["modelCatalog"] == {
+        "url": "https://api.example.com/api/models",
+        "items": "data",
+        "id": "id",
+        "exclude": {"upcoming": True},
+        "slots": {"image-gen": {"features": "text-to-image"}},
+    }
+
+
+def test_scan_model_catalog_absent_by_default(tmp_path):
+    payload = _entry(_write_plugin(tmp_path, _HANDLERS), _write_abi(tmp_path))
+    assert "modelCatalog" not in payload["plugins"]["tongflow-api-fake"]
+
+
+def test_scan_model_catalog_slot_without_handler_is_dropped(tmp_path):
+    src = (
+        "TONGFLOW_MODEL_CATALOG = {\n"
+        '    "url": "https://api.example.com/api/models",\n'
+        '    "slots": {"gen-text": {"features": "text-to-text"}},\n'
+        "}\n" + _HANDLERS
+    )
+    payload = _entry(_write_plugin(tmp_path, src), _write_abi(tmp_path))
+    assert any("no @node_slot handler" in e["message"] for e in payload["errors"])
+    assert "modelCatalog" not in payload["plugins"]["tongflow-api-fake"]
+
+
+def test_scan_model_catalog_non_literal_errors(tmp_path):
+    src = (
+        '_URL = "https://x"\n'
+        'TONGFLOW_MODEL_CATALOG = {"url": _URL, "slots": {"image-gen": {"a": "b"}}}\n'
+        + _HANDLERS
+    )
+    payload = _entry(_write_plugin(tmp_path, src), _write_abi(tmp_path))
+    assert any("pure dict literal" in e["message"] for e in payload["errors"])
+
+
+def test_scan_model_catalog_bad_shape_errors(tmp_path):
+    src = (
+        'TONGFLOW_MODEL_CATALOG = {"url": "https://x", "slots": {"image-gen": []}}\n'
+        + _HANDLERS
+    )
+    payload = _entry(_write_plugin(tmp_path, src), _write_abi(tmp_path))
+    assert any("non-empty dict of field -> token" in e["message"] for e in payload["errors"])

@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **CometAPI router plugin** —
+  [tongflow-router-cometapi](https://github.com/tong-io/tongflow-router-cometapi):
+  one key for 500+ models behind CometAPI's OpenAI-compatible routes, covering
+  **19 slots** — `gen_text` / split / combine, image / video / audio
+  understanding, image gen/edit/fusion (GPT Image 2, Seedream), text / image(s)
+  → video (Sora 2, Veo 3.1, Seedance, Wan, MiniMax H3, HappyHorse, Vidu), video
+  edit (Omni), TTS and Whisper transcription.
+- **Live model catalogs for the per-node model picker** — a plugin may declare
+  `TONGFLOW_MODEL_CATALOG` (a public, CORS-enabled catalog URL plus per-slot
+  filter rules); the canvas fetches it in the browser (10-minute cache,
+  re-checked when the dropdown opens) and appends matching ids after the static
+  `TONGFLOW_SLOT_MODELS` shortlist. Scanner version 6, SDK 0.3.1
+  (`modelCatalog` on the plugin registry entry), `filterModelCatalog` in
+  `tongflow` core.
+
+### Removed
+
+- **Agnes AI plugin** (`tongflow-api-agnes`) — unregistered; the upstream
+  gateway is superseded by CometAPI.
+
 ## [0.3.3] - 2026-08-19
 
 ### Added

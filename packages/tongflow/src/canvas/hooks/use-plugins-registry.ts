@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 import { create } from "zustand";
+import type { PluginModelCatalog } from "../../core";
+import { filterModelCatalog } from "../../core";
 import { apiUrl, hostFetch } from "../host";
 
 export type PluginsRegistryPayload = {
@@ -16,6 +18,8 @@ export type PluginsRegistryPayload = {
                 string,
                 { methodName: string; models?: string[] }
             >;
+            /** Live model catalog declared via `TONGFLOW_MODEL_CATALOG`. */
+            modelCatalog?: PluginModelCatalog;
             /** Presentation metadata merged from `tongflow.plugin.json`. */
             name?: string;
             description?: string;
@@ -119,19 +123,106 @@ export function useNodePluginIds(nodeSlot: string): string[] {
     return dedupeIds(list);
 }
 
+// ── Live model catalogs ─────────────────────────────────────────────────────
+// A router-style plugin may declare `TONGFLOW_MODEL_CATALOG`: a public,
+// CORS-enabled URL the browser fetches directly plus per-slot filter rules.
+// Matching ids extend the static shortlist in the model dropdown. Fetched at
+// most once per TTL per plugin; failures keep the static list (no UI error).
+
+type LiveModelsEntry = { fetchedAt: number; bySlot: Record<string, string[]> };
+
+type LiveModelsState = { byPlugin: Record<string, LiveModelsEntry> };
+
+export const useLiveModelsStore = create<LiveModelsState>(() => ({
+    byPlugin: {},
+}));
+
+const MODEL_CATALOG_TTL_MS = 10 * 60 * 1000;
+const catalogInflight = new Map<string, Promise<void>>();
+
 /**
- * Model ids a plugin declares for one ABI `nodeSlot` (empty for single-model
- * plugins — the model dropdown is hidden in that case).
+ * Fetch (or refresh, once the TTL elapsed) a plugin's live model catalog. Safe
+ * to call eagerly — it is a no-op for plugins without a catalog and while a
+ * fresh result is cached.
+ */
+export async function loadPluginModelCatalog(pluginId: string): Promise<void> {
+    const catalog =
+        usePluginsRegistryStore.getState().registry?.plugins?.[pluginId]
+            ?.modelCatalog;
+    if (!catalog) return;
+    const cached = useLiveModelsStore.getState().byPlugin[pluginId];
+    if (cached && Date.now() - cached.fetchedAt < MODEL_CATALOG_TTL_MS) return;
+    const inflight = catalogInflight.get(pluginId);
+    if (inflight) return inflight;
+    const job = (async () => {
+        try {
+            const res = await fetch(catalog.url, {
+                method: "GET",
+                cache: "no-store",
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const bySlot = filterModelCatalog(catalog, await res.json());
+            useLiveModelsStore.setState((s) => ({
+                byPlugin: {
+                    ...s.byPlugin,
+                    [pluginId]: { fetchedAt: Date.now(), bySlot },
+                },
+            }));
+        } catch (e) {
+            // Keep the static shortlist; retry after the TTL like a miss.
+            console.warn(
+                `[tongflow] model catalog for ${pluginId} unavailable:`,
+                e,
+            );
+        } finally {
+            catalogInflight.delete(pluginId);
+        }
+    })();
+    catalogInflight.set(pluginId, job);
+    return job;
+}
+
+/**
+ * Synchronous read of a plugin's model ids for one slot: the static shortlist
+ * (declared order, first = default) followed by any live-catalog extras.
+ */
+export function getNodePluginModels(
+    nodeSlot: string,
+    pluginId: string,
+): string[] {
+    const registry = usePluginsRegistryStore.getState().registry;
+    const declared =
+        registry?.plugins?.[pluginId]?.methodsByNodeSlot?.[nodeSlot]?.models ??
+        [];
+    const live =
+        useLiveModelsStore.getState().byPlugin[pluginId]?.bySlot[nodeSlot] ??
+        [];
+    return dedupeIds([...declared, ...live]);
+}
+
+/**
+ * Model ids a plugin offers for one ABI `nodeSlot` (empty for single-model
+ * plugins — the model dropdown is hidden in that case): the static shortlist
+ * plus live-catalog extras, which this hook fetches on first use.
  */
 export function useNodePluginModels(
     nodeSlot: string,
     pluginId: string,
 ): string[] {
     const registry = usePluginsRegistryStore((s) => s.registry);
-    const models =
+    const declared =
         registry?.plugins?.[pluginId]?.methodsByNodeSlot?.[nodeSlot]?.models ??
         [];
-    return dedupeIds(models);
+    const hasCatalog = Boolean(registry?.plugins?.[pluginId]?.modelCatalog);
+    const live = useLiveModelsStore(
+        (s) => s.byPlugin[pluginId]?.bySlot[nodeSlot],
+    );
+
+    useEffect(() => {
+        if (hasCatalog) void loadPluginModelCatalog(pluginId);
+    }, [hasCatalog, pluginId]);
+
+    return dedupeIds([...declared, ...(live ?? [])]);
 }
 
 export type PluginMeta = {
