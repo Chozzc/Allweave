@@ -142,7 +142,11 @@ describe("engine bridge", () => {
     });
 
     it("runs a workflow end to end: resolves file refs, places numbered outputs next to the workflow, logs provenance", async () => {
-        const config = Config({ studioRoot, maxConcurrentRuns: 1 });
+        const config = Config({
+            studioRoot,
+            maxConcurrentRuns: 1,
+            autoInstallOfficial: false,
+        });
         const studio = new TestStudio({ config });
         await studio.init();
         const { id, root } = await createProject(studioRoot, { title: "Demo" });
@@ -207,7 +211,7 @@ describe("engine bridge", () => {
     });
 
     it("reports failures and unbound inputs", async () => {
-        const config = Config({ studioRoot });
+        const config = Config({ studioRoot, autoInstallOfficial: false });
         const studio = new TestStudio({ config });
         await studio.init();
         const { id, root } = await createProject(studioRoot, { title: "Demo" });

@@ -22,6 +22,8 @@ export interface Config {
     httpPrefix: string;
     /** UI locale for the embedded canvas (en / zh / ja / ko). */
     locale: string;
+    /** Clone every official plugin at start so the canvas offers the full catalog (shallow clones; keys / deploys only at run time). */
+    autoInstallOfficial: boolean;
 }
 
 export const Config: z<Config> = z.object({
@@ -34,4 +36,5 @@ export const Config: z<Config> = z.object({
     maxConcurrentRuns: z.number().default(2),
     httpPrefix: z.string().default("/tongflow"),
     locale: z.string().default("en"),
+    autoInstallOfficial: z.boolean().default(true),
 });

@@ -20,7 +20,7 @@ npx @deepseek-ai/dsh@next plugin --profile web add dsh-tongflow      # from npm
 npx @deepseek-ai/dsh@next web
 ```
 
-Requirements: dsh ≥ 0.1.0-rc.7 (Node ≥ 22.19), **Python ≥ 3.10** on `PATH` (or `pythonPath` in the plugin config), `git`, and `ffmpeg` for video contact sheets. On first use the plugin creates `~/.dsh/tongflow/venv` with the `tongflow` SDK; TongFlow plugins are cloned into `~/.dsh/tongflow/plugins` on demand.
+Requirements: dsh ≥ 0.1.0-rc.7 (Node ≥ 22.19), **Python ≥ 3.10** on `PATH` (or `pythonPath` in the plugin config), `git`, and `ffmpeg` for video contact sheets. On first use the plugin creates `~/.dsh/tongflow/venv` with the `tongflow` SDK and shallow-clones every official TongFlow plugin into `~/.dsh/tongflow/plugins` (the live list from `config/official-plugins.json`; set `autoInstallOfficial: false` to install by hand), so the canvas offers the same node/plugin catalog as the hosted app. Keys and Modal deploys are only needed when something runs.
 
 Start a session whose **first message begins with `@tongflow`** — that session becomes a studio session: the conversation view turns into the Studio (chat column · the project's folder tree · preview / editor / canvas · a runs drawer, all in the UI language of your browser), and the agent gets the `tongflow_*` tools and skill. Any other session is untouched dsh. In the Studio: create a project (a title and a brief — what you want to make), install TongFlow plugins and paste API keys under **Plugins & keys**, then talk to the agent — or click any file to preview / edit it, click a workflow to open it on the canvas.
 
@@ -101,6 +101,7 @@ Skill shipped: `tongflow-studio` (the working method: research → propose a str
 | `maxConcurrentRuns` | `2` | |
 | `httpPrefix` | `/tongflow` | |
 | `locale` | `en` | canvas UI locale (`en` / `zh` / `ja` / `ko`) |
+| `autoInstallOfficial` | `true` | at start, shallow-clone every official plugin that is missing (a few hundred KB each) so the canvas offers the full catalog; API keys / Modal deploys are only needed when a workflow runs |
 
 ## Development
 

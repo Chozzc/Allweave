@@ -62,6 +62,14 @@ export class Studio {
         await mkdir(this.paths.plugins, { recursive: true });
         await mkdir(this.paths.data, { recursive: true });
         await mkdir(this.paths.tmp, { recursive: true });
+        if (this.config.autoInstallOfficial) {
+            // Background: the studio is usable meanwhile; the registry re-scans when clones land.
+            void this.registry.ensureOfficialInstalled().catch((error) => {
+                this.log(
+                    `dsh-tongflow: official plugin install failed: ${error instanceof Error ? error.message : String(error)}`,
+                );
+            });
+        }
     }
 
     /** The studio venv python (bootstrapped on first use). */

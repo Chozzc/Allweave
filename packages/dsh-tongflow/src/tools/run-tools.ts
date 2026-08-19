@@ -433,9 +433,7 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
             output: { schema: { type: "json" }, render: (_a, v) => text(v) },
             async execute() {
                 const { registry, meta } = await api.registry();
-                const { OFFICIAL_PLUGINS } = await import(
-                    "../engine/registry.ts"
-                );
+                const OFFICIAL_PLUGINS = await studio.registry.officialIds();
                 const installed = Object.entries(registry.plugins).map(
                     ([id, p]) => ({
                         id,
