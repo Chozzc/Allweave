@@ -101,6 +101,7 @@ def decorator_name(expr: ast.expr) -> str | None:
 
 SLOT_MODELS_CONST = "TONGFLOW_SLOT_MODELS"
 DEFAULT_SLOTS_CONST = "TONGFLOW_DEFAULT_SLOTS"
+MODEL_CATALOG_CONST = "TONGFLOW_MODEL_CATALOG"
 
 
 def _const_assign_value(node: ast.stmt, name: str) -> ast.expr | None:
@@ -333,3 +334,106 @@ def extract_node_slot_defaults(
             if value.value:
                 idents.extend(_node_slot_idents(deco))
     return tuple(dict.fromkeys(idents)), problems
+
+
+def extract_model_catalog(
+    tree: ast.Module,
+) -> tuple[dict | None, list[tuple[int, str]]]:
+    """
+    Parse the optional module-level ``TONGFLOW_MODEL_CATALOG`` constant: a pure
+    dict literal pointing the canvas at a live, public model catalog so the
+    per-node model dropdown can list more than the curated
+    ``TONGFLOW_SLOT_MODELS`` shortlist::
+
+        TONGFLOW_MODEL_CATALOG = {
+            "url": "https://api.example.com/api/models",  # GET, no auth, CORS
+            "authEnv": "EXAMPLE_API_KEY",  # optional: bearer token env key; the
+                                           # app proxies the fetch server-side
+            "items": "data",      # dot path to the record array (default "data")
+            "id": "id",           # dot path to the model id (default "id")
+            "exclude": {"upcoming": True},   # drop records where field == value
+            "slots": {
+                # field -> token(s); a record matches when every token is a
+                # substring of that field (arrays/objects are JSON-serialized
+                # first); a "!"-prefixed token must be absent instead
+                "gen-text": {"features": "text-to-text", "endpoints": "/v1/chat/completions"},
+                "text-gen-video": {"endpoints": ["/v1/videos", "!/v1/images"]},
+            },
+        }
+
+    The canvas fetches ``url`` in the browser, filters records per slot and
+    appends the ids after the static shortlist. Returns ``(catalog, problems)``;
+    ``catalog`` is ``None`` when the constant is absent or malformed.
+    """
+
+    problems: list[tuple[int, str]] = []
+    for node in tree.body:
+        value = _const_assign_value(node, MODEL_CATALOG_CONST)
+        if value is None:
+            continue
+        try:
+            raw = ast.literal_eval(value)
+        except (ValueError, SyntaxError, TypeError):
+            problems.append(
+                (node.lineno, f"{MODEL_CATALOG_CONST} must be a pure dict literal")
+            )
+            return None, problems
+        reason = _validate_model_catalog(raw)
+        if reason:
+            problems.append((node.lineno, f"{MODEL_CATALOG_CONST} {reason}"))
+            return None, problems
+        catalog: dict = {
+            "url": raw["url"],
+            "items": raw.get("items", "data"),
+            "id": raw.get("id", "id"),
+            "slots": raw["slots"],
+        }
+        if raw.get("exclude"):
+            catalog["exclude"] = raw["exclude"]
+        if raw.get("authEnv"):
+            catalog["authEnv"] = raw["authEnv"]
+        return catalog, problems
+    return None, problems
+
+
+def _validate_model_catalog(raw: object) -> str | None:
+    """Shape check for a literal-evaluated ``TONGFLOW_MODEL_CATALOG``; returns a reason or None."""
+
+    if not isinstance(raw, dict):
+        return "must be a dict literal"
+    allowed = {"url", "authEnv", "items", "id", "exclude", "slots"}
+    unknown = set(raw) - allowed
+    if unknown:
+        return f"has unknown keys {sorted(unknown)!r}"
+    url = raw.get("url")
+    if not (isinstance(url, str) and url.startswith(("https://", "http://"))):
+        return "'url' must be an http(s) URL string"
+    for key in ("items", "id"):
+        if key in raw and not (isinstance(raw[key], str) and raw[key].strip()):
+            return f"'{key}' must be a non-empty dot-path string"
+    if "authEnv" in raw and not (isinstance(raw["authEnv"], str) and raw["authEnv"].strip()):
+        return "'authEnv' must be a non-empty env var name"
+    exclude = raw.get("exclude", {})
+    if not isinstance(exclude, dict) or not all(
+        isinstance(k, str) and k and isinstance(v, (str, bool, int, float))
+        for k, v in exclude.items()
+    ):
+        return "'exclude' must map field paths to string/bool/number literals"
+    slots = raw.get("slots")
+    if not isinstance(slots, dict) or not slots:
+        return "'slots' must be a non-empty dict of slot -> {field: token}"
+    for slot, rules in slots.items():
+        if not (isinstance(slot, str) and slot):
+            return "'slots' keys must be non-empty strings"
+        if not isinstance(rules, dict) or not rules:
+            return f"'slots'[{slot!r}] must be a non-empty dict of field -> token"
+        for field, token in rules.items():
+            tokens = token if isinstance(token, list) else [token]
+            if not (
+                isinstance(field, str)
+                and field
+                and tokens
+                and all(isinstance(t, str) and t and t != "!" for t in tokens)
+            ):
+                return f"'slots'[{slot!r}] must map field paths to non-empty string tokens (or lists of them)"
+    return None

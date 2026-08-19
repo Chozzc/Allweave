@@ -24,6 +24,42 @@ export const PluginMethodSchema = z.object({
     models: z.array(z.string().min(1)).optional(),
 });
 
+/**
+ * Optional live model catalog (`TONGFLOW_MODEL_CATALOG` in the plugin source).
+ * The canvas GETs `url` in the browser (public, CORS-enabled, no auth) — or,
+ * when `authEnv` names the env key holding a bearer token, through the app's
+ * `/api/plugins/model-catalog` route, which injects the stored key server-side
+ * — reads the record array at dot-path `items`, each model id at dot-path `id`, drops
+ * records where an `exclude` field equals its literal, and keeps a record for
+ * a slot when every `slots[slot]` token is a substring of the named field
+ * (arrays/objects are JSON-serialized before matching; a token prefixed with
+ * `!` must be absent instead). Matching ids extend
+ * that slot's dropdown after the static `models` shortlist.
+ */
+export const PluginModelCatalogSchema = z.object({
+    url: z.string().url(),
+    /** Env key whose value is sent as `Authorization: Bearer …`; the fetch is
+     * proxied server-side so the key never reaches the browser. */
+    authEnv: z.string().min(1).optional(),
+    items: z.string().min(1).default("data"),
+    id: z.string().min(1).default("id"),
+    exclude: z
+        .record(
+            z.string().min(1),
+            z.union([z.string(), z.boolean(), z.number()]),
+        )
+        .optional(),
+    /** slot -> field -> token(s). Every token must be a substring of the
+     * field's JSON; a token prefixed with `!` must be absent. */
+    slots: z.record(
+        z.string().min(1),
+        z.record(
+            z.string().min(1),
+            z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]),
+        ),
+    ),
+});
+
 export const PluginConfigSchema = z.object({
     /** Relative to repo root, e.g. `plugins/tongflow-<runner>-foo` */
     localSubdir: z.string().min(1),
@@ -37,6 +73,8 @@ export const PluginConfigSchema = z.object({
      * such as Modal): its entry.py deploys once before invoking. Informational —
      * the deploy step lives inside the plugin's entry.py. */
     needsDeploy: z.boolean().optional(),
+    /** Live model catalog the canvas can fetch to extend the model dropdown. */
+    modelCatalog: PluginModelCatalogSchema.optional(),
     /** Presentation-only metadata merged in from `tongflow.plugin.json`'s
      * top-level `plugin` block (name/description/icon). Not produced by the
      * scanner; attached by the registry API route for the node picker. */
@@ -63,3 +101,4 @@ export const PluginsRegistrySchema = z.object({
 
 export type PluginsRegistry = z.infer<typeof PluginsRegistrySchema>;
 export type PluginConfig = z.infer<typeof PluginConfigSchema>;
+export type PluginModelCatalog = z.infer<typeof PluginModelCatalogSchema>;
