@@ -347,6 +347,8 @@ def extract_model_catalog(
 
         TONGFLOW_MODEL_CATALOG = {
             "url": "https://api.example.com/api/models",  # GET, no auth, CORS
+            "authEnv": "EXAMPLE_API_KEY",  # optional: bearer token env key; the
+                                           # app proxies the fetch server-side
             "items": "data",      # dot path to the record array (default "data")
             "id": "id",           # dot path to the model id (default "id")
             "exclude": {"upcoming": True},   # drop records where field == value
@@ -386,6 +388,8 @@ def extract_model_catalog(
         }
         if raw.get("exclude"):
             catalog["exclude"] = raw["exclude"]
+        if raw.get("authEnv"):
+            catalog["authEnv"] = raw["authEnv"]
         return catalog, problems
     return None, problems
 
@@ -395,7 +399,7 @@ def _validate_model_catalog(raw: object) -> str | None:
 
     if not isinstance(raw, dict):
         return "must be a dict literal"
-    allowed = {"url", "items", "id", "exclude", "slots"}
+    allowed = {"url", "authEnv", "items", "id", "exclude", "slots"}
     unknown = set(raw) - allowed
     if unknown:
         return f"has unknown keys {sorted(unknown)!r}"
@@ -405,6 +409,8 @@ def _validate_model_catalog(raw: object) -> str | None:
     for key in ("items", "id"):
         if key in raw and not (isinstance(raw[key], str) and raw[key].strip()):
             return f"'{key}' must be a non-empty dot-path string"
+    if "authEnv" in raw and not (isinstance(raw["authEnv"], str) and raw["authEnv"].strip()):
+        return "'authEnv' must be a non-empty env var name"
     exclude = raw.get("exclude", {})
     if not isinstance(exclude, dict) or not all(
         isinstance(k, str) and k and isinstance(v, (str, bool, int, float))

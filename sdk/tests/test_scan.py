@@ -146,6 +146,20 @@ def test_scan_model_catalog_attaches_to_plugin(tmp_path):
     }
 
 
+def test_scan_model_catalog_auth_env_passthrough(tmp_path):
+    src = _CATALOG.replace('"url": "https://api.example.com/api/models",', '"url": "https://api.example.com/v1/models",\n    "authEnv": "EXAMPLE_API_KEY",')
+    payload = _entry(_write_plugin(tmp_path, src + _HANDLERS), _write_abi(tmp_path))
+    assert payload["errors"] == []
+    assert payload["plugins"]["tongflow-api-fake"]["modelCatalog"]["authEnv"] == "EXAMPLE_API_KEY"
+
+
+def test_scan_model_catalog_bad_auth_env_errors(tmp_path):
+    src = _CATALOG.replace('"url": "https://api.example.com/api/models",', '"url": "https://api.example.com/v1/models",\n    "authEnv": "",')
+    payload = _entry(_write_plugin(tmp_path, src + _HANDLERS), _write_abi(tmp_path))
+    assert "modelCatalog" not in payload["plugins"]["tongflow-api-fake"]
+    assert any("authEnv" in e["message"] for e in payload["errors"])
+
+
 def test_scan_model_catalog_absent_by_default(tmp_path):
     payload = _entry(_write_plugin(tmp_path, _HANDLERS), _write_abi(tmp_path))
     assert "modelCatalog" not in payload["plugins"]["tongflow-api-fake"]

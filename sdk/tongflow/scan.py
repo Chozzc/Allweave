@@ -19,7 +19,7 @@ from ._ast_utils import (
 )
 from .parse_deploy import _slot_to_ident, parse_deploy_py
 
-SCANNER_VERSION = 6
+SCANNER_VERSION = 7
 
 SKIP_DIR_NAMES = frozenset(
     {

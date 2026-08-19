@@ -26,8 +26,10 @@ export const PluginMethodSchema = z.object({
 
 /**
  * Optional live model catalog (`TONGFLOW_MODEL_CATALOG` in the plugin source).
- * The canvas GETs `url` in the browser (public, CORS-enabled, no auth), reads
- * the record array at dot-path `items`, each model id at dot-path `id`, drops
+ * The canvas GETs `url` in the browser (public, CORS-enabled, no auth) — or,
+ * when `authEnv` names the env key holding a bearer token, through the app's
+ * `/api/plugins/model-catalog` route, which injects the stored key server-side
+ * — reads the record array at dot-path `items`, each model id at dot-path `id`, drops
  * records where an `exclude` field equals its literal, and keeps a record for
  * a slot when every `slots[slot]` token is a substring of the named field
  * (arrays/objects are JSON-serialized before matching). Matching ids extend
@@ -35,6 +37,9 @@ export const PluginMethodSchema = z.object({
  */
 export const PluginModelCatalogSchema = z.object({
     url: z.string().url(),
+    /** Env key whose value is sent as `Authorization: Bearer …`; the fetch is
+     * proxied server-side so the key never reaches the browser. */
+    authEnv: z.string().min(1).optional(),
     items: z.string().min(1).default("data"),
     id: z.string().min(1).default("id"),
     exclude: z
