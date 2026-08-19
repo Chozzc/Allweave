@@ -268,7 +268,7 @@
             "id": "5889933c-62a7-45c6-ae40-ae06df6982e9",
             "type": "imageGenVideoNode",
             "feature": "image-gen-video",
-            "pluginId": "tongflow-modal-ltx",
+            "pluginId": "tongflow-modal-minimax-h3",
             "bindings": {
                 "duration": {
                     "kind": "config",
@@ -315,7 +315,7 @@
                 "fileKeys": [
                     "tasks/iokJb-SC1DeiM0S_PQv0r/pU8sgnY8F8-hKd5L-OPBl.png"
                 ],
-                "pluginId": "tongflow-modal-ltx",
+                "pluginId": "tongflow-modal-minimax-h3",
                 "duration": 5,
                 "width": 576,
                 "height": 1024,
@@ -607,7 +607,7 @@
                     "fileKeys": [
                         "tasks/iokJb-SC1DeiM0S_PQv0r/pU8sgnY8F8-hKd5L-OPBl.png"
                     ],
-                    "pluginId": "tongflow-modal-ltx",
+                    "pluginId": "tongflow-modal-minimax-h3",
                     "duration": 5,
                     "feature": "image-gen-video",
                     "width": 576,
