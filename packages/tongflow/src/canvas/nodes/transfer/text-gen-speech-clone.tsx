@@ -75,7 +75,7 @@ const TextGenSpeechCloneNode = ({
             executeDisabled={!texts?.length || !refAudio}
         >
             <Card
-                className="p-5 nodrag"
+                className="mx-4 mb-4 p-4 nodrag"
                 onPointerDown={(e) => e.stopPropagation()}
             >
                 <div className="mb-3 flex flex-wrap items-center gap-3">
