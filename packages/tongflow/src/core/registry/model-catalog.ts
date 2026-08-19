@@ -19,8 +19,9 @@ function fieldContains(value: unknown, token: string): boolean {
 
 /**
  * Filter a fetched catalog payload into `slot -> model ids`, applying the
- * plugin's declared `exclude` and per-slot `slots` rules. Ids keep catalog
- * order; malformed records are skipped. Pure — the fetch lives in the canvas.
+ * plugin's declared `exclude` and per-slot `slots` rules (substring tokens,
+ * `!`-prefixed = must be absent). Ids keep catalog order; malformed records
+ * are skipped. Pure — the fetch lives in the canvas.
  */
 export function filterModelCatalog(
     catalog: PluginModelCatalog,
@@ -41,9 +42,15 @@ export function filterModelCatalog(
         )
             continue;
         for (const [slot, rules] of Object.entries(catalog.slots)) {
-            const ok = Object.entries(rules).every(([field, token]) =>
-                fieldContains(getPath(record, field), token),
-            );
+            const ok = Object.entries(rules).every(([field, tokens]) => {
+                const value = getPath(record, field);
+                return (Array.isArray(tokens) ? tokens : [tokens]).every(
+                    (token) =>
+                        token.startsWith("!")
+                            ? !fieldContains(value, token.slice(1))
+                            : fieldContains(value, token),
+                );
+            });
             if (ok && !out[slot].includes(id)) out[slot].push(id);
         }
     }

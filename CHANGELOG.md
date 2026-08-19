@@ -29,7 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `authEnv` (the env key holding a bearer token); the canvas then loads the
   catalog through `GET /api/plugins/model-catalog?pluginId=…`, which injects
   the key from Settings server-side, instead of fetching the URL in the
-  browser. Scanner version 7, SDK 0.3.2.
+  browser. Slot rules also accept token lists and `!`-negated tokens. Scanner
+  version 7, SDK 0.3.2.
 - **Live model catalogs for the per-node model picker** — a plugin may declare
   `TONGFLOW_MODEL_CATALOG` (a public, CORS-enabled catalog URL plus per-slot
   filter rules); the canvas fetches it in the browser (10-minute cache,

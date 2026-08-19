@@ -58,6 +58,38 @@ describe("filterModelCatalog", () => {
         expect(filterModelCatalog(catalog, "nope")["gen-text"]).toEqual([]);
     });
 
+    it("accepts token lists and `!`-negated tokens", () => {
+        const c = PluginModelCatalogSchema.parse({
+            url: "https://x",
+            slots: {
+                "text-gen-video": {
+                    supported_endpoint_types: [
+                        "openai-video",
+                        "!image-generation",
+                    ],
+                },
+                "image-gen": { supported_endpoint_types: "image-generation" },
+            },
+        });
+        const p = {
+            data: [
+                { id: "sora", supported_endpoint_types: ["openai-video"] },
+                {
+                    id: "gpt-image",
+                    supported_endpoint_types: [
+                        "openai-video",
+                        "image-generation",
+                    ],
+                },
+                { id: "chat", supported_endpoint_types: ["openai"] },
+            ],
+        };
+        expect(filterModelCatalog(c, p)).toEqual({
+            "text-gen-video": ["sora"],
+            "image-gen": ["gpt-image"],
+        });
+    });
+
     it("honours custom items / id paths", () => {
         const c = PluginModelCatalogSchema.parse({
             url: "https://x",

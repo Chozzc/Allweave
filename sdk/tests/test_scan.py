@@ -160,6 +160,13 @@ def test_scan_model_catalog_bad_auth_env_errors(tmp_path):
     assert any("authEnv" in e["message"] for e in payload["errors"])
 
 
+def test_scan_model_catalog_token_lists_pass_through(tmp_path):
+    src = _CATALOG.replace('"image-gen": {"features": "text-to-image"}', '"image-gen": {"features": ["text-to-image", "!upcoming"]}')
+    payload = _entry(_write_plugin(tmp_path, src + _HANDLERS), _write_abi(tmp_path))
+    assert payload["errors"] == []
+    assert payload["plugins"]["tongflow-api-fake"]["modelCatalog"]["slots"] == {"image-gen": {"features": ["text-to-image", "!upcoming"]}}
+
+
 def test_scan_model_catalog_absent_by_default(tmp_path):
     payload = _entry(_write_plugin(tmp_path, _HANDLERS), _write_abi(tmp_path))
     assert "modelCatalog" not in payload["plugins"]["tongflow-api-fake"]

@@ -32,7 +32,8 @@ export const PluginMethodSchema = z.object({
  * — reads the record array at dot-path `items`, each model id at dot-path `id`, drops
  * records where an `exclude` field equals its literal, and keeps a record for
  * a slot when every `slots[slot]` token is a substring of the named field
- * (arrays/objects are JSON-serialized before matching). Matching ids extend
+ * (arrays/objects are JSON-serialized before matching; a token prefixed with
+ * `!` must be absent instead). Matching ids extend
  * that slot's dropdown after the static `models` shortlist.
  */
 export const PluginModelCatalogSchema = z.object({
@@ -48,9 +49,14 @@ export const PluginModelCatalogSchema = z.object({
             z.union([z.string(), z.boolean(), z.number()]),
         )
         .optional(),
+    /** slot -> field -> token(s). Every token must be a substring of the
+     * field's JSON; a token prefixed with `!` must be absent. */
     slots: z.record(
         z.string().min(1),
-        z.record(z.string().min(1), z.string().min(1)),
+        z.record(
+            z.string().min(1),
+            z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]),
+        ),
     ),
 });
 

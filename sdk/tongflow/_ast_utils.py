@@ -353,9 +353,11 @@ def extract_model_catalog(
             "id": "id",           # dot path to the model id (default "id")
             "exclude": {"upcoming": True},   # drop records where field == value
             "slots": {
-                # field -> token; a record matches when every token is a
-                # substring of that field (arrays/objects are JSON-serialized first)
+                # field -> token(s); a record matches when every token is a
+                # substring of that field (arrays/objects are JSON-serialized
+                # first); a "!"-prefixed token must be absent instead
                 "gen-text": {"features": "text-to-text", "endpoints": "/v1/chat/completions"},
+                "text-gen-video": {"endpoints": ["/v1/videos", "!/v1/images"]},
             },
         }
 
@@ -426,6 +428,12 @@ def _validate_model_catalog(raw: object) -> str | None:
         if not isinstance(rules, dict) or not rules:
             return f"'slots'[{slot!r}] must be a non-empty dict of field -> token"
         for field, token in rules.items():
-            if not (isinstance(field, str) and field and isinstance(token, str) and token):
-                return f"'slots'[{slot!r}] must map field paths to non-empty string tokens"
+            tokens = token if isinstance(token, list) else [token]
+            if not (
+                isinstance(field, str)
+                and field
+                and tokens
+                and all(isinstance(t, str) and t and t != "!" for t in tokens)
+            ):
+                return f"'slots'[{slot!r}] must map field paths to non-empty string tokens (or lists of them)"
     return None

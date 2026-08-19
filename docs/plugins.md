@@ -199,10 +199,12 @@ TONGFLOW_MODEL_CATALOG = {
     "id": "id",                     # dot-path to the model id (default "id")
     "exclude": {"upcoming": True},  # drop records where the field equals the literal
     "slots": {
-        # field -> token: a record matches when every token is a substring of that
-        # field (arrays / objects are JSON-serialized first)
+        # field -> token(s): a record matches when every token is a substring of
+        # that field (arrays / objects are JSON-serialized first); a "!"-prefixed
+        # token must be absent instead
         "gen-text": {"features": "text-to-text", "endpoints": "/v1/chat/completions"},
         "image-gen": {"features": "text-to-image", "endpoints": "/v1/images/generations"},
+        "text-gen-video": {"endpoints": ["/v1/videos", "!/v1/images"]},
     },
 }
 ```
