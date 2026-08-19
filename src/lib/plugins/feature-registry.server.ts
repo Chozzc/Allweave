@@ -2,17 +2,17 @@ import "server-only";
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { logger } from "@/lib/logger";
-import { buildFeatureRegistry } from "@/lib/plugins/feature-registry";
 import {
+    buildFeatureRegistry,
     type FeatureDefinition,
     type FeatureRegistryBundle,
     FeatureRegistryBundleSchema,
+    logger,
+    TONGFLOW_ABI_NODES,
     validateFeatureRegistryBundle,
-} from "@/lib/plugins/feature-registry-schema";
+} from "tongflow";
 import { loadPluginsRegistry } from "@/lib/plugins/plugins-registry.server";
 import { dataDir } from "@/lib/runtime/paths.server";
-import { TONGFLOW_ABI_NODES } from "@/lib/schema/tongflow-abi";
 
 function mergeBundles(
     base: FeatureRegistryBundle,

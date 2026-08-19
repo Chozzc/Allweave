@@ -4,16 +4,14 @@ import { AppWindow, Play, Sparkles } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import {
+    cn,
     Tooltip,
     TooltipContent,
     TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
     useTaskStore,
     WORKSPACE_MODE_KEY,
     type WorkspaceMode,
-} from "@/hooks/use-task";
-import { cn } from "@/lib/utils";
+} from "tongflow/canvas";
 
 interface ModeSwitchProps {
     onChange?: (mode: WorkspaceMode) => void;

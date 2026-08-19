@@ -1,8 +1,12 @@
 # TongFlow Agent Manual
 
-This document is loaded verbatim into the workspace agent's system prompt.
-Rules and examples only — the node/plugin catalog is generated from code and
-appended after this manual, so never list concrete node types here.
+Reference system-prompt material for any agent host that builds TongFlow
+workflows through the `tongflow` npm package's graph tools
+(`TONGFLOW_TOOL_DEFS`: `apply_graph_patch`, `read_canvas`,
+`validate_workflow`, `describe_node_type`). Rules and examples only — the
+node/plugin catalog should be generated from the static registry
+(`NODE_TYPE_TO_ABI_FEATURE` / `describeNodeType`) and appended after this
+manual, so never list concrete node types here.
 
 ## What TongFlow is
 
@@ -141,6 +145,6 @@ fused result.
   through it.
 - **Desktop:** the desktop app is a shell over the cloud version; download is
   on the GitHub releases page.
-- Anything beyond this FAQ: use `search_docs` before answering; if the docs
-  do not cover it, say so and point to the project's GitHub or Discord —
-  never invent UI steps.
+- Anything beyond this FAQ: consult the product documentation if the host
+  provides a search tool; if the docs do not cover it, say so and point to the
+  project's GitHub or Discord — never invent UI steps.

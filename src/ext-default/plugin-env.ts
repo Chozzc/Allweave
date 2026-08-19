@@ -1,6 +1,6 @@
 import { type Dirent, existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { logger } from "@/lib/logger";
+import { logger } from "tongflow";
 import {
     type PluginEnvDecl,
     PluginEnvManifestSchema,

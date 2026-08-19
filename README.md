@@ -142,6 +142,7 @@ Sign in with Google or WeChat and start creating — the cloud studio manages pl
 
 - ✅ **Image fusion**: blend or edit multiple references into one image.
 - ✅ **Lip sync**: audio + video → video (lip-sync); also audio + image → video and audio + text → video variants.
+- ✅ **Emotive speech**: text + voice reference → speech in that voice, with emotion control.
 - ✅ **Character swap**: video + reference (scene blend / character replacement), Animate Mix-style generation.
 - ✅ **Motion transfer**: video + reference (motion / retarget), Animate Move-style generation.
 - ✅ **Combine text**: merge multiple text nodes into one.
@@ -214,23 +215,20 @@ Aggregators — one key, many third-party models across labs:
 - [tongflow-modal-sensenova-vision](https://github.com/tong-io/tongflow-modal-sensenova-vision) — SenseNova-Vision (SenseTime) unified vision model: image understanding / visual QA, detection & OCR structured text, full-scene surface normals, salient-object matting, and human pose overlay (alternative)
 - [tongflow-modal-seedvr2](https://github.com/tong-io/tongflow-modal-seedvr2) — SeedVR2 image / video super-resolution
 - [tongflow-modal-gemma4](https://github.com/tong-io/tongflow-modal-gemma4) — Gemma-4 multimodal text (image / video understanding)
+- [tongflow-modal-qwen38](https://github.com/tong-io/tongflow-modal-qwen38) — Qwen3.8-27B multimodal text (text generation, image / video understanding; alternative)
 - [tongflow-modal-qwen3asr](https://github.com/tong-io/tongflow-modal-qwen3asr) — Qwen3 speech recognition
 - [tongflow-modal-qwen3tts](https://github.com/tong-io/tongflow-modal-qwen3tts) — Qwen3 text-to-speech
+- [tongflow-modal-indextts2](https://github.com/tong-io/tongflow-modal-indextts2) — IndexTTS-2.5 emotive text-to-speech: zero-shot voice cloning (alternative) and emotion-controlled speech from a voice reference
 - [tongflow-modal-whisper](https://github.com/tong-io/tongflow-modal-whisper) — Whisper speech recognition with timestamps (alternative)
 - [tongflow-modal-ace-step](https://github.com/tong-io/tongflow-modal-ace-step) — ACE-Step 1.5 music suite: text-to-music (sft / base / turbo selectable), repaint, cover, stem extraction, add-track, arrangement completion, music brief, and music understanding
 - [tongflow-modal-levo](https://github.com/tong-io/tongflow-modal-levo) — LeVo 2 / SongGeneration text-to-music (multilingual, commercial-grade)
+- [tongflow-modal-minimax-music3](https://github.com/tong-io/tongflow-modal-minimax-music3) — MiniMax-Music3 11B song generation: lyrics + description → complete song with vocals (up to ~5 min, 32 kHz stereo)
 - [tongflow-modal-sam-audio](https://github.com/tong-io/tongflow-modal-sam-audio) — SAM-Audio text-prompted sound separation: noise reduction, vocal isolation, and free-text stem extraction ("the piano in the background")
 - [tongflow-modal-docling](https://github.com/tong-io/tongflow-modal-docling) — Docling document → text
 - [tongflow-modal-paddle](https://github.com/tong-io/tongflow-modal-paddle) — PaddleOCR document → text
 - [tongflow-modal-unlimited-ocr](https://github.com/tong-io/tongflow-modal-unlimited-ocr) — Unlimited-OCR long-horizon document / PDF → text
 - [tongflow-modal-crawl4ai](https://github.com/tong-io/tongflow-modal-crawl4ai) — Crawl4AI URL / link → text
 - [tongflow-modal-scrapling](https://github.com/tong-io/tongflow-modal-scrapling) — Scrapling stealth-browser URL / link → text
-
-### Content packages
-
-Data-only packages (no executable code), installed the same way as plugins:
-
-- [tongflow-package-skills](https://github.com/tong-io/tongflow-package-skills) — skills (reusable prompt packs) for the text-generation node: writing skills (polish / translate / expand / condense…) plus model-specific prompt-crafting guides (MiniMax-H3, Seedance, Veo, Seedream, FLUX…)
 
 ## Run from source
 
@@ -296,7 +294,7 @@ Run the preloaded example node by node, or switch to Execute Mode and hit the ru
 
 ## Custom plugins
 
-Every runnable node is backed by a **contract** — the ABI ([`config/tongflow.abi.json`](config/tongflow.abi.json)) — that defines *what capabilities exist* and *what each one's input/output looks like*, independent of *who* implements it. A plugin is just a small Python package that picks one or more ABI slots and supplies the **how**, annotated against the ABI-generated types via the tongflow Python SDK.
+Every runnable node is backed by a **contract** — the ABI ([`packages/tongflow/abi/tongflow.abi.json`](packages/tongflow/abi/tongflow.abi.json)) — that defines *what capabilities exist* and *what each one's input/output looks like*, independent of *who* implements it. A plugin is just a small Python package that picks one or more ABI slots and supplies the **how**, annotated against the ABI-generated types via the tongflow Python SDK.
 
 The full development flow — the ABI, the `@node_slot` decorator, the SDK, directory layout, and how to publish — lives in **[docs/plugins.md](docs/plugins.md)**.
 

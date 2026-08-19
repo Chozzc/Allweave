@@ -13,7 +13,14 @@ import { useTranslations } from "next-intl";
 import type { ChangeEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { useShallow } from "zustand/react/shallow";
+import {
+    exportWorkflow,
+    logger,
+    type ParsedWorkflowImport,
+    parseWorkflowImportJson,
+    WORKFLOW_IMPORT_NO_CANVAS,
+} from "tongflow";
+import type { FlowState } from "tongflow/canvas";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -23,34 +30,25 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import {
+    Button,
     Dialog,
     DialogClose,
     DialogContent,
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from "@/components/ui/dialog";
-import { showErrorToast } from "@/components/ui/error-toast";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import type { FlowState } from "@/hooks/use-flow";
-import { useFlow } from "@/hooks/use-flow";
+    Input,
+    Label,
+    showErrorToast,
+    Textarea,
+    useFlow,
+} from "tongflow/canvas";
+import { useShallow } from "zustand/react/shallow";
 import {
     type SaveWorkflowRequest,
     saveWorkflow,
     updateWorkflow,
 } from "@/lib/api/workspace";
-import { logger } from "@/lib/logger";
-import {
-    exportWorkflow,
-    type ParsedWorkflowImport,
-    parseWorkflowImportJson,
-    WORKFLOW_IMPORT_NO_CANVAS,
-} from "@/lib/workflow/exporter";
 
 function safeWorkflowFileName(name: string): string {
     const s = name.replace(/[/\\?%*:|"<>]/g, "_").trim();

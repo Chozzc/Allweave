@@ -2,8 +2,8 @@ import "server-only";
 
 import { spawn } from "node:child_process";
 import { delimiter, join } from "node:path";
-import { TaskStatus } from "@/constants/task-status";
-import type { NodeSlot } from "@/generated/abi";
+import type { NodeSlot } from "tongflow";
+import { TaskStatus } from "tongflow";
 import { ensurePluginPython } from "@/lib/plugins/plugin-python-env.server";
 import { getPluginConfig } from "@/lib/plugins/plugins-registry.server";
 import { PYTHON_UTF8_ENV } from "@/lib/plugins/python-lite";

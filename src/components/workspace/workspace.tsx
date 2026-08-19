@@ -1,68 +1,32 @@
 "use client";
 
 /**
- * Workspace main component
- * ReactFlow canvas managing nodes and edges
+ * Workspace — the application shell around the canvas.
+ *
+ * Owns everything that is not the canvas itself: local persistence and
+ * restore, the bundled example on first launch, workflow recovery, feature
+ * preload, the app-mode overlay, navigation / title / undo / tidy / mode
+ * controls and onboarding. The canvas proper is `FlowCanvas`.
  */
 
-import type {
-    Connection,
-    Edge,
-    FinalConnectionState,
-    IsValidConnection,
-    Node,
-    OnReconnect,
-} from "@xyflow/react";
-import {
-    Background,
-    Controls,
-    Panel,
-    ReactFlow,
-    ReactFlowProvider,
-    reconnectEdge,
-    useReactFlow,
-} from "@xyflow/react";
+import type { Edge, Node } from "@xyflow/react";
+import { ReactFlowProvider } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useLocale, useTranslations } from "next-intl";
-import { useCallback, useEffect, useState } from "react";
-import { useShallow } from "zustand/react/shallow";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { useCallback, useEffect } from "react";
+import { logger, parseWorkflowImportJson } from "tongflow";
+import { FlowCanvas, useFlow, useTaskStore } from "tongflow/canvas";
 import { usePreloadFeatures } from "@/hooks/use-features";
-import type { FlowState } from "@/hooks/use-flow";
-import { useFlow } from "@/hooks/use-flow";
-import { useTaskStore } from "@/hooks/use-task";
 import { useWorkflowRecovery } from "@/hooks/use-workflow-recovery";
-import { logger } from "@/lib/logger";
-import { cn } from "@/lib/utils";
-import { isValidFlowConnection } from "@/lib/workflow/connection-rules";
-import { parseWorkflowImportJson } from "@/lib/workflow/exporter";
-import { AgentPanel } from "./agent/agent-panel";
-import { AgentToggleButton } from "./agent/agent-toggle-button";
 import { AppView } from "./app-view/app-view";
 import { ModeSwitch } from "./mode-switch";
 import { OnboardingGate } from "./onboarding/onboarding-gate";
 import SmartIsland from "./smart-island";
 import { TidyLayoutButton } from "./tidy-layout-button";
-import { EDGE_TYPES, NODE_TYPES } from "./types";
 import { UndoRedoButtons } from "./undo-redo-buttons";
 import { WorkflowTitleMenu } from "./workflow-title-menu";
 import { WorkspaceLeftNav } from "./workspace-left-nav";
 import { WorkspaceNav } from "./workspace-nav";
-
-// Selector for performance optimization - select data only, not functions
-const selector = (state: FlowState) => ({
-    nodes: state.nodes,
-    edges: state.edges,
-});
 
 /**
  * Workspace inner component
@@ -75,111 +39,12 @@ function WorkspaceInner({
 }) {
     const tIndex = useTranslations("Index");
     const locale = useLocale();
-    const [colorMode, setColorMode] = useState<"light" | "dark">("light");
-
-    // Separate data and functions to avoid re-renders caused by function reference changes
-    const { nodes, edges } = useFlow(useShallow(selector));
 
     // App mode replaces the canvas with a form view. The ReactFlow tree stays
-    // mounted (visibility-hidden) so ABI node registrations, SSE output
-    // application and workflow recovery keep working while it's covered.
+    // mounted (visibility-hidden) so SSE output application and workflow
+    // recovery keep working while it's covered.
     const workspaceMode = useTaskStore((state) => state.workspaceMode);
     const isAppMode = workspaceMode === "app";
-
-    // Get functions directly from the store (function references never change)
-    const onNodesChange = useFlow.getState().onNodesChange;
-    const onEdgesChange = useFlow.getState().onEdgesChange;
-    const onSelectionChange = useFlow.getState().onSelectionChange;
-    const onConnect = useFlow.getState().onConnect;
-    const reactFlowInstance = useReactFlow();
-
-    const isValidConnection = useCallback<IsValidConnection<Edge>>(
-        (connection) => {
-            const { nodes, edges, reconnectingEdgeId } = useFlow.getState();
-            return isValidFlowConnection(
-                connection as Connection,
-                nodes,
-                edges,
-                reconnectingEdgeId ?? undefined,
-            );
-        },
-        [],
-    );
-
-    const tEdges = useTranslations("Workspace.edges");
-    // Edge whose endpoint was dropped on empty canvas → confirm deletion.
-    const [pendingDeleteEdgeId, setPendingDeleteEdgeId] = useState<
-        string | null
-    >(null);
-
-    // Manual edge creation is disabled (handles set isConnectableStart=false).
-    // Users may only reconnect an existing edge's endpoint to another handle;
-    // isValidConnection above enforces the ABI contract on the new endpoint.
-    const onReconnectStart = useCallback((_event: unknown, edge: Edge) => {
-        useFlow.getState().setReconnectingEdgeId(edge.id);
-    }, []);
-
-    const onReconnect = useCallback<OnReconnect<Edge>>(
-        (oldEdge, newConnection) => {
-            const { edges, setEdges, commitHistory } = useFlow.getState();
-            commitHistory();
-            setEdges(reconnectEdge(oldEdge, newConnection, edges));
-        },
-        [],
-    );
-
-    const onReconnectEnd = useCallback(
-        (
-            _event: MouseEvent | TouchEvent,
-            edge: Edge,
-            _handleType: unknown,
-            connectionState: FinalConnectionState,
-        ) => {
-            useFlow.getState().setReconnectingEdgeId(null);
-            // Dropped on empty canvas (no target handle) → ask to delete.
-            if (!connectionState.toHandle) {
-                setPendingDeleteEdgeId(edge.id);
-            }
-        },
-        [],
-    );
-
-    const confirmDeleteEdge = useCallback(() => {
-        if (!pendingDeleteEdgeId) return;
-        const { edges, setEdges, commitHistory } = useFlow.getState();
-        commitHistory();
-        setEdges(edges.filter((e) => e.id !== pendingDeleteEdgeId));
-        setPendingDeleteEdgeId(null);
-    }, [pendingDeleteEdgeId]);
-
-    // Listen for theme changes
-    useEffect(() => {
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.attributeName === "class") {
-                    setColorMode(
-                        document.documentElement.classList.contains("dark")
-                            ? "dark"
-                            : "light",
-                    );
-                }
-            });
-        });
-
-        observer.observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ["class"],
-        });
-
-        // Initialize theme
-        setColorMode(
-            document.documentElement.classList.contains("dark")
-                ? "dark"
-                : "light",
-        );
-
-        return () => observer.disconnect();
-    }, []);
 
     // Preload feature data
     usePreloadFeatures();
@@ -212,66 +77,6 @@ function WorkspaceInner({
     useWorkflowRecovery({
         onNodeDataUpdate: handleNodeDataUpdate,
     });
-
-    // Subscribe to node-creation events and smoothly zoom to the new node
-    useEffect(() => {
-        const unsubscribe = useFlow.getState().onNodeCreated((nodeIds) => {
-            if (nodeIds.length === 0) return;
-            // Defer fitView until the node has finished rendering
-            setTimeout(() => {
-                void reactFlowInstance.fitView({
-                    nodes: nodeIds.map((id) => ({ id })),
-                    duration: 800,
-                    padding: 0.3,
-                    maxZoom: 1.2,
-                    minZoom: 0.1,
-                });
-            }, 50);
-        });
-        return unsubscribe;
-    }, [reactFlowInstance]);
-
-    // Handle node double-click: smoothly zoom the view to the node
-    const handleNodeDoubleClick = (_event: React.MouseEvent, node: Node) => {
-        if (!node?.position) return;
-
-        // Use ReactFlow's built-in method to precisely center the node
-        void reactFlowInstance.fitView({
-            nodes: [{ id: node.id }],
-            duration: 800,
-            padding: 0.3, // Leave 30% padding around the node
-            maxZoom: 1.2,
-            minZoom: 0.1,
-        });
-    };
-
-    // Snapshot once at drag start so a whole drag is a single undo entry
-    // (position changes then stream through onNodesChange without committing)
-    const handleDragStart = useCallback(() => {
-        useFlow.getState().commitHistory();
-    }, []);
-
-    // Click on empty canvas to exit Combo Mode
-    const handlePaneClick = useCallback(() => {
-        const store = useFlow.getState();
-        if (store.comboMode) {
-            store.setComboMode(false);
-        }
-    }, []);
-
-    // Listen for the Escape key to exit Combo Mode
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "Escape") {
-                const store = useFlow.getState();
-                if (store.comboMode) {
-                    store.setComboMode(false);
-                }
-            }
-        };
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, []);
 
     // Restore nodes, edges, and workflow metadata from localStorage
     useEffect(() => {
@@ -375,62 +180,9 @@ function WorkspaceInner({
     return (
         <div className="flex w-full h-full">
             <div className="relative flex-1 min-w-0 h-full overflow-hidden [&_.react-flow]:!bg-[#f6f7f9] dark:[&_.react-flow]:!bg-background">
-                <div
-                    className={cn(
-                        "w-full h-full",
-                        isAppMode && "invisible pointer-events-none",
-                    )}
-                    aria-hidden={isAppMode}
-                >
-                    <ReactFlow
-                        nodes={nodes}
-                        onNodesChange={onNodesChange}
-                        edges={edges}
-                        onEdgesChange={onEdgesChange}
-                        onConnect={onConnect}
-                        isValidConnection={isValidConnection}
-                        // Manual new connections are disabled at the handle level
-                        // (isConnectableStart={false}); users may only reconnect an
-                        // existing edge's endpoint, validated by isValidConnection.
-                        onReconnect={onReconnect}
-                        onReconnectStart={onReconnectStart}
-                        onReconnectEnd={onReconnectEnd}
-                        nodeTypes={NODE_TYPES}
-                        edgeTypes={EDGE_TYPES}
-                        defaultEdgeOptions={{
-                            type: "custom-edge",
-                            selectable: false,
-                            focusable: false,
-                        }}
-                        // While reconnecting, ReactFlow hides the original edge and
-                        // shows this connection-line preview following the cursor.
-                        // Match the custom-edge style so it stays visible/cursor-tracked.
-                        connectionLineStyle={{
-                            strokeWidth: 3,
-                            stroke: "#94a3b8",
-                            strokeLinecap: "round",
-                        }}
-                        onSelectionChange={onSelectionChange}
-                        onNodeDoubleClick={handleNodeDoubleClick}
-                        onPaneClick={handlePaneClick}
-                        onNodeDragStart={handleDragStart}
-                        onSelectionDragStart={handleDragStart}
-                        nodeDragThreshold={1}
-                        nodeOrigin={[0.5, 0.5]}
-                        selectNodesOnDrag={false}
-                        fitView
-                        minZoom={0.001} // Minimum zoom limit
-                        maxZoom={1000} // Maximum zoom limit
-                        proOptions={{ hideAttribution: true }}
-                        colorMode={colorMode}
-                    >
-                        <Background />
-                        <Controls />
-                        <Panel position="bottom-center" className="!mb-5 z-10">
-                            <SmartIsland />
-                        </Panel>
-                    </ReactFlow>
-                </div>
+                <FlowCanvas hidden={isAppMode}>
+                    <SmartIsland />
+                </FlowCanvas>
 
                 {isAppMode && (
                     <div className="absolute inset-0 z-5 overflow-y-auto bg-background">
@@ -446,7 +198,6 @@ function WorkspaceInner({
                 </div>
 
                 <div className="absolute right-5 top-5 z-10 flex items-center gap-3">
-                    <AgentToggleButton />
                     <WorkspaceNav />
                 </div>
 
@@ -455,34 +206,7 @@ function WorkspaceInner({
                 </div>
 
                 <OnboardingGate />
-
-                <AlertDialog
-                    open={pendingDeleteEdgeId !== null}
-                    onOpenChange={(open) => {
-                        if (!open) setPendingDeleteEdgeId(null);
-                    }}
-                >
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>
-                                {tEdges("deleteConfirmTitle")}
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                                {tEdges("deleteConfirmDescription")}
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>
-                                {tEdges("cancel")}
-                            </AlertDialogCancel>
-                            <AlertDialogAction onClick={confirmDeleteEdge}>
-                                {tEdges("delete")}
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
             </div>
-            <AgentPanel />
         </div>
     );
 }

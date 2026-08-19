@@ -1,0 +1,119 @@
+{
+    "name": "Shot image-to-video + lip-sync",
+    "description": "Keyframe + motion prompt → video → lip-sync with the dialogue audio (ANI). Two steps.",
+    "flow": {
+        "nodes": [
+            {
+                "id": "002bf081-7b9d-432d-a95d-1d85f37707e1",
+                "type": "imageNode",
+                "position": {
+                    "x": 100,
+                    "y": -78
+                },
+                "origin": [0.5, 0.5],
+                "data": {
+                    "inputName": "image"
+                }
+            },
+            {
+                "id": "d508644a-4054-4f85-b999-44d19d0b0077",
+                "type": "textNode",
+                "position": {
+                    "x": 100,
+                    "y": 182
+                },
+                "origin": [0.5, 0.5],
+                "data": {
+                    "inputName": "prompt"
+                }
+            },
+            {
+                "id": "3b57abc5-f841-4bcc-b5f3-310b11cb85c8",
+                "type": "imageGenVideoComposeNode",
+                "position": {
+                    "x": 620,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {}
+            },
+            {
+                "id": "59b43b85-1410-46af-b39f-12888c4b6f09",
+                "type": "videoNode",
+                "position": {
+                    "x": 1088,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {}
+            },
+            {
+                "id": "b1304eea-b305-42ff-9caf-f910fe87c483",
+                "type": "audioNode",
+                "position": {
+                    "x": 100,
+                    "y": 360
+                },
+                "origin": [0.5, 0.5],
+                "data": {
+                    "inputName": "audio"
+                }
+            },
+            {
+                "id": "69a31466-b58b-4938-bfd6-ad4f43ef9d3e",
+                "type": "audioVideoLipSyncNode",
+                "position": {
+                    "x": 1556,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {}
+            }
+        ],
+        "edges": [
+            {
+                "id": "805a2867-9162-4a90-8ae9-c60954126bd4",
+                "source": "002bf081-7b9d-432d-a95d-1d85f37707e1",
+                "target": "3b57abc5-f841-4bcc-b5f3-310b11cb85c8",
+                "type": "custom-edge",
+                "sourceHandle": "out:imageNode",
+                "targetHandle": "in:image"
+            },
+            {
+                "id": "734ab9f6-7277-4c32-b30e-6822d5e133c1",
+                "source": "3b57abc5-f841-4bcc-b5f3-310b11cb85c8",
+                "target": "59b43b85-1410-46af-b39f-12888c4b6f09",
+                "type": "custom-edge",
+                "sourceHandle": "out:video",
+                "targetHandle": "in:videoNode"
+            },
+            {
+                "id": "6f498311-c12e-4107-9be2-d8135532327b",
+                "source": "59b43b85-1410-46af-b39f-12888c4b6f09",
+                "target": "69a31466-b58b-4938-bfd6-ad4f43ef9d3e",
+                "type": "custom-edge",
+                "sourceHandle": "out:videoNode",
+                "targetHandle": "in:video"
+            },
+            {
+                "id": "10ffc5eb-b7e8-4632-b6fb-94adad256d01",
+                "source": "d508644a-4054-4f85-b999-44d19d0b0077",
+                "target": "3b57abc5-f841-4bcc-b5f3-310b11cb85c8",
+                "type": "custom-edge",
+                "sourceHandle": "out:textNode",
+                "targetHandle": "in:text"
+            },
+            {
+                "id": "322131c3-d135-4451-b306-3d223636e4ce",
+                "source": "b1304eea-b305-42ff-9caf-f910fe87c483",
+                "target": "69a31466-b58b-4938-bfd6-ad4f43ef9d3e",
+                "type": "custom-edge",
+                "sourceHandle": "out:audioNode",
+                "targetHandle": "in:audio"
+            }
+        ]
+    },
+    "meta": {
+        "purpose": "image-gen-video → audio-video-lip-sync. Inputs: image ← tf://<SHOT>/KF, prompt ← tf://<SHOT>/prompt/ANI, audio ← tf://<SHOT>/DLG. Use for talking shots; plain shot-i2v otherwise."
+    }
+}

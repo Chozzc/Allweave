@@ -3,7 +3,7 @@ import "server-only";
 import path from "node:path";
 import type { JSONSchema7 } from "json-schema";
 
-import { ABI_NODES, type NodeSlot } from "@/generated/abi";
+import { ABI_NODES, type NodeSlot } from "tongflow";
 import { readUploadFileByFileKey } from "@/lib/file/file-utils";
 import { parseUploadFileKeyReference } from "@/lib/file/parse-upload-file-key";
 

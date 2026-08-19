@@ -2,9 +2,9 @@
 
 import { ExternalLink } from "lucide-react";
 import { useState } from "react";
+import { getClientTranslator } from "tongflow/canvas";
 import { DISCORD_URL, WECHAT_GROUP_QR_SRC } from "@/constants/community";
 import { useInChinaTz } from "@/hooks/use-in-china-tz";
-import { getClientTranslator } from "@/i18n/client";
 import { openExternalUrl } from "@/lib/desktop/open-external";
 
 /**

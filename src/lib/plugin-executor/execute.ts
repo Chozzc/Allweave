@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { NodeSlot } from "@/generated/abi";
+import type { NodeSlot } from "tongflow";
 import { getPluginConfig } from "@/lib/plugins/plugins-registry.server";
 import { convertAssetOutputsToFileRefs } from "./convert-output-fileref";
 import type { PluginExecRequest, PluginExecResult } from "./types";

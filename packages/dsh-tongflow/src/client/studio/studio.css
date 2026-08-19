@@ -1,0 +1,526 @@
+/* dsh-tongflow Studio — scoped under .tfs-root; palette follows dsh's alias tokens with fallbacks. */
+.tfs-root {
+    --tfs-bg: var(--dsw-alias-bg-base, #fff);
+    --tfs-bg-1: var(--dsw-alias-bg-layer-1, #f6f7f9);
+    --tfs-bg-2: var(--dsw-alias-bg-layer-2, #eceef2);
+    --tfs-fg: var(--dsw-alias-label-primary, #1b1f24);
+    --tfs-fg-2: var(--dsw-alias-label-secondary, #57606a);
+    --tfs-fg-3: var(--dsw-alias-label-tertiary, #8b949e);
+    --tfs-border: var(--dsw-alias-border-l2, #d8dde3);
+    --tfs-accent: #4d6bfe;
+    --tfs-ok: var(--dsw-alias-state-success-primary, #2da44e);
+    --tfs-err: var(--dsw-alias-state-error-primary, #d1242f);
+    --tfs-warn: var(--dsw-alias-state-warn-primary, #bf8700);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    width: 100%;
+    color: var(--tfs-fg);
+    background: var(--tfs-bg);
+    font-size: 14px;
+    line-height: 1.5;
+    font-family: inherit;
+}
+.tfs-root * {
+    box-sizing: border-box;
+}
+.tfs-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--tfs-border);
+    background: var(--tfs-bg-1);
+    flex: none;
+}
+.tfs-header h1 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 8px 0 0;
+    white-space: nowrap;
+}
+.tfs-spacer {
+    flex: 1;
+}
+.tfs-body {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    flex: 1;
+    min-height: 0;
+}
+.tfs-body.with-chat {
+    grid-template-columns: minmax(300px, 24%) 260px minmax(0, 1fr);
+}
+.tfs-pane {
+    min-height: 0;
+    overflow: auto;
+    border-right: 1px solid var(--tfs-border);
+}
+.tfs-pane:last-child {
+    border-right: 0;
+}
+.tfs-main {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.tfs-empty {
+    padding: 32px;
+    color: var(--tfs-fg-3);
+    text-align: center;
+}
+.tfs-btn {
+    appearance: none;
+    border: 1px solid var(--tfs-border);
+    background: var(--tfs-bg);
+    color: var(--tfs-fg);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+.tfs-btn:hover {
+    background: var(--tfs-bg-2);
+}
+.tfs-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+.tfs-btn.primary {
+    background: var(--tfs-accent);
+    border-color: var(--tfs-accent);
+    color: #fff;
+}
+.tfs-btn.small {
+    padding: 3px 9px;
+    font-size: 12px;
+}
+.tfs-btn.danger {
+    color: var(--tfs-err);
+}
+.tfs-btn.busy {
+    border-color: var(--tfs-warn);
+}
+.tfs-select,
+.tfs-input,
+.tfs-textarea {
+    font: inherit;
+    font-size: 13px;
+    color: var(--tfs-fg);
+    background: var(--tfs-bg);
+    border: 1px solid var(--tfs-border);
+    border-radius: 8px;
+    padding: 6px 10px;
+}
+.tfs-textarea {
+    width: 100%;
+    min-height: 80px;
+    resize: vertical;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+}
+.tfs-input {
+    width: 100%;
+}
+.tfs-label {
+    font-size: 12px;
+    color: var(--tfs-fg-3);
+    margin-bottom: 2px;
+}
+/* tree */
+.tfs-tree {
+    padding: 6px 0 16px;
+}
+.tfs-tree-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    user-select: none;
+    border-radius: 6px;
+    margin: 0 6px;
+}
+.tfs-tree-row:hover {
+    background: var(--tfs-bg-1);
+}
+.tfs-tree-row.selected {
+    background: color-mix(in srgb, var(--tfs-accent) 16%, transparent);
+}
+.tfs-tree-caret {
+    width: 14px;
+    color: var(--tfs-fg-3);
+    font-size: 11px;
+    text-align: center;
+    flex: none;
+}
+.tfs-tree-icon {
+    width: 22px;
+    font-size: 16px;
+    line-height: 1;
+    text-align: center;
+    flex: none;
+}
+.tfs-tree-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.tfs-badge {
+    font-size: 11px;
+    padding: 0 6px;
+    border-radius: 9px;
+    background: var(--tfs-bg-2);
+    color: var(--tfs-fg-2);
+    margin-left: 4px;
+}
+.tfs-dots {
+    display: inline-flex;
+    gap: 3px;
+    margin-left: 6px;
+}
+.tfs-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--tfs-bg-2);
+    border: 1px solid var(--tfs-border);
+}
+.tfs-dot.some {
+    background: var(--tfs-warn);
+    border-color: transparent;
+}
+.tfs-dot.circled {
+    background: var(--tfs-ok);
+    border-color: transparent;
+}
+/* preview */
+.tfs-preview {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+.tfs-preview-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--tfs-border);
+    flex: none;
+}
+.tfs-preview-head h2 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.tfs-preview-body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 14px;
+}
+.tfs-two-col {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+}
+.tfs-media {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--tfs-bg-1);
+    border-radius: 10px;
+    padding: 10px;
+}
+.tfs-media img,
+.tfs-media video {
+    max-width: 100%;
+    max-height: 72vh;
+    border-radius: 6px;
+}
+.tfs-media audio {
+    width: 100%;
+}
+.tfs-canvas-wrap {
+    position: absolute;
+    inset: 0;
+}
+.tfs-canvas-host {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+}
+.tfs-md {
+    max-width: 860px;
+    white-space: pre-wrap;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+}
+.tfs-card {
+    border: 1px solid var(--tfs-border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    background: var(--tfs-bg);
+}
+.tfs-card h3 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tfs-fg-2);
+}
+.tfs-kv {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 3px 12px;
+    font-size: 13px;
+}
+.tfs-kv dt {
+    color: var(--tfs-fg-3);
+}
+.tfs-kv dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+/* takes grid */
+.tfs-takes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+}
+.tfs-take {
+    border: 1px solid var(--tfs-border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--tfs-bg-1);
+    cursor: pointer;
+    position: relative;
+}
+.tfs-take.circled {
+    outline: 2px solid var(--tfs-ok);
+}
+.tfs-take.selected {
+    outline: 2px solid var(--tfs-accent);
+}
+.tfs-take-thumb {
+    aspect-ratio: 16 / 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--tfs-bg-2);
+    overflow: hidden;
+}
+.tfs-take-thumb img,
+.tfs-take-thumb video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.tfs-take-thumb .glyph {
+    font-size: 30px;
+    opacity: 0.6;
+}
+.tfs-take-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    font-size: 12px;
+}
+.tfs-take-foot .circle {
+    color: var(--tfs-ok);
+    font-weight: 600;
+}
+/* drawer */
+.tfs-drawer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(420px, 60%);
+    background: var(--tfs-bg);
+    border-left: 1px solid var(--tfs-border);
+    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12);
+    display: flex;
+    flex-direction: column;
+    z-index: 20;
+}
+.tfs-drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--tfs-border);
+}
+.tfs-drawer-head h2 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.tfs-drawer-body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 12px;
+}
+.tfs-log {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    max-height: 260px;
+    overflow: auto;
+    background: var(--tfs-bg-1);
+    border-radius: 8px;
+    padding: 8px 10px;
+}
+.tfs-status {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    background: var(--tfs-bg-2);
+}
+.tfs-status.running {
+    background: color-mix(in srgb, var(--tfs-warn) 25%, transparent);
+}
+.tfs-status.completed {
+    background: color-mix(in srgb, var(--tfs-ok) 25%, transparent);
+}
+.tfs-status.failed,
+.tfs-status.cancelled {
+    background: color-mix(in srgb, var(--tfs-err) 25%, transparent);
+}
+.tfs-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.tfs-form {
+    display: grid;
+    gap: 8px;
+}
+/* modal */
+.tfs-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.tfs-modal {
+    background: var(--tfs-bg);
+    color: var(--tfs-fg);
+    border: 1px solid var(--tfs-border);
+    border-radius: 12px;
+    width: min(560px, 92vw);
+    max-height: 86vh;
+    overflow: auto;
+    padding: 18px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+    font-size: 14px;
+}
+.tfs-modal.wide {
+    width: min(860px, 94vw);
+}
+.tfs-modal h2 {
+    margin: 0;
+    font-size: 16px;
+}
+.tfs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.tfs-table th,
+.tfs-table td {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--tfs-border);
+    vertical-align: top;
+}
+.tfs-error {
+    color: var(--tfs-err);
+    font-size: 13px;
+}
+.tfs-muted {
+    color: var(--tfs-fg-3);
+}
+.tfs-shot-table td:first-child {
+    white-space: nowrap;
+    font-family: ui-monospace, Menlo, monospace;
+}
+/* chat column */
+.tfs-chat {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+.tfs-chat-list {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.tfs-msg {
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 13.5px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+}
+.tfs-msg.user {
+    background: color-mix(in srgb, var(--tfs-accent) 14%, transparent);
+    align-self: flex-end;
+}
+.tfs-msg.assistant {
+    background: var(--tfs-bg-1);
+}
+.tfs-msg.tool {
+    background: transparent;
+    border: 1px dashed var(--tfs-border);
+    color: var(--tfs-fg-2);
+    font-size: 12px;
+}
+.tfs-msg.tool.err {
+    border-color: var(--tfs-err);
+}
+.tfs-msg.error {
+    color: var(--tfs-err);
+}
+.tfs-msg.running {
+    opacity: 0.8;
+}
+.tfs-msg-title {
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+.tfs-mode-badge {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 9px;
+    background: color-mix(in srgb, #4d6bfe 18%, transparent);
+    color: inherit;
+    white-space: nowrap;
+}

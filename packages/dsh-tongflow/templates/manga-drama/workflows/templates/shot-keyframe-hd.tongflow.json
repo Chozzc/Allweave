@@ -1,0 +1,99 @@
+{
+    "name": "Shot keyframe (HD)",
+    "description": "Reference images + prompt → keyframe → upscale (KF). Two steps.",
+    "flow": {
+        "nodes": [
+            {
+                "id": "6d3c1271-434a-4118-8954-9813db998077",
+                "type": "imageNode",
+                "position": {
+                    "x": 100,
+                    "y": 22
+                },
+                "origin": [0.5, 0.5],
+                "data": {
+                    "inputName": "refs"
+                }
+            },
+            {
+                "id": "eeeccf3e-f249-42b7-828e-aec7cbf13df0",
+                "type": "textNode",
+                "position": {
+                    "x": 100,
+                    "y": 282
+                },
+                "origin": [0.5, 0.5],
+                "data": {
+                    "inputName": "prompt"
+                }
+            },
+            {
+                "id": "e004bbf1-ab3b-4cd7-9a02-8f956ea8d06d",
+                "type": "imageFusionNode",
+                "position": {
+                    "x": 568,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {}
+            },
+            {
+                "id": "86476a81-d09f-4b62-bca6-7dea6afa689e",
+                "type": "imageNode",
+                "position": {
+                    "x": 1036,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {}
+            },
+            {
+                "id": "f81ce116-605e-41b4-bca1-4b3ba0e8429b",
+                "type": "imageGenImageUpscaleNode",
+                "position": {
+                    "x": 1504,
+                    "y": 100
+                },
+                "origin": [0.5, 0.5],
+                "data": {}
+            }
+        ],
+        "edges": [
+            {
+                "id": "1a9a88e8-a048-46c1-bf08-8a26f4e7e11b",
+                "source": "6d3c1271-434a-4118-8954-9813db998077",
+                "target": "e004bbf1-ab3b-4cd7-9a02-8f956ea8d06d",
+                "type": "custom-edge",
+                "sourceHandle": "out:imageNode",
+                "targetHandle": "in:images"
+            },
+            {
+                "id": "89b7e39b-5a81-4fc2-8f66-57352f7e55c2",
+                "source": "e004bbf1-ab3b-4cd7-9a02-8f956ea8d06d",
+                "target": "86476a81-d09f-4b62-bca6-7dea6afa689e",
+                "type": "custom-edge",
+                "sourceHandle": "out:image",
+                "targetHandle": "in:imageNode"
+            },
+            {
+                "id": "218f4e44-2c30-445a-8d32-6519402f1017",
+                "source": "86476a81-d09f-4b62-bca6-7dea6afa689e",
+                "target": "f81ce116-605e-41b4-bca1-4b3ba0e8429b",
+                "type": "custom-edge",
+                "sourceHandle": "out:imageNode",
+                "targetHandle": "in:image"
+            },
+            {
+                "id": "7a063254-3f3e-4055-a3f5-0203d90fc4c5",
+                "source": "eeeccf3e-f249-42b7-828e-aec7cbf13df0",
+                "target": "e004bbf1-ab3b-4cd7-9a02-8f956ea8d06d",
+                "type": "custom-edge",
+                "sourceHandle": "out:textNode",
+                "targetHandle": "in:text"
+            }
+        ]
+    },
+    "meta": {
+        "purpose": "image-fusion → image-upscale. Inputs: refs, prompt. Use when the plugin's native resolution is too low for the final format."
+    }
+}

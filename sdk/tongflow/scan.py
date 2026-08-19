@@ -17,7 +17,7 @@ from ._ast_utils import (
 )
 from .parse_deploy import _slot_to_ident, parse_deploy_py
 
-SCANNER_VERSION = 4
+SCANNER_VERSION = 5
 
 SKIP_DIR_NAMES = frozenset(
     {
@@ -269,11 +269,6 @@ def scan(plugins_root: Path, abi_path: Path) -> dict[str, object]:
 
     for pdir in _iter_plugin_dirs(plugins_root):
         plugin_id = pdir.name
-        # Content packages (tongflow-package-*) ship data files only (e.g. skill
-        # prompt packs) and no executable plugin code; they are discovered by the
-        # app's own package registry, so the plugin scanner skips them silently.
-        if plugin_id.lower().startswith("tongflow-package-"):
-            continue
         _runner, runner_error = _detect_runner(pdir)
         if runner_error:
             errors.append({"pluginId": plugin_id, "message": runner_error})
@@ -449,10 +444,7 @@ def _iso_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(
-        description="Scan Tongflow local plugins/ and print registry JSON (stdout).",
-    )
+def add_scan_arguments(ap: argparse.ArgumentParser) -> None:
     ap.add_argument(
         "--root",
         type=Path,
@@ -462,12 +454,23 @@ def main() -> int:
     ap.add_argument(
         "--abi",
         type=Path,
-        default=Path("config/tongflow.abi.json"),
-        help="Path to tongflow.abi.json",
+        default=None,
+        help=(
+            "Path to tongflow.abi.json (default: $TONGFLOW_ABI_PATH, then the "
+            "ABI bundled with this SDK, then ./packages/tongflow/abi/tongflow.abi.json)."
+        ),
     )
-    ns = ap.parse_args()
+
+
+def run_scan(ns: argparse.Namespace) -> int:
+    # Imported lazily: the engine module tree is optional for pure scanning.
+    from .engine.abi_schema import resolve_abi_path
+
     root = ns.root if ns.root.is_absolute() else (Path.cwd() / ns.root).resolve()
-    abi = ns.abi if ns.abi.is_absolute() else (Path.cwd() / ns.abi).resolve()
+    if ns.abi is None:
+        abi = resolve_abi_path()
+    else:
+        abi = ns.abi if ns.abi.is_absolute() else (Path.cwd() / ns.abi).resolve()
     if not abi.is_file():
         err = {
             "version": 1,
@@ -490,5 +493,14 @@ def main() -> int:
     return 0
 
 
+def main(argv: "list[str] | None" = None) -> int:
+    ap = argparse.ArgumentParser(
+        prog="python -m tongflow scan",
+        description="Scan Tongflow local plugins/ and print registry JSON (stdout).",
+    )
+    add_scan_arguments(ap)
+    return run_scan(ap.parse_args(argv))
+
+
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
