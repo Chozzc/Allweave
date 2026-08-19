@@ -40,6 +40,15 @@ The project starts as an empty folder with `project.json` (title, brief). Read t
 
 The user may change any of it by hand at any time (rename, move, delete) and can **upload their own files** from the Studio into any folder (default `uploads/`) — reference photos, voice samples, logos, scripts. Use them by path like any other file (`./ref.png`, `uploads/logo.png`). Always call `tongflow_project_status` before assuming what exists.
 
+## Workflows follow TongFlow's grammar — nothing else
+
+Read `tongflow_node_catalog` before writing any workflow; it opens with the grammar and lists every node type by category with the exact ABI facts (wires, config, outputs, installed plugins). In short:
+
+- **Six node categories** — `add/` (canvas input widgets; never in your workflows), `modality/` (data nodes: text · image · video · audio · file · model · link, one asset each), and four kinds of executables: `transfer/` 1 → 1, `compose/` N → 1, `decompose/` 1 → N, `batch/` N → 1 grouping. Each executable is one **ABI slot** implemented by plugins.
+- **Shape**: modality node(s) → executable → its output modality node(s) (created automatically) → next executable. Choose the executable whose slot *is* the transformation (image + audio → talking video is `compose/` lip-sync, not a chain of transfers). Wire only into handles the catalog lists; set only config fields it lists; `tongflow_node_describe(type)` for enums / ranges.
+- **Batch vs collect**: a wire marked `batch` runs once per upstream item; `collect` gathers all incoming edges into one run. Never copy nodes to fake a loop.
+- The patch tool validates every step against the ABI: an `ok:false` step means the grammar rejected it — read the error, fix, don't retry blindly. `tongflow_workflow_validate` before running.
+
 ## Referencing files inside workflows
 
 - Image / audio / video inputs of a data node: `data:{fileKeys:['./mei_ref.02.png']}` — relative to the workflow file (`./`, `../`) or to the project root (`characters/mei/mei_ref.02.png`). URLs pass through.

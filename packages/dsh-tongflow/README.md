@@ -73,6 +73,10 @@ characters/mei/
 
 A run that uses a paid plugin spends the user's money — a paid API key, or GPU seconds on their Modal account (a Modal plugin also deploys on first use). So `tongflow_workflow_run` without `user_confirmed: true` does not run: it returns `needs_confirmation` with the plugins involved, how each is billed (`api` / `modal`), whether its API keys are set, the models it offers and installed alternatives. The agent puts that to the user and calls again with `user_confirmed` only after an explicit yes — **for every paid run**; nothing is remembered. Runs that use only local plugins are free and start directly. The Studio's own **Run** drawer shows the same notice and a **Confirm & run** button.
 
+### Workflows follow TongFlow's grammar
+
+`tongflow_node_catalog` opens with the node grammar — `add/` widgets (canvas only), `modality/` data nodes, and the four executable categories `transfer/` (1 → 1), `compose/` (N → 1), `decompose/` (1 → N), `batch/` (N → 1) — then lists every node type by category with its ABI slot, wires (`batch` / `collect` flags), config fields, outputs and installed plugins, all read from the ABI registry. The patch tool (`apply_graph_patch` from the `tongflow` package) validates each step against the same registry, so a workflow the agent saves is one the exporter and the canvas accept. The category table lives in [`src/engine/node-categories.ts`](src/engine/node-categories.ts) and a test keeps it in step with `packages/tongflow/src/canvas/node-types.tsx`.
+
 ## Agent tools
 
 `tongflow_project_create / _open / _list / _status` · `tongflow_workflow_new / _patch / _read / _list / _validate / _run` · `tongflow_node_catalog / _describe` · `tongflow_look` (images / video contact sheets, returned as an image block) · `tongflow_perceive` (video/audio/image understanding via TongFlow slots) · `tongflow_plugins_list / _install / _uninstall` · `tongflow_run_status`. Folder structure and text files are made with dsh's ordinary file tools. Long runs go through dsh background jobs (`run_in_background`).

@@ -22,6 +22,11 @@ import {
     resolvedSpecForNodeType,
     type ToolResult,
 } from "tongflow";
+import {
+    categoryOf,
+    NODE_CATEGORY_ORDER,
+    type NodeCategory,
+} from "./engine/node-categories.ts";
 import type { RunRequest } from "./engine/run.ts";
 import type { RunRecord } from "./engine/runs.ts";
 import {
@@ -509,39 +514,75 @@ export class StudioApi {
         return this.studio.registry.update(ids);
     }
 
-    /** One line per node type: what it does, what it wires, what it emits, which plugins implement it. */
+    /**
+     * The node catalog the agent reads before writing a workflow: TongFlow's
+     * grammar (six node categories, how edges and outputs work, batch vs
+     * collect), then one line per node type grouped by category — ABI slot,
+     * wires (with the data node each accepts), config fields, outputs, and
+     * which installed plugins implement it. Everything per-type comes from
+     * the ABI registry, so it cannot drift from what the exporter accepts.
+     */
     async nodeCatalog(): Promise<string> {
         const { registry } = await this.studio.registry.get();
-        const lines: string[] = [];
+        const byCat = new Map<NodeCategory, string[]>();
+        for (const c of NODE_CATEGORY_ORDER) byCat.set(c, []);
+        const uncategorized: string[] = [];
         for (const type of KNOWN_NODE_TYPES) {
+            const cat = categoryOf(type);
             const feature = NODE_TYPE_TO_ABI_FEATURE[type];
+            let line: string;
             if (!feature) {
-                lines.push(
-                    `- ${type}: data node (${type.startsWith("add") ? "input asset / text" : `carries ${type.replace(/Node$/, "")}`})`,
+                line =
+                    cat === "add"
+                        ? `- ${type}: canvas input widget — do NOT use in agent-written workflows; use the ${type.replace(/^add/, "").replace(/^[A-Z]/, (m) => m.toLowerCase())} modality node with data instead`
+                        : `- ${type}: carries ${type.replace(/Node$/, "")} (data: ${type === "textNode" || type === "linkNode" ? "{texts:[…]}" : "{fileKeys:[…]}"})`;
+            } else {
+                const spec = resolvedSpecForNodeType(type);
+                if (!spec) continue;
+                const wires: string[] = [];
+                const config: string[] = [];
+                for (const field of spec.topology.inputOrder) {
+                    const f = spec.fields[field];
+                    if (f.kind === "handle") {
+                        const flag = f.batch
+                            ? " batch"
+                            : f.collect
+                              ? " collect"
+                              : f.array
+                                ? "[]"
+                                : "";
+                        wires.push(
+                            `${field}←${f.nodeType.replace(/Node$/, "")}${flag}${f.required ? "*" : ""}`,
+                        );
+                    } else config.push(`${field}${f.required ? "*" : ""}`);
+                }
+                const outs = spec.topology.outputs.map(
+                    (o) => `${o.field}→${o.nodeType.replace(/Node$/, "")}`,
                 );
-                continue;
+                const plugins = registry.nodePluginMap[feature] ?? [];
+                line = `- ${type} (${feature}): wires ${wires.join(", ") || "-"}; config ${config.join(", ") || "-"}; out ${outs.join(", ") || "-"}; plugins: ${plugins.length ? plugins.join(", ") : "NONE INSTALLED"}`;
             }
-            const spec = resolvedSpecForNodeType(type);
-            if (!spec) continue;
-            const wires: string[] = [];
-            const config: string[] = [];
-            for (const field of spec.topology.inputOrder) {
-                const f = spec.fields[field];
-                if (f.kind === "handle")
-                    wires.push(
-                        `${field}←${f.nodeType.replace(/Node$/, "")}${f.array || f.collect ? "[]" : ""}${f.required ? "*" : ""}`,
-                    );
-                else config.push(`${field}${f.required ? "*" : ""}`);
-            }
-            const outs = spec.topology.outputs.map(
-                (o) => `${o.field}→${o.nodeType.replace(/Node$/, "")}`,
-            );
-            const plugins = registry.nodePluginMap[feature] ?? [];
-            lines.push(
-                `- ${type} (${feature}): wires ${wires.join(", ") || "-"}; config ${config.join(", ") || "-"}; out ${outs.join(", ") || "-"}; plugins: ${plugins.length ? plugins.join(", ") : "NONE INSTALLED"}`,
-            );
+            if (cat) byCat.get(cat)!.push(line);
+            else uncategorized.push(line);
         }
-        return lines.join("\n");
+        const sections: string[] = [CATALOG_GRAMMAR.trim()];
+        const titles: Record<NodeCategory, string> = {
+            add: "add/ — canvas input widgets (not for agent workflows)",
+            modality:
+                "modality/ — data nodes, one asset each (what you wire INTO executables; also what executables emit)",
+            transfer: "transfer/ — 1 → 1 executables",
+            compose: "compose/ — N → 1 executables",
+            decompose: "decompose/ — 1 → N executables",
+            batch: "batch/ — N → 1 groupings",
+        };
+        for (const c of NODE_CATEGORY_ORDER) {
+            const lines = byCat.get(c) ?? [];
+            if (lines.length === 0) continue;
+            sections.push(`## ${titles[c]}\n${lines.join("\n")}`);
+        }
+        if (uncategorized.length > 0)
+            sections.push(`## other\n${uncategorized.join("\n")}`);
+        return sections.join("\n\n");
     }
 
     /* ---------------- files & tree ---------------- */
@@ -716,6 +757,20 @@ export class StudioApi {
         return toProjectKey(projectRoot, abs);
     }
 }
+
+/** The grammar preamble of the node catalog. */
+const CATALOG_GRAMMAR = `
+# TongFlow node grammar (follow it exactly — the patch tool rejects anything else)
+
+A workflow is a graph of MODALITY data nodes and EXECUTABLE nodes.
+- Modality nodes (textNode, imageNode, videoNode, audioNode, fileNode, modelNode, linkNode) carry one asset each: data:{texts:[…]} for text/link, data:{fileKeys:[…]} for the others (paths relative to the workflow file or the project root, or URLs). They are the ONLY things you wire into an executable.
+- Executable nodes come in four categories (each maps to one ABI slot = one plugin method): transfer (1 → 1), compose (N → 1), decompose (1 → N), batch (N → 1 grouping). Pick the node whose slot matches the transformation; never fake a compose with a chain of transfers or vice versa.
+- Each executable's "wires" are its input handles: field←modality (* = required). Draw an edge FROM a modality node (or an upstream executable's output) TO that field; handles are derived automatically, pass toHandle only to disambiguate. Its "config" fields are set in data:{…} at creation or by update_nodes. Its "out" lists the modality nodes it emits — those are created automatically when you save; wire the NEXT executable from the executable node itself (or its emitted modality node), never invent an output node.
+- Batch semantics: a wire marked "batch" runs the executable once per upstream item (a textNode with 3 texts → 3 outputs); "collect" gathers every incoming edge into one array for a single run (e.g. images collect → one video); "[]" is an intrinsically array-typed input. Do not build loops by copying nodes — use batch.
+- Level-0 modality nodes WITHOUT data become workflow inputs supplied at run time (name them with data:{inputName:'…'}); prefer writing the data in.
+- Text you author goes into textNode data (or {{file}} includes) — genTextNode / textsGenTextNode are for mechanical transforms only.
+- After every patch read the result: ok:false steps mean the grammar or ABI rejected it — fix, do not retry blindly. tongflow_node_describe(type) gives the full config schema (enums, ranges, defaults) of one node.
+`;
 
 /** Indented text view of the tree (what the agent reads in project_status). */
 export function renderTree(nodes: TreeNode[], depth = 0): string {
