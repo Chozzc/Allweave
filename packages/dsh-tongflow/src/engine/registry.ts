@@ -41,12 +41,12 @@ export const OFFICIAL_ORG = "https://github.com/tong-io";
 /** Official plugin ids (mirrors config/official-plugins.json in the TongFlow repo). */
 export const OFFICIAL_PLUGINS: readonly string[] = [
     "tongflow-router-openrouter",
+    "tongflow-router-cometapi",
     "tongflow-api-gemini",
     "tongflow-api-openai",
     "tongflow-api-deepseek",
     "tongflow-api-bytedance",
     "tongflow-router-apimart",
-    "tongflow-api-agnes",
     "tongflow-api-xai",
     "tongflow-router-replicate",
     "tongflow-router-fal",

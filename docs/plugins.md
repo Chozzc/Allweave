@@ -172,6 +172,50 @@ equivalent claim, but it evaluates at import time and therefore requires
 `tongflow>=0.2.15` wherever the plugin is imported (including the local
 `modal deploy` that builds a Modal plugin's image). Prefer the constant.
 
+### Per-node model picker (and a live catalog)
+
+A router-style plugin — one key in front of many third-party models — gives each
+node a model dropdown by declaring a module-level constant next to its handlers:
+
+```python
+TONGFLOW_SLOT_MODELS = {
+    "gen-text": ["gemini-3.5-flash", "gpt-5.5"],   # first entry = default
+    "image-gen": ["gpt-image-2"],
+}
+```
+
+Pure literal only (the scanner reads it by AST, never imports the module); slot
+strings, not `NodeSlots` idents; every listed slot needs a `@node_slot` handler. The
+chosen id reaches the plugin as the top-level `model` field of the stdin envelope.
+
+When the gateway exposes a **public, CORS-enabled** model catalog, the dropdown can
+follow it live instead of waiting for a plugin release. Declare where it lives and how
+each slot filters it:
+
+```python
+TONGFLOW_MODEL_CATALOG = {
+    "url": "https://api.cometapi.com/api/models",   # GET, no auth
+    "items": "data",                # dot-path to the record array (default "data")
+    "id": "id",                     # dot-path to the model id (default "id")
+    "exclude": {"upcoming": True},  # drop records where the field equals the literal
+    "slots": {
+        # field -> token: a record matches when every token is a substring of that
+        # field (arrays / objects are JSON-serialized first)
+        "gen-text": {"features": "text-to-text", "endpoints": "/v1/chat/completions"},
+        "image-gen": {"features": "text-to-image", "endpoints": "/v1/images/generations"},
+    },
+}
+```
+
+The canvas fetches `url` in the browser (cached ten minutes, re-checked when the
+dropdown opens) and appends matching ids after the `TONGFLOW_SLOT_MODELS` shortlist;
+on a fetch failure the shortlist alone is shown. The registry entry carries it as
+`modelCatalog`. Because the plugin process is what ultimately receives the pick, apply
+the same filter at run time (or accept any id the live catalog knows) rather than
+rejecting everything outside the shortlist — see
+[tongflow-router-cometapi](https://github.com/tong-io/tongflow-router-cometapi) for the
+reference implementation.
+
 ### Assets in, assets out
 
 Binary media crosses the wire as an `Asset`

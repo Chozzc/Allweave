@@ -24,6 +24,31 @@ export const PluginMethodSchema = z.object({
     models: z.array(z.string().min(1)).optional(),
 });
 
+/**
+ * Optional live model catalog (`TONGFLOW_MODEL_CATALOG` in the plugin source).
+ * The canvas GETs `url` in the browser (public, CORS-enabled, no auth), reads
+ * the record array at dot-path `items`, each model id at dot-path `id`, drops
+ * records where an `exclude` field equals its literal, and keeps a record for
+ * a slot when every `slots[slot]` token is a substring of the named field
+ * (arrays/objects are JSON-serialized before matching). Matching ids extend
+ * that slot's dropdown after the static `models` shortlist.
+ */
+export const PluginModelCatalogSchema = z.object({
+    url: z.string().url(),
+    items: z.string().min(1).default("data"),
+    id: z.string().min(1).default("id"),
+    exclude: z
+        .record(
+            z.string().min(1),
+            z.union([z.string(), z.boolean(), z.number()]),
+        )
+        .optional(),
+    slots: z.record(
+        z.string().min(1),
+        z.record(z.string().min(1), z.string().min(1)),
+    ),
+});
+
 export const PluginConfigSchema = z.object({
     /** Relative to repo root, e.g. `plugins/tongflow-<runner>-foo` */
     localSubdir: z.string().min(1),
@@ -37,6 +62,8 @@ export const PluginConfigSchema = z.object({
      * such as Modal): its entry.py deploys once before invoking. Informational —
      * the deploy step lives inside the plugin's entry.py. */
     needsDeploy: z.boolean().optional(),
+    /** Live model catalog the canvas can fetch to extend the model dropdown. */
+    modelCatalog: PluginModelCatalogSchema.optional(),
     /** Presentation-only metadata merged in from `tongflow.plugin.json`'s
      * top-level `plugin` block (name/description/icon). Not produced by the
      * scanner; attached by the registry API route for the node picker. */
@@ -63,3 +90,4 @@ export const PluginsRegistrySchema = z.object({
 
 export type PluginsRegistry = z.infer<typeof PluginsRegistrySchema>;
 export type PluginConfig = z.infer<typeof PluginConfigSchema>;
+export type PluginModelCatalog = z.infer<typeof PluginModelCatalogSchema>;
