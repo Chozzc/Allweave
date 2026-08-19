@@ -177,6 +177,9 @@ export async function executeRun(
         projectRoot: project.root,
         result,
         ...(request.workflowKey ? { workflowKey: request.workflowKey } : {}),
+        ...(doc.meta.outputLabels
+            ? { outputLabels: doc.meta.outputLabels }
+            : {}),
         record,
     });
     if (!request.keepRunDir && ingest.loose.length === 0) {

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { renderTree, StudioApi } from "../src/api.ts";
 import { Config } from "../src/config.ts";
 import { ingestOutputs } from "../src/engine/ingest.ts";
+import { workflowsInFolder } from "../src/project/compose.ts";
 import {
     createProject,
     listProjects,
@@ -460,5 +461,184 @@ describe("billing checkpoint", () => {
         expect(
             (await api.paidPlugins(projectId, modal)).map((p) => p.billing),
         ).toEqual(["modal"]);
+    });
+});
+
+describe("compose", () => {
+    it("links parts by their output files, keeps every stage an output, names outputs after the parts, leaves the parts untouched", async () => {
+        const api = new StudioApi(
+            new Studio({ config: Config({ studioRoot: studio }) }),
+        );
+        (api.studio.registry as unknown as { cache: unknown }).cache = {
+            registry: {
+                plugins: {
+                    fake: {
+                        needsDeploy: false,
+                        methodsByNodeSlot: {
+                            "image-gen": { methodName: "a" },
+                            "image-edit": { methodName: "b" },
+                            "image-gen-video": { methodName: "c" },
+                            "audio-video-lip-sync": { methodName: "d" },
+                        },
+                    },
+                },
+                nodePluginMap: {
+                    "image-gen": ["fake"],
+                    "image-edit": ["fake"],
+                    "image-gen-video": ["fake"],
+                    "audio-video-lip-sync": ["fake"],
+                },
+            },
+            meta: { fake: { env: [] } },
+            scannedAt: "now",
+        };
+        // ref: text → image
+        await api.newWorkflow(projectId, "shot/ref");
+        await api.patchWorkflow(projectId, "shot/ref", {
+            add_nodes: [
+                { alias: "t", type: "textNode", data: { texts: ["a girl"] } },
+                { alias: "g", type: "textGenImageNode" },
+            ],
+            add_edges: [{ from: "t", to: "g" }],
+        } as never);
+        await put("shot/ref.01.png");
+        // i2v: ./ref.01.png → video (references ref's output by path)
+        await api.newWorkflow(projectId, "shot/i2v");
+        await api.patchWorkflow(projectId, "shot/i2v", {
+            add_nodes: [
+                {
+                    alias: "img",
+                    type: "imageNode",
+                    data: { fileKeys: ["./ref.01.png"] },
+                },
+                {
+                    alias: "v",
+                    type: "imageGenVideoNode",
+                    data: { text: "slow push in", duration: 5 },
+                },
+            ],
+            add_edges: [{ from: "img", to: "v" }],
+        } as never);
+        await put("shot/i2v.01.mp4");
+        await put("shot/line.wav");
+        // lipsync: ./i2v.01.mp4 + ./line.wav (a user file, no producer) → video
+        await api.newWorkflow(projectId, "shot/lipsync");
+        await api.patchWorkflow(projectId, "shot/lipsync", {
+            add_nodes: [
+                {
+                    alias: "vid",
+                    type: "videoNode",
+                    data: { fileKeys: ["./i2v.01.mp4"] },
+                },
+                {
+                    alias: "aud",
+                    type: "audioNode",
+                    data: { fileKeys: ["./line.wav"] },
+                },
+                { alias: "ls", type: "audioVideoLipSyncNode" },
+            ],
+            add_edges: [
+                { from: "vid", to: "ls" },
+                { from: "aud", to: "ls" },
+            ],
+        } as never);
+        const before = await readFile(
+            join(root, "shot/i2v.tongflow.json"),
+            "utf8",
+        );
+
+        const result = await api.composeWorkflows(projectId, {
+            folder: "shot",
+        });
+        expect(result.key).toBe("shot/shot_all.tongflow.json");
+        // Folder listing is alphabetical; parts are re-ordered by their file dependencies.
+        expect(result.parts).toEqual([
+            "shot/ref.tongflow.json",
+            "shot/i2v.tongflow.json",
+            "shot/lipsync.tongflow.json",
+        ]);
+        expect(result.links).toBe(2);
+        // Same result when the order is given explicitly (and wrong).
+        const ordered = await api.composeWorkflows(projectId, {
+            workflows: ["shot/lipsync", "shot/i2v", "shot/ref"],
+            path: "shot/shot_all",
+        });
+        expect(ordered.links).toBe(2);
+        expect(ordered.unlinked).toEqual([]);
+        const doc = await api.readWorkflow(projectId, "shot/shot_all");
+        // 2 + 2 + 3 part nodes + 2 taps (ref's image, i2v's video)
+        expect(doc.flow.nodes).toHaveLength(9);
+        expect(doc.executable?.executableNodes).toHaveLength(3);
+        // Linked data nodes lost their static file; the user's audio stayed a file.
+        const dataFiles = doc.flow.nodes
+            .filter(
+                (n) =>
+                    ![
+                        "textGenImageNode",
+                        "imageGenVideoNode",
+                        "audioVideoLipSyncNode",
+                    ].includes(n.type ?? ""),
+            )
+            .flatMap((n) => (n.data as { fileKeys?: string[] }).fileKeys ?? []);
+        expect(dataFiles).toEqual(["./line.wav"]);
+        // Every stage is an output, labelled after its part.
+        const labels = Object.values(doc.meta.outputLabels ?? {}).sort();
+        expect(labels).toEqual(["i2v", "lipsync", "ref"]);
+        expect(
+            doc.executable?.outputs
+                .map((o) => doc.meta.outputLabels?.[o.name])
+                .sort(),
+        ).toEqual(["i2v", "lipsync", "ref"]);
+        expect(doc.meta.composed?.parts).toEqual([
+            "shot/ref.tongflow.json",
+            "shot/i2v.tongflow.json",
+            "shot/lipsync.tongflow.json",
+        ]);
+        // Parts untouched; a later folder compose skips the _all file.
+        expect(
+            await readFile(join(root, "shot/i2v.tongflow.json"), "utf8"),
+        ).toBe(before);
+        expect(await workflowsInFolder(root, "shot")).toEqual([
+            "shot/i2v.tongflow.json",
+            "shot/lipsync.tongflow.json",
+            "shot/ref.tongflow.json",
+        ]);
+        // Ingest of a composed run names files after the labels.
+        await put(".runs/r/a.png", "A");
+        await put(".runs/r/b.mp4", "B");
+        await put(".runs/r/c.mp4", "C");
+        const outs = doc.executable!.outputs;
+        const byLabel = (l: string) =>
+            outs.find((o) => doc.meta.outputLabels?.[o.name] === l)!.name;
+        const outcome = await ingestOutputs({
+            projectRoot: root,
+            workflowKey: "shot/shot_all.tongflow.json",
+            outputLabels: doc.meta.outputLabels,
+            result: {
+                status: "success",
+                outputs: {},
+                outputs_by_name: {
+                    [byLabel("ref")]: [".runs/r/a.png"],
+                    [byLabel("i2v")]: [".runs/r/b.mp4"],
+                    [byLabel("lipsync")]: [".runs/r/c.mp4"],
+                },
+                errors: [],
+                failures: [],
+            },
+            record: {
+                runId: "r",
+                workflowHash: "h",
+                inputs: {},
+                pluginIds: ["fake"],
+                startedAt: "2026-01-01T00:00:00.000Z",
+                finishedAt: "2026-01-01T00:00:01.000Z",
+                durationMs: 1000,
+            },
+        });
+        expect(outcome.files.map((f) => f.fileName).sort()).toEqual([
+            "shot_all.01.i2v.mp4",
+            "shot_all.01.lipsync.mp4",
+            "shot_all.01.ref.png",
+        ]);
     });
 });

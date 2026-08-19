@@ -34,6 +34,11 @@ import {
     singleNodeDocument,
 } from "./engine/single-node.ts";
 import {
+    type ComposeResult,
+    composeWorkflows,
+    workflowsInFolder,
+} from "./project/compose.ts";
+import {
     type CreateProjectInput,
     createProject,
     listProjects,
@@ -292,6 +297,39 @@ export class StudioApi {
                 ...(o.record?.note ? { note: o.record.note } : {}),
             })),
         };
+    }
+
+    /**
+     * Compose small workflows (explicit list, or every workflow directly in
+     * a folder) into one big one; see project/compose.ts.
+     */
+    async composeWorkflows(
+        projectId: string,
+        options: {
+            workflows?: string[];
+            folder?: string;
+            path?: string;
+            name?: string;
+        },
+    ): Promise<ComposeResult> {
+        const ref = await this.project(projectId);
+        const workflows =
+            options.workflows && options.workflows.length > 0
+                ? options.workflows
+                : options.folder !== undefined
+                  ? await workflowsInFolder(ref.root, options.folder)
+                  : [];
+        if (workflows.length === 0)
+            throw new Error(
+                "nothing to compose — pass workflows: [...] or a folder that holds workflow files",
+            );
+        const registry = (await this.studio.registry.get()).registry;
+        return composeWorkflows(ref.root, {
+            workflows,
+            ...(options.path !== undefined ? { path: options.path } : {}),
+            ...(options.name ? { name: options.name } : {}),
+            registry,
+        });
     }
 
     /** Generated files next to a workflow, with provenance. */

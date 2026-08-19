@@ -325,6 +325,19 @@ function buildRoutes(env: RouteEnv): Route[] {
             },
         },
         {
+            method: "POST",
+            pattern: "/p/:pid/compose",
+            handler: async (c) => {
+                const body = await readJson<{
+                    workflows?: string[];
+                    folder?: string;
+                    path?: string;
+                    name?: string;
+                }>(c.req);
+                json(c, await api.composeWorkflows(c.params.pid, body), 201);
+            },
+        },
+        {
             method: "GET",
             pattern: "/p/:pid/workflow/describe",
             handler: async (c) =>

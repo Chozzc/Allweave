@@ -244,6 +244,49 @@ export function workflowTools(env: ToolEnv): ToolDefinition[] {
             },
         }),
         defineTool({
+            name: "tongflow_workflow_compose",
+            description:
+                "Compose several small workflows into ONE big workflow file for a whole-picture canvas view and one-shot re-runs (e.g. a shot's keyframe → i2v → lip-sync, or every stage in a folder). " +
+                "Where a part references another part's output file (an imageNode with './keyframe.02.png' while keyframe.tongflow.json sits in the same folder), that file becomes a real edge from the producing node; other file refs stay files. Every stage's product remains an output, named after its part (<all>.01.keyframe.png, <all>.01.i2v.mp4). The parts are not modified. " +
+                "Do this after the parts exist and were reviewed; tell the user to open the composed file on the canvas.",
+            parameters: {
+                project: PROJECT_PARAM,
+                workflows: {
+                    type: "array",
+                    items: { type: "string" },
+                    description:
+                        "Workflow files in production order (project-relative). Either this or folder.",
+                },
+                folder: {
+                    type: "string",
+                    description:
+                        "Compose every workflow directly inside this folder, sorted by file name (previous *_all files excluded).",
+                },
+                path: {
+                    type: "string",
+                    description:
+                        "Where to write the composed file (default: <folder of the first part>/<folder name>_all).",
+                },
+                name: { type: "string", description: "Display name." },
+            },
+            output: { schema: { type: "json" }, render: (_a, v) => text(v) },
+            async execute(args, exec) {
+                const pid = await resolveProjectId(env, exec, args.project);
+                return compact(
+                    await api.composeWorkflows(pid, {
+                        ...(args.workflows
+                            ? { workflows: args.workflows }
+                            : {}),
+                        ...(args.folder !== undefined
+                            ? { folder: args.folder }
+                            : {}),
+                        ...(args.path ? { path: args.path } : {}),
+                        ...(args.name ? { name: args.name } : {}),
+                    }),
+                );
+            },
+        }),
+        defineTool({
             name: "tongflow_node_catalog",
             description:
                 "One line per canvas node type: ABI slot, wires (inputs from other nodes; * = required), config fields, outputs, and which installed plugins implement it. Consult before patching.",

@@ -67,6 +67,7 @@ characters/mei/
 - Multi-output runs keep the workflow's output names: `mei_ref.03.image.png` + `mei_ref.03.caption.txt`; text outputs are written as `.txt` too.
 - Workflows reference project files by **path**: `./mei_ref.02.png` / `../style/palette.png` (relative to the workflow file) or `characters/mei/mei_ref.02.png` (relative to the project root); URLs pass through.
 - Text files can be **included** in prompts: `{{../style.md}} {{./mei.md}} full-body sheet` — expanded at run time, so a shared style note is written once.
+- **Compose**: `tongflow_workflow_compose({ folder })` merges the small workflows of a folder (or an explicit list) into one `<folder>_all.tongflow.json` — a data node that references another part's output file (`./ref.01.png`) becomes an edge from that part's producing node, parts are ordered by those dependencies, every stage stays an output labelled after its part (`shot_all.01.i2v.mp4` via `meta.outputLabels`), the parts are untouched.
 - The Studio tree nests a workflow's outputs under it; the user may rename / move / delete anything by hand and **upload files** (header button → the selected folder, or drag & drop onto a folder view; default `uploads/`) — the agent re-reads the tree (`tongflow_project_status`) before acting.
 
 ### Billing checkpoint
@@ -79,7 +80,7 @@ A run that uses a paid plugin spends the user's money — a paid API key, or GPU
 
 ## Agent tools
 
-`tongflow_project_create / _open / _list / _status` · `tongflow_workflow_new / _patch / _read / _list / _validate / _run` · `tongflow_node_catalog / _describe` · `tongflow_look` (images / video contact sheets, returned as an image block) · `tongflow_perceive` (video/audio/image understanding via TongFlow slots) · `tongflow_plugins_list / _install / _uninstall` · `tongflow_run_status`. Folder structure and text files are made with dsh's ordinary file tools. Long runs go through dsh background jobs (`run_in_background`).
+`tongflow_project_create / _open / _list / _status` · `tongflow_workflow_new / _patch / _read / _list / _validate / _run / _compose` · `tongflow_node_catalog / _describe` · `tongflow_look` (images / video contact sheets, returned as an image block) · `tongflow_perceive` (video/audio/image understanding via TongFlow slots) · `tongflow_plugins_list / _install / _uninstall` · `tongflow_run_status`. Folder structure and text files are made with dsh's ordinary file tools. Long runs go through dsh background jobs (`run_in_background`).
 
 Skill shipped: `tongflow-studio` (the working method: research → propose a structure → one workflow per asset next to its outputs → run → review → next stage). Genre knowledge is not packaged; the agent researches or the user installs a skill of their own.
 

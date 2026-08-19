@@ -83,6 +83,10 @@ export interface OutputInfo {
 export interface WorkflowFileMeta {
     /** Free-form purpose note. */
     purpose?: string;
+    /** Workflow output name → readable label used in generated file names (`<stem>.01.<label>.png`). */
+    outputLabels?: Record<string, string>;
+    /** Set on a composed workflow: which small workflows it was built from. */
+    composed?: { parts: string[]; at: string };
 }
 
 export interface WorkflowSummary {

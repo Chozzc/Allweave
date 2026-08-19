@@ -27,6 +27,8 @@ export interface IngestOptions {
     result: EngineResult;
     /** Project key of the workflow file; undefined for inline (canvas) documents. */
     workflowKey?: string;
+    /** Workflow output name → label used in file names (composed workflows). */
+    outputLabels?: Record<string, string>;
     record: Omit<OutputRecord, "no" | "files" | "texts">;
 }
 
@@ -70,9 +72,11 @@ export async function ingestOutputs(
 ): Promise<IngestOutcome> {
     const { projectRoot, result, workflowKey } = options;
     const outcome: IngestOutcome = { files: [], loose: [], texts: {}, no: 0 };
-    const byName: Record<string, string[]> = {
-        ...(result.outputs_by_name ?? {}),
-    };
+    const byName: Record<string, string[]> = {};
+    for (const [name, values] of Object.entries(result.outputs_by_name ?? {})) {
+        const label = options.outputLabels?.[name] ?? name;
+        (byName[label] ??= []).push(...values);
+    }
     if (Object.keys(byName).length === 0) {
         // Fall back to scanning raw node outputs for file refs.
         for (const [nodeId, out] of Object.entries(result.outputs ?? {})) {
