@@ -38,7 +38,7 @@ The project starts as an empty folder with `project.json` (title, brief). Read t
 3. **Write it down**: create the folders, and put a `README.md` (or a `plan.md` at the root) that explains the structure and the steps — the user and later sessions read that, not the chat.
 4. **Fill it stage by stage**: text you author → workflow files → runs → review → the next stage builds on the results by path.
 
-The user may change any of it by hand at any time (rename, move, delete). Always call `tongflow_project_status` before assuming what exists.
+The user may change any of it by hand at any time (rename, move, delete) and can **upload their own files** from the Studio into any folder (default `uploads/`) — reference photos, voice samples, logos, scripts. Use them by path like any other file (`./ref.png`, `uploads/logo.png`). Always call `tongflow_project_status` before assuming what exists.
 
 ## Referencing files inside workflows
 

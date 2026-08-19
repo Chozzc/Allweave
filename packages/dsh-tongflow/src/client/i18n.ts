@@ -72,6 +72,13 @@ const en = {
     model: "model",
     missingKeys: "missing API keys: {keys} — set them under Plugins & keys",
     confirmAndRun: "▶ Confirm & run",
+    upload: "Upload",
+    uploadHint:
+        "Upload files into {dir}/ (select a folder in the tree to change the target)",
+    uploading: "uploading…",
+    uploaded: "{n} file(s) → {dir}/",
+    uploadFailed: "upload failed",
+    dropHere: "Drop files here to add them to this folder",
 } as const;
 
 export type UiKey = keyof typeof en;
@@ -145,6 +152,12 @@ const zh: Record<UiKey, string> = {
     model: "模型",
     missingKeys: "缺少 API 密钥:{keys} — 请到「插件与密钥」设置",
     confirmAndRun: "▶ 确认并运行",
+    upload: "上传",
+    uploadHint: "上传文件到 {dir}/(在树里选中文件夹可改目标)",
+    uploading: "上传中…",
+    uploaded: "{n} 个文件 → {dir}/",
+    uploadFailed: "上传失败",
+    dropHere: "把文件拖到这里,加入此文件夹",
 };
 
 const dicts: Record<string, Record<UiKey, string>> = { en, zh };

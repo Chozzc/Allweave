@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { OutputInfo, TreeNode } from "../../shared/types.ts";
 import { modalityOfExt } from "../../shared/types.ts";
 import { fileUrl, studio } from "../api.ts";
@@ -19,6 +19,8 @@ export interface PreviewProps {
     onRun: (workflowKey: string) => void;
     /** Select a file / workflow in the tree. */
     onOpen: (node: TreeNode) => void;
+    /** Files dropped on (or picked for) a folder view. */
+    onDropFiles: (files: File[], dir: string) => void;
 }
 
 export function PreviewPane(p: PreviewProps) {
@@ -47,8 +49,11 @@ function FolderView({
     pid,
     folder,
     onOpen,
+    onDropFiles,
 }: PreviewProps & { folder: TreeNode }) {
     const t = useT();
+    const [over, setOver] = useState(false);
+    const input = useRef<HTMLInputElement>(null);
     const flat: TreeNode[] = [];
     const walk = (nodes: TreeNode[]) => {
         for (const n of nodes) {
@@ -67,7 +72,22 @@ function FolderView({
         (n) => n.kind === "folder",
     );
     return (
-        <div className="tfs-preview">
+        <div
+            className={`tfs-preview${over ? " tfs-dropping" : ""}`}
+            onDragOver={(e) => {
+                if (e.dataTransfer.types.includes("Files")) {
+                    e.preventDefault();
+                    setOver(true);
+                }
+            }}
+            onDragLeave={() => setOver(false)}
+            onDrop={(e) => {
+                e.preventDefault();
+                setOver(false);
+                const files = Array.from(e.dataTransfer.files);
+                if (files.length > 0) onDropFiles(files, folder.key);
+            }}
+        >
             <div className="tfs-preview-head">
                 <h2>{folder.key || "/"}</h2>
                 <span className="tfs-muted">
@@ -76,8 +96,29 @@ function FolderView({
                         files: flat.length,
                     })}
                 </span>
+                <span className="tfs-spacer" />
+                <button
+                    className="tfs-btn small"
+                    onClick={() => input.current?.click()}
+                >
+                    {t("upload")}
+                </button>
+                <input
+                    ref={input}
+                    type="file"
+                    multiple
+                    style={{ display: "none" }}
+                    onChange={(e) => {
+                        if (e.target.files?.length)
+                            onDropFiles(Array.from(e.target.files), folder.key);
+                        e.target.value = "";
+                    }}
+                />
             </div>
             <div className="tfs-preview-body">
+                {over ? (
+                    <div className="tfs-drop-hint">{t("dropHere")}</div>
+                ) : null}
                 {media.length > 0 ? (
                     <div className="tfs-tiles">
                         {media.map((n) => (

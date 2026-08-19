@@ -535,3 +535,16 @@
 .tfs-billing-row {
     padding: 4px 0;
 }
+/* drag & drop upload */
+.tfs-preview.tfs-dropping {
+    outline: 2px dashed var(--tfs-accent);
+    outline-offset: -4px;
+}
+.tfs-drop-hint {
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--tfs-accent) 12%, transparent);
+    color: var(--tfs-accent);
+    font-size: 13px;
+}

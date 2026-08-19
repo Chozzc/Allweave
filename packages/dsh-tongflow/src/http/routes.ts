@@ -8,9 +8,9 @@
  *                                  upload, uploads, material stubs).
  */
 
-import { mkdir, unlink, writeFile } from "node:fs/promises";
+import { unlink } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { basename, extname, join } from "node:path";
+
 import type { Context } from "@deepseek-ai/cordis";
 import type {} from "@deepseek-ai/dsh-host-webserver";
 import { TaskStatus } from "tongflow";
@@ -25,7 +25,7 @@ import type {
     WorkflowFileMeta,
 } from "../shared/types.ts";
 import type { Studio } from "../studio.ts";
-import { exists, writeFileAtomic } from "../util/fsx.ts";
+import { writeFileAtomic } from "../util/fsx.ts";
 import { serveFile } from "./files.ts";
 import { openSse } from "./sse.ts";
 import {
@@ -472,6 +472,34 @@ function buildRoutes(env: RouteEnv): Route[] {
         },
 
         /* ---------------- files ---------------- */
+        /** Studio upload: multipart `file` field(s) into `?dir=<project key>` (default `uploads/`). */
+        {
+            method: "POST",
+            pattern: "/p/:pid/upload",
+            handler: async (c) => {
+                const form = await readFormData(c.req);
+                const dir = q(c.url, "dir") || UPLOADS_DIR;
+                const files = form
+                    .getAll("file")
+                    .filter((f) => f instanceof File) as File[];
+                if (files.length === 0)
+                    throw new HttpError(
+                        400,
+                        "multipart field 'file' is required",
+                    );
+                const out: { key: string; size: number; name: string }[] = [];
+                for (const file of files) {
+                    const r = await api.uploadFile(
+                        c.params.pid,
+                        dir,
+                        file.name,
+                        new Uint8Array(await file.arrayBuffer()),
+                    );
+                    out.push({ ...r, name: file.name });
+                }
+                json(c, { files: out }, 201);
+            },
+        },
         {
             method: "GET",
             pattern: "/p/:pid/files/*",
@@ -570,28 +598,16 @@ function buildRoutes(env: RouteEnv): Route[] {
                         400,
                         "multipart field 'file' is required",
                     );
-                const ref = await api.project(c.params.pid);
-                const dir = join(ref.root, UPLOADS_DIR);
-                await mkdir(dir, { recursive: true });
-                const safe =
-                    basename(file.name || "upload").replace(
-                        /[^A-Za-z0-9._-]+/g,
-                        "_",
-                    ) || "upload";
-                let dest = join(dir, safe);
-                if (await exists(dest)) {
-                    const ext = extname(safe);
-                    dest = join(
-                        dir,
-                        `${safe.slice(0, safe.length - ext.length)}-${Date.now().toString(36)}${ext}`,
-                    );
-                }
-                await writeFile(dest, Buffer.from(await file.arrayBuffer()));
-                const key = toProjectKey(ref.root, dest);
+                const { key, size } = await api.uploadFile(
+                    c.params.pid,
+                    UPLOADS_DIR,
+                    file.name,
+                    new Uint8Array(await file.arrayBuffer()),
+                );
                 json(c, {
                     fileKey: key,
                     url: `${env.prefix}/p/${c.params.pid}/files/${key}`,
-                    size: file.size,
+                    size,
                     name: file.name,
                 });
             },

@@ -139,6 +139,24 @@ export const studio = {
             undefined,
             text,
         ),
+    /** Upload files into a project folder (default uploads/); never overwrites. */
+    upload: async (pid: string, dir: string, files: File[] | FileList) => {
+        const form = new FormData();
+        for (const f of Array.from(files)) form.append("file", f, f.name);
+        const res = await fetch(
+            `${PREFIX}/p/${pid}/upload?dir=${encodeURIComponent(dir)}`,
+            { method: "POST", body: form, credentials: "same-origin" },
+        );
+        const data = (await res.json().catch(() => undefined)) as
+            | {
+                  files?: { key: string; size: number; name: string }[];
+                  error?: string;
+              }
+            | undefined;
+        if (!res.ok)
+            throw new Error(data?.error ?? `${res.status} ${res.statusText}`);
+        return data?.files ?? [];
+    },
     deleteFile: (pid: string, key: string) =>
         call<{ ok: true }>("DELETE", `/p/${pid}/files/${encodeKey(key)}`),
     plugins: () =>

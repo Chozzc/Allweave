@@ -122,6 +122,38 @@ function StudioBody(props: StudioViewProps) {
     const [refresh, setRefresh] = useState(0);
     const [dialog, setDialog] = useState<"new" | "plugins" | undefined>();
     const bump = useCallback(() => setRefresh((n) => n + 1), []);
+    const fileInput = useRef<HTMLInputElement>(null);
+    const [uploadMsg, setUploadMsg] = useState<string | undefined>();
+
+    /** Folder uploads go to: the selected folder, or the folder of the selected file, else uploads/. */
+    const uploadDir = (): string => {
+        if (!selected) return "uploads";
+        if (selected.kind === "folder") return selected.key;
+        const i = selected.key.lastIndexOf("/");
+        return i < 0 ? "uploads" : selected.key.slice(0, i);
+    };
+    const doUpload = async (files: FileList | File[], dir = uploadDir()) => {
+        if (!pid || files.length === 0) return;
+        setUploadMsg(t("uploading"));
+        try {
+            const done = await studio.upload(pid, dir, files);
+            setUploadMsg(t("uploaded", { n: done.length, dir: dir || "/" }));
+            bump();
+            const first = done[0];
+            if (first)
+                setSelected({
+                    id: first.key,
+                    label: first.key.split("/").pop() ?? first.key,
+                    kind: "file",
+                    key: first.key,
+                });
+        } catch (e) {
+            setUploadMsg(
+                `${t("uploadFailed")}: ${e instanceof Error ? e.message : String(e)}`,
+            );
+        }
+        setTimeout(() => setUploadMsg(undefined), 4000);
+    };
 
     // Sync dark mode for the embedded canvas (dsh marks dark on body[data-ds-dark-theme]).
     useEffect(() => {
@@ -244,6 +276,31 @@ function StudioBody(props: StudioViewProps) {
                         {t("openInSession")}
                     </button>
                 ) : null}
+                {pid ? (
+                    <>
+                        <button
+                            className="tfs-btn"
+                            title={t("uploadHint", { dir: uploadDir() })}
+                            onClick={() => fileInput.current?.click()}
+                        >
+                            {t("upload")}
+                        </button>
+                        <input
+                            ref={fileInput}
+                            type="file"
+                            multiple
+                            style={{ display: "none" }}
+                            onChange={(e) => {
+                                if (e.target.files)
+                                    void doUpload(e.target.files);
+                                e.target.value = "";
+                            }}
+                        />
+                    </>
+                ) : null}
+                {uploadMsg ? (
+                    <span className="tfs-muted">{uploadMsg}</span>
+                ) : null}
                 <span className="tfs-spacer" />
                 {health.data && !health.data.ok ? (
                     <span className="tfs-error" title={health.data.error}>
@@ -330,6 +387,7 @@ function StudioBody(props: StudioViewProps) {
                                 setSelected(n);
                                 setDrawer(undefined);
                             }}
+                            onDropFiles={(files, dir) => doUpload(files, dir)}
                         />
                     ) : (
                         <div className="tfs-empty">

@@ -3,7 +3,14 @@
  * call. Everything is keyed by project id; the project directory on disk is
  * the source of truth (no in-memory canvas state).
  */
-import { readdir, readFile, stat, unlink } from "node:fs/promises";
+import {
+    mkdir,
+    readdir,
+    readFile,
+    stat,
+    unlink,
+    writeFile,
+} from "node:fs/promises";
 import { basename, join } from "node:path";
 import {
     type ExecuteToolContext,
@@ -559,6 +566,38 @@ export class StudioApi {
     async deleteFile(projectId: string, key: string): Promise<void> {
         const ref = await this.project(projectId);
         await unlink(fromProjectKey(ref.root, normalizeKey(key)));
+    }
+
+    /**
+     * Store a user-supplied file under `dirKey` (created as needed) without
+     * overwriting: a clash gets a short suffix. Returns the project key.
+     */
+    async uploadFile(
+        projectId: string,
+        dirKey: string,
+        fileName: string,
+        data: Uint8Array,
+    ): Promise<{ key: string; size: number }> {
+        const ref = await this.project(projectId);
+        const dir = fromProjectKey(ref.root, normalizeKey(dirKey) || ".");
+        await mkdir(dir, { recursive: true });
+        const safe =
+            basename(fileName || "upload")
+                .replace(/[\u0000-\u001f/\\:*?"<>|]+/g, "_")
+                .replace(/\s+/g, "_")
+                .replace(/^\.+/, "") || "upload";
+        let dest = join(dir, safe);
+        if (await exists(dest)) {
+            const ext = safe.includes(".")
+                ? safe.slice(safe.lastIndexOf("."))
+                : "";
+            const stem = safe.slice(0, safe.length - ext.length);
+            let i = 2;
+            while (await exists(join(dir, `${stem}-${i}${ext}`))) i++;
+            dest = join(dir, `${stem}-${i}${ext}`);
+        }
+        await writeFile(dest, data);
+        return { key: toProjectKey(ref.root, dest), size: data.byteLength };
     }
 
     async filePath(projectId: string, key: string): Promise<string> {
