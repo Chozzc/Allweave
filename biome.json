@@ -11,6 +11,8 @@
             "**",
             "!.next",
             "!**/.next",
+            "!.open-next",
+            "!**/.open-next",
             "!out",
             "!build",
             "!node_modules",
