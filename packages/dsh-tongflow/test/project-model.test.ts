@@ -581,8 +581,11 @@ describe("compose", () => {
             )
             .flatMap((n) => (n.data as { fileKeys?: string[] }).fileKeys ?? []);
         expect(dataFiles).toEqual(["./line.wav"]);
-        // Every stage is an output, labelled after its part.
-        const labels = Object.values(doc.meta.outputLabels ?? {}).sort();
+        // Every stage is an output, labelled after its part (the same label is
+        // keyed under every id the engine may report the output as).
+        const labels = [
+            ...new Set(Object.values(doc.meta.outputLabels ?? {})),
+        ].sort();
         expect(labels).toEqual(["i2v", "lipsync", "ref"]);
         expect(
             doc.executable?.outputs
