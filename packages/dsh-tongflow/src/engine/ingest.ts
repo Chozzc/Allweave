@@ -27,7 +27,11 @@ export interface IngestOptions {
     result: EngineResult;
     /** Project key of the workflow file; undefined for inline (canvas) documents. */
     workflowKey?: string;
-    /** Workflow output name → label used in file names (composed workflows). */
+    /**
+     * Label used in generated file names, keyed by whatever the engine reports
+     * an output under: a declared workflow output name (`output_<id8>`) or —
+     * when the engine only returns raw node outputs — the producing node's id.
+     */
     outputLabels?: Record<string, string>;
     record: Omit<OutputRecord, "no" | "files" | "texts">;
 }
@@ -59,6 +63,23 @@ function collectFileKeys(value: unknown, into: string[]): void {
     }
 }
 
+const UUID_RE =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * A readable file-name tag: real output names (`image`, `caption`) are kept;
+ * a raw node id is shortened to its first segment.
+ */
+function shortTag(output: string, all: Set<string>): string {
+    if (!UUID_RE.test(output)) return output;
+    const short = output.slice(0, 8);
+    // Keep the full id if shortening would collide with another output.
+    const collides = [...all].some(
+        (o) => o !== output && o !== short && o.startsWith(short),
+    );
+    return collides ? output : short;
+}
+
 function looksLikeFile(value: string): boolean {
     return (
         /\.[A-Za-z0-9]{1,5}$/.test(value) &&
@@ -72,18 +93,25 @@ export async function ingestOutputs(
 ): Promise<IngestOutcome> {
     const { projectRoot, result, workflowKey } = options;
     const outcome: IngestOutcome = { files: [], loose: [], texts: {}, no: 0 };
+    // The engine reports outputs either by workflow output name or (the usual
+    // case) as raw per-node outputs keyed by node id; a composed workflow maps
+    // both forms to a readable stage label.
+    const label = (key: string): string => options.outputLabels?.[key] ?? key;
     const byName: Record<string, string[]> = {};
     for (const [name, values] of Object.entries(result.outputs_by_name ?? {})) {
-        const label = options.outputLabels?.[name] ?? name;
-        if (!byName[label]) byName[label] = [];
-        byName[label].push(...values);
+        const l = label(name);
+        if (!byName[l]) byName[l] = [];
+        byName[l].push(...values);
     }
     if (Object.keys(byName).length === 0) {
         // Fall back to scanning raw node outputs for file refs.
         for (const [nodeId, out] of Object.entries(result.outputs ?? {})) {
             const keys: string[] = [];
             collectFileKeys(out, keys);
-            if (keys.length > 0) byName[nodeId] = keys;
+            if (keys.length === 0) continue;
+            const l = label(nodeId);
+            if (!byName[l]) byName[l] = [];
+            byName[l].push(...keys);
         }
     }
     // Split file outputs from text outputs first so the file names can tell
@@ -127,7 +155,7 @@ export async function ingestOutputs(
         const idx = perOutput.get(output) ?? 0;
         perOutput.set(output, idx + 1);
         const parts: string[] = [];
-        if (several) parts.push(output);
+        if (several) parts.push(shortTag(output, outputNames));
         if (count > 1) parts.push(String(idx + 1));
         return outputFileName(
             stem,

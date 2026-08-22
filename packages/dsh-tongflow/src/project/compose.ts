@@ -10,7 +10,9 @@
  * part's producing executable node. Every stage's product stays an output
  * (a terminal "tap" data node), and `meta.outputLabels` names those outputs
  * after their part so a run of the composed workflow lands
- * `<all>.01.keyframe.png`, `<all>.01.i2v.mp4`, ….
+ * `<all>.01.keyframe.png`, `<all>.01.i2v.mp4`, …. Labels are keyed both by the
+ * exporter's output name (`output_<id8>`) and by the producing node's id,
+ * because the engine reports outputs under either form.
  */
 import { randomUUID } from "node:crypto";
 import { readdir } from "node:fs/promises";
@@ -109,6 +111,24 @@ function producersFor(
             spec?.topology.outputs.some((o) => o.nodeType === dataNodeType),
         );
     });
+}
+
+/**
+ * Record a stage label under every key the engine might report the output as:
+ * the exporter's `output_<id8>` for the output node, and the id (full and
+ * short) of each node that actually produces the file.
+ */
+function labelOutput(
+    labels: Record<string, string>,
+    stem: string,
+    outputNodeId: string,
+    ...producerIds: string[]
+): void {
+    labels[`output_${outputNodeId.substring(0, 8)}`] = stem;
+    for (const id of [outputNodeId, ...producerIds]) {
+        labels[id] = stem;
+        labels[id.substring(0, 8)] = stem;
+    }
 }
 
 function edge(source: Node, target: Node): Edge {
@@ -321,8 +341,12 @@ export async function composeWorkflows(
                     } as Node;
                     nodes.push(tap);
                     edges.push(edge(n, tap));
-                    outputLabels[`output_${tap.id.substring(0, 8)}`] =
-                        producer.pn.part.stem;
+                    labelOutput(
+                        outputLabels,
+                        producer.pn.part.stem,
+                        tap.id,
+                        n.id,
+                    );
                 }
             }
             if (linkedAny) {
@@ -345,8 +369,13 @@ export async function composeWorkflows(
                 !isExec &&
                 type.endsWith("Node") &&
                 edges.some((e) => e.target === n.id);
-            if (isExec || isFedData)
-                outputLabels[`output_${n.id.substring(0, 8)}`] = pn.part.stem;
+            if (!isExec && !isFedData) continue;
+            // A terminal data node is filled by the executable(s) feeding it;
+            // the engine reports the product under those nodes' ids.
+            const feeders = isExec
+                ? [n.id]
+                : edges.filter((e) => e.target === n.id).map((e) => e.source);
+            labelOutput(outputLabels, pn.part.stem, n.id, ...feeders);
         }
     }
 
