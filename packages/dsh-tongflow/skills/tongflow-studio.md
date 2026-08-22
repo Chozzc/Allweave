@@ -55,15 +55,26 @@ Read `tongflow_node_catalog` before writing any workflow; it opens with the gram
 - Text you keep in files can be **included** in a prompt: `texts:['{{../style.md}} {{./mei.md}} full-body character sheet, front and side view, plain background']` — `{{path}}` is replaced by the file's content at run time. Write shared style / character descriptions once and include them where needed instead of re-describing from memory.
 - Compose the whole prompt in ONE text node; never chain text-combining nodes for that.
 
+## Method references — load only what the step needs
+
+These sit next to this file; resolve them against the skill's base directory.
+
+- `references/prompt-layers.md` — before writing any non-trivial prompt: the seven layers, what belongs in the prompt text versus the node config versus a wired file, reference scope, and the checks to run before spending a paid run.
+- `references/shot-contract.md` — any video shot: `open_state` / beats / `close_state`, the camera start-path-end contract, dialogue and audio, and continuity across shots.
+- `references/failure-codes.md` — a result came back wrong: locate the responsible layer and make the smallest fix, instead of adding negative words.
+- `references/iteration.md` — before running the same asset again: what counts as an iteration, changing one variable, when to stop rewriting the prompt, and how to record the choice.
+
+`references/SOURCES.md` records where this method comes from and what it does not license.
+
 ## The loop for any media
 
 1. `tongflow_project_status` — see what exists; `tongflow_node_catalog` — node types and installed plugins.
-2. `tongflow_workflow_new({ path: '<folder>/<asset>' })` — one file per asset → `tongflow_workflow_patch` (write the concrete prompt / file refs / params into the nodes; `copy_from` another workflow of the project when the shape is the same) → `tongflow_workflow_read` (verify wires + validation).
+2. `tongflow_workflow_new({ path: '<folder>/<asset>' })` — one file per asset → `tongflow_workflow_patch` (write the concrete prompt / file refs / params into the nodes — `references/prompt-layers.md`, and `references/shot-contract.md` for a video shot; `copy_from` another workflow of the project when the shape is the same) → `tongflow_workflow_read` (verify wires + validation).
 3. **Billing checkpoint — every paid run, every time.** A run that uses a paid plugin costs the user money (a paid API key, or GPU seconds on their Modal account — a Modal plugin also deploys on first run). `tongflow_workflow_run` without `user_confirmed` refuses and returns `needs_confirmation`: which plugins, how each is billed, whether its API keys are set, which models it offers, and installed alternatives. Put that to the user in plain words ("这一步用 Gemini 生图,按次计费到你的 GEMINI_API_KEY;也可以换 X;要用哪个模型?现在跑吗?"), wait for their yes, then call again with `user_confirmed: true`. Ask before **each** paid run — a yes for the last run does not cover the next one, and never set the flag on your own. Runs that use only local plugins are free and need no confirmation. When you plan a batch (e.g. ten shots), say so and get one clear yes for that batch, then run them one after another.
 4. `tongflow_workflow_run` — foreground for a single image, `run_in_background` for video/batches; keep working meanwhile.
 5. Review: `tongflow_look` (images, video contact sheets) and `tongflow_perceive` (video/audio understanding, transcripts). Write findings into a notes file next to the asset or in a `notes/` folder.
 6. **Compose when a stage chain is done.** When a shot / scene / asset has several small workflows that feed each other by file (`./ref.01.png` → `i2v` → `lipsync`), `tongflow_workflow_compose({ folder })` (or an explicit `workflows` list) writes ONE big `<folder>_all.tongflow.json`: file references to another part's output become real edges, every stage stays an output named after its part (`shot_all.01.i2v.mp4`), the parts are untouched. Tell the user to open it on the canvas to see and tweak the whole; a run of it regenerates everything in one go (it is a paid run like any other).
-7. If it is off, fix *that* workflow (or the text it includes) and run again — the next number lands beside the old one. When it is right, use that file's path downstream (e.g. `./mei_ref.02.png` as the reference for a shot). Tell the user which number you picked and why.
+7. If it is off, name the failure and the layer that owns it (`references/failure-codes.md`), change one thing, and run again — the next number lands beside the old one. Two versions with no improvement on the same failure means the problem is not in the prompt (`references/iteration.md`). When it is right, use that file's path downstream (e.g. `./mei_ref.02.png` as the reference for a shot). Tell the user which number you picked and why.
 
 Rules of thumb:
 - Patch incrementally; never rebuild a workflow from scratch; never invent node ids. Read the patch result: `ok:false` steps must be fixed before running.
