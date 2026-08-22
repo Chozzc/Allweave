@@ -82,7 +82,16 @@ A run that uses a paid plugin spends the user's money — a paid API key, or GPU
 
 `tongflow_project_create / _open / _list / _status` · `tongflow_workflow_new / _patch / _read / _list / _validate / _run / _compose` · `tongflow_node_catalog / _describe` · `tongflow_look` (images / video contact sheets, returned as an image block) · `tongflow_perceive` (video/audio/image understanding via TongFlow slots) · `tongflow_plugins_list / _install / _uninstall` · `tongflow_run_status`. Folder structure and text files are made with dsh's ordinary file tools. Long runs go through dsh background jobs (`run_in_background`).
 
-Skill shipped: `tongflow-studio` (the working method: research → propose a structure → one workflow per asset next to its outputs → run → review → next stage). Genre knowledge is not packaged; the agent researches or the user installs a skill of their own.
+Skill shipped: `tongflow-studio` (the working method: research → propose a structure → one workflow per asset next to its outputs → run → review → next stage), with four method references under [`skills/references/`](skills/references/) that the agent loads only when the step needs them:
+
+| Reference | Read before |
+|---|---|
+| `prompt-layers.md` | writing any non-trivial prompt — the seven layers, and what belongs in the prompt text vs. node config vs. a wired reference file |
+| `shot-contract.md` | a video shot — open/close state, beat timeline, camera start-path-end, audio, continuity across shots |
+| `failure-codes.md` | a result came back wrong — locate the responsible layer, make the smallest fix |
+| `iteration.md` | running the same asset again — one variable at a time, and when to stop rewriting the prompt |
+
+Genre knowledge is not packaged; the agent researches or the user installs a skill of their own.
 
 ## HTTP (same origin as dsh)
 
