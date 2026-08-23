@@ -62,6 +62,25 @@ export async function modelTakesImages(
     }
 }
 
+/**
+ * A plugin's own README, when the clone shipped one. Only the path travels in
+ * the catalog: the agent reads the file when it needs to choose between
+ * plugins, set an unfamiliar model, or understand a failure. An installed
+ * plugin is not a new trust surface — its code already runs on this machine.
+ */
+export async function pluginReadme(
+    pluginsDir: string,
+    id: string,
+): Promise<{ readme?: string }> {
+    const path = join(pluginsDir, id, "README.md");
+    try {
+        if ((await stat(path)).isFile()) return { readme: path };
+    } catch {
+        // Not every plugin ships one; absence is normal, not an error.
+    }
+    return {};
+}
+
 /** One TongFlow describe/transcribe slot run over a local media file. */
 interface SlotDescription {
     ok: boolean;
@@ -581,14 +600,15 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
         defineTool({
             name: "tongflow_plugins_list",
             description:
-                "Installed TongFlow plugins (id, name, ABI slots they implement, required env keys) and the official plugin ids that can be installed.",
+                "Installed TongFlow plugins (id, name, ABI slots they implement, required env keys, and the path of the plugin's own README when it has one) and the official plugin ids that can be installed. " +
+                "A plugin's README is written by whoever wrote the plugin: which models it offers and which is the default, what each env key does, resolutions and aspect ratios it accepts, and its quirks. Read that file before choosing between plugins for a slot, before setting an unfamiliar model or param, and when a run fails for a reason the error does not explain.",
             parameters: {},
             output: { schema: { type: "json" }, render: (_a, v) => text(v) },
             async execute() {
                 const { registry, meta } = await api.registry();
                 const OFFICIAL_PLUGINS = await studio.registry.officialIds();
-                const installed = Object.entries(registry.plugins).map(
-                    ([id, p]) => ({
+                const installed = await Promise.all(
+                    Object.entries(registry.plugins).map(async ([id, p]) => ({
                         id,
                         name: (p as { name?: string }).name ?? id,
                         slots: Object.keys(
@@ -601,7 +621,11 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
                         env: (meta[id]?.env ?? []).map(
                             (e) => `${e.key}${e.required ? "*" : ""}`,
                         ),
-                    }),
+                        // The path only; the file is read on demand, never
+                        // pulled into the catalog. Together the installed
+                        // READMEs run to thousands of lines.
+                        ...(await pluginReadme(studio.paths.plugins, id)),
+                    })),
                 );
                 return compact({
                     installed,
