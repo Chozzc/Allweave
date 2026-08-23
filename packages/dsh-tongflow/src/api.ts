@@ -370,7 +370,7 @@ export class StudioApi {
     /* ---------------- billing checkpoint ---------------- */
 
     /** How a plugin is billed, from what the registry knows about it. */
-    private async pluginBilling(
+    async pluginBilling(
         pluginId: string,
     ): Promise<{ billing: PluginBilling; note: string }> {
         const { registry, meta } = await this.studio.registry.get();
