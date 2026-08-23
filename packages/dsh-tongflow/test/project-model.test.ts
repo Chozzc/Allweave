@@ -465,6 +465,117 @@ describe("billing checkpoint", () => {
 });
 
 describe("compose", () => {
+    /** The plugin catalog the composition tests resolve node types against. */
+    function fakeRegistry(api: StudioApi): void {
+        (api.studio.registry as unknown as { cache: unknown }).cache = {
+            registry: {
+                plugins: {
+                    fake: {
+                        needsDeploy: false,
+                        methodsByNodeSlot: {
+                            "image-gen": { methodName: "a" },
+                            "image-edit": { methodName: "b" },
+                            "image-gen-video": { methodName: "c" },
+                            "audio-video-lip-sync": { methodName: "d" },
+                        },
+                    },
+                },
+                nodePluginMap: {
+                    "image-gen": ["fake"],
+                    "image-edit": ["fake"],
+                    "image-gen-video": ["fake"],
+                    "audio-video-lip-sync": ["fake"],
+                },
+            },
+            meta: { fake: { env: [] } },
+            scannedAt: "now",
+        };
+    }
+
+    /**
+     * A parent folder composes everything beneath it, and a part links to a
+     * producer that lives in a different folder. Both matter for a tree of
+     * one-node workflows: the leaves sit several levels down, and a shot's
+     * first step reads the previous shot's last output.
+     */
+    it("gathers leaves at any depth and links a reference across folders", async () => {
+        const api = new StudioApi(
+            new Studio({ config: Config({ studioRoot: studio }) }),
+        );
+        fakeRegistry(api);
+
+        // ep01/sh010/ref: text → image
+        await api.newWorkflow(projectId, "ep01/sh010/ref");
+        await api.patchWorkflow(projectId, "ep01/sh010/ref", {
+            add_nodes: [
+                { alias: "t", type: "textNode", data: { texts: ["a girl"] } },
+                { alias: "g", type: "textGenImageNode" },
+            ],
+            add_edges: [{ from: "t", to: "g" }],
+        } as never);
+        await put("ep01/sh010/ref.01.png");
+
+        // ep01/sh010/i2v: ./ref.01.png → video (same folder)
+        await api.newWorkflow(projectId, "ep01/sh010/i2v");
+        await api.patchWorkflow(projectId, "ep01/sh010/i2v", {
+            add_nodes: [
+                {
+                    alias: "img",
+                    type: "imageNode",
+                    data: { fileKeys: ["./ref.01.png"] },
+                },
+                {
+                    alias: "v",
+                    type: "imageGenVideoNode",
+                    data: { text: "slow push in", duration: 5 },
+                },
+            ],
+            add_edges: [{ from: "img", to: "v" }],
+        } as never);
+        await put("ep01/sh010/i2v.01.mp4");
+
+        // ep01/sh020/open: ../sh010/ref.01.png → image (ANOTHER folder)
+        await api.newWorkflow(projectId, "ep01/sh020/open");
+        await api.patchWorkflow(projectId, "ep01/sh020/open", {
+            add_nodes: [
+                {
+                    alias: "img",
+                    type: "imageNode",
+                    data: { fileKeys: ["../sh010/ref.01.png"] },
+                },
+                {
+                    alias: "e",
+                    type: "imageEditNode",
+                    data: { text: "wider crop" },
+                },
+            ],
+            add_edges: [{ from: "img", to: "e" }],
+        } as never);
+
+        // The parent sees every leaf beneath it, not just its own directory.
+        expect(await workflowsInFolder(root, "ep01")).toEqual([
+            "ep01/sh010/i2v.tongflow.json",
+            "ep01/sh010/ref.tongflow.json",
+            "ep01/sh020/open.tongflow.json",
+        ]);
+
+        const result = await api.composeWorkflows(projectId, {
+            folder: "ep01",
+        });
+        expect(result.key).toBe("ep01/ep01_all.tongflow.json");
+        // ref produces what both of the others read, so it is ordered first.
+        expect(result.parts[0]).toBe("ep01/sh010/ref.tongflow.json");
+        expect(result.parts).toHaveLength(3);
+        // Two real edges: the same-folder one AND the cross-folder one.
+        expect(result.links).toBe(2);
+        expect(result.unlinked).toEqual([]);
+
+        // Composing the parent again skips the _all it just wrote.
+        expect(await workflowsInFolder(root, "ep01")).not.toContain(
+            "ep01/ep01_all.tongflow.json",
+        );
+    });
+
     it("links parts by their output files, keeps every stage an output, names outputs after the parts, leaves the parts untouched", async () => {
         const api = new StudioApi(
             new Studio({ config: Config({ studioRoot: studio }) }),

@@ -34,6 +34,7 @@ import {
     singleNodeDocument,
 } from "./engine/single-node.ts";
 import {
+    COMPOSED_SUFFIX,
     type ComposeResult,
     composeWorkflows,
     workflowsInFolder,
@@ -79,6 +80,13 @@ import type {
 import { modalityOfExt } from "./shared/types.ts";
 import type { Studio } from "./studio.ts";
 import { exists, writeFileAtomic } from "./util/fsx.ts";
+
+/** Where a folder's composed workflow lives: inside that folder, named after it. */
+function composedKeyForFolder(folderKey: string): string {
+    const dir = normalizeKey(folderKey);
+    const name = `${basename(dir || "project")}${COMPOSED_SUFFIX}${WORKFLOW_EXT}`;
+    return dir ? `${dir}/${name}` : name;
+}
 
 export class StudioApi {
     constructor(readonly studio: Studio) {}
@@ -324,9 +332,17 @@ export class StudioApi {
                 "nothing to compose — pass workflows: [...] or a folder that holds workflow files",
             );
         const registry = (await this.studio.registry.get()).registry;
+        // Composing a folder writes into THAT folder. The generic fallback
+        // uses the first part's directory, which for a recursive gather is
+        // some leaf several levels down, not the folder that was asked for.
+        const path =
+            options.path ??
+            (options.folder !== undefined
+                ? composedKeyForFolder(options.folder)
+                : undefined);
         return composeWorkflows(ref.root, {
             workflows,
-            ...(options.path !== undefined ? { path: options.path } : {}),
+            ...(path !== undefined ? { path } : {}),
             ...(options.name ? { name: options.name } : {}),
             registry,
         });
