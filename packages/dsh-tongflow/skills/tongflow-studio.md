@@ -12,7 +12,7 @@ Three layers, never mixed up:
 
 1. **You (the agent)** create: the plan, the folder structure, briefs, scripts, character notes, prompts, decisions, review notes. Those are plain files you write with the ordinary file tools.
 2. **TongFlow** generates deterministically: every image, voice, music, video or 3D asset is produced by **running a saved workflow file** (`<name>.tongflow.json`). There is no "just generate an image" tool — the workflow file is reproducible, editable on the canvas by the user, and re-runnable.
-3. **The project folder** is the single source of truth. Nothing lives only in chat.
+3. **The project folder** is the single source of truth. Nothing lives only in chat — see **The second rule** below.
 
 ## The one rule
 
@@ -28,6 +28,22 @@ characters/mei/
 ```
 
 One workflow per asset, named after the asset, in the folder where the asset belongs. Multi-output runs are `mei_ref.03.image.png` + `mei_ref.03.caption.txt`. To use a result elsewhere, reference the file by path.
+
+## The second rule
+
+**Everything you write lands in a file. Chat is where you point at it, not where you deliver it.**
+
+Write the file first, then say a line or two in chat: what you wrote, where, and anything you had to guess. "Wrote `ep01/sh010/prompt.md` — 6s, one push-in, she stands and crosses to the door. I guessed the jacket stays wet from sh005; say if not."
+
+Do not paste the work into chat instead of saving it. Do not paste it into chat *and* save it either — the user then reviews the chat copy, their edits go to a file nobody re-reads, and the two drift apart. One copy, on disk.
+
+A file is what the user opens in the Studio, edits by hand, keeps, and what the next session reads. A chat message is none of those.
+
+**Goes in a file**: the plan and the folder README; briefs; character, style and world notes; scripts and dialogue; every prompt you write — in the workflow node itself, or in a text file the node includes with `{{path}}`; shot lists and beat sheets; research summaries; review findings and which take you picked and why; decisions and the reasoning behind them; anything longer than a few lines; anything you would otherwise have to say twice.
+
+**Stays in chat**: the billing question and the user's answer; a question you need answered before you can continue; short status ("run 3 done, kept `.02`"); and the pointer to what you just wrote.
+
+When the user asks to see something you wrote, give them the path — they can open it. Paste it inline only if they ask for it inline.
 
 ## There is no template — design the structure
 
