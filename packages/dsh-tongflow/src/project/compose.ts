@@ -65,21 +65,41 @@ export interface ComposeResult {
 /** Suffix of the composed file when none is given. */
 export const COMPOSED_SUFFIX = "_all";
 
-/** Every workflow directly inside `folder` (not recursive), sorted by name, composed files excluded. */
+/**
+ * Every workflow under `folder`, at any depth, sorted by project key so the
+ * order is stable and folders stay together; composed files are excluded at
+ * every level.
+ *
+ * A parent composes the LEAVES beneath it, never its children's own composed
+ * files: a part is linked to a producer by the file it references, and a
+ * composed file's outputs are named after the composition (`a_all.01.x.png`),
+ * not after the part that a sibling actually references (`a/x.02.png`). Taking
+ * the leaves keeps every reference matchable, so the parent's graph is
+ * connected the whole way down instead of silently reading stale files.
+ */
 export async function workflowsInFolder(
     projectRoot: string,
     folderKey: string,
 ): Promise<string[]> {
     const dir = fromProjectKey(projectRoot, normalizeKey(folderKey) || ".");
     if (!(await exists(dir))) return [];
-    return (await readdir(dir))
-        .filter(
-            (n) =>
-                n.endsWith(WORKFLOW_EXT) &&
-                !basename(n, WORKFLOW_EXT).endsWith(COMPOSED_SUFFIX),
-        )
-        .sort()
-        .map((n) => toProjectKey(projectRoot, join(dir, n)));
+    const out: string[] = [];
+    const walk = async (at: string): Promise<void> => {
+        for (const entry of await readdir(at, { withFileTypes: true })) {
+            const full = join(at, entry.name);
+            if (entry.isDirectory()) {
+                await walk(full);
+                continue;
+            }
+            if (
+                entry.name.endsWith(WORKFLOW_EXT) &&
+                !basename(entry.name, WORKFLOW_EXT).endsWith(COMPOSED_SUFFIX)
+            )
+                out.push(toProjectKey(projectRoot, full));
+        }
+    };
+    await walk(dir);
+    return out.sort();
 }
 
 /** Resolve a data-node file reference of part `partKey` to a project key (URLs / absolute paths → undefined). */
@@ -161,7 +181,12 @@ function fileRefsOf(part: ComposePart): string[] {
     return out;
 }
 
-/** Which part produces the file at `key` (same folder, `<stem>.NN…` name), if any. */
+/**
+ * Which part produces the file at `key`, if any. `key` arrives already
+ * resolved to a project key by {@link refToKey}, so comparing it against each
+ * part's own directory matches across folders as well as within one — a
+ * workflow's outputs land beside it, wherever it lives.
+ */
 function producerIndex(parts: ComposePart[], key: string): number {
     const dir = keyDir(key);
     const file = key.slice(dir ? dir.length + 1 : 0);

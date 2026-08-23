@@ -45,12 +45,42 @@ A file is what the user opens in the Studio, edits by hand, keeps, and what the 
 
 When the user asks to see something you wrote, give them the path — they can open it. Paste it inline only if they ask for it inline.
 
+## The third rule
+
+**One workflow is one step. Every folder above them holds the composition of everything beneath it.**
+
+Split until a workflow has a single executable node, and give each its own place:
+
+```
+ep01/
+  ep01_all.tongflow.json        ← every leaf under ep01, composed
+  sh010/
+    sh010_all.tongflow.json     ← ref + i2v + lipsync, composed
+    ref.tongflow.json           ← ONE node: text → image
+    ref.02.png
+    i2v.tongflow.json           ← ONE node: ./ref.02.png → video
+    i2v.01.mp4
+    lipsync.tongflow.json       ← ONE node: ./i2v.01.mp4 + ./line.wav → video
+    lipsync.01.mp4
+  sh020/
+    sh020_all.tongflow.json
+    …
+```
+
+Why one node per file: a step you can re-run alone is a step you can fix alone. Re-running `i2v` does not regenerate the keyframe you already approved and paid for, its outputs number independently (`i2v.01.mp4`, `i2v.02.mp4`), and the user can open exactly the step they want to argue with on the canvas.
+
+Why the composition at every level: `tongflow_workflow_compose({ folder })` gathers the **leaves** beneath a folder — not the child folders' own `_all` files — and turns each file reference into a real edge, across folders as well as within one. So `sh010_all` is that shot end to end, `ep01_all` is the whole episode, and running either regenerates everything underneath in one go. The leaves stay exactly as they were; a composition is a view, never a replacement.
+
+Compose a level once its leaves exist and were reviewed, and compose it again after the leaves change — a stale `_all` is worse than none, because it looks whole.
+
 ## There is no template — design the structure
+
+The three rules fix the *granularity* — one workflow per step, outputs beside their workflow, a composition at every level above — not the folder names. What the folders are called and how deep they go is yours to design: `ep01/sh010/` for a drama, `spots/30s/shot-03/` for an ad, `tracks/02/stem-bass/` for an album.
 
 The project starts as an empty folder with `project.json` (title, brief). Read the brief (`tongflow_project_status`), then:
 
 1. **Research first.** If you know little about the genre, format, deliverable or style, use `web_search` / `web_fetch` when available: how is this kind of thing normally produced, what are the stages, what does a professional deliverable look like. Keep a short `research.md` with what mattered and links. Skip when the user gave the material or asked you not to browse.
-2. **Propose the folder structure** to the user as a plan: which folders, what goes in each, in what order things get made, and which assets need a workflow. Adapt it to the work — a manga drama, a product ad, a music video, an audiobook and a game asset pack all look different. Keep it flat and readable; prefer numbers or ids that sort (`ep01/sh010`) when order matters.
+2. **Propose the folder structure** to the user as a plan: which folders, what goes in each, in what order things get made, and which assets need a workflow. Adapt it to the work — a manga drama, a product ad, a music video, an audiobook and a game asset pack all look different. **Divide finely, all the way down to one step per workflow** (see **The third rule**); prefer numbers or ids that sort (`ep01/sh010`) when order matters, and let the depth follow the work's own shape — episode, scene, shot, step.
 3. **Write it down**: create the folders, and put a `README.md` (or a `plan.md` at the root) that explains the structure and the steps — the user and later sessions read that, not the chat.
 4. **Fill it stage by stage**: text you author → workflow files → runs → review → the next stage builds on the results by path.
 
@@ -89,13 +119,13 @@ These sit next to this file; resolve them against the skill's base directory.
 3. **Billing checkpoint — every paid run, every time.** A run that uses a paid plugin costs the user money (a paid API key, or GPU seconds on their Modal account — a Modal plugin also deploys on first run). `tongflow_workflow_run` without `user_confirmed` refuses and returns `needs_confirmation`: which plugins, how each is billed, whether its API keys are set, which models it offers, and installed alternatives. Put that to the user in plain words ("这一步用 Gemini 生图,按次计费到你的 GEMINI_API_KEY;也可以换 X;要用哪个模型?现在跑吗?"), wait for their yes, then call again with `user_confirmed: true`. Ask before **each** paid run — a yes for the last run does not cover the next one, and never set the flag on your own. Runs that use only local plugins are free and need no confirmation. When you plan a batch (e.g. ten shots), say so and get one clear yes for that batch, then run them one after another.
 4. `tongflow_workflow_run` — foreground for a single image, `run_in_background` for video/batches; keep working meanwhile.
 5. Review: `tongflow_look` (images, video contact sheets) and `tongflow_perceive` (video/audio/image understanding, transcripts). If this session's model does not take images, `tongflow_look` describes the asset through a describe slot instead of showing it, and says so — a look is never silently blind. Understanding runs a plugin, so it obeys the same billing checkpoint as a run: a billing plugin returns `needs_confirmation` and needs the user's yes before `tongflow_perceive` is called with `user_confirmed: true`; a local one just runs. Write findings into a notes file next to the asset or in a `notes/` folder.
-6. **Compose when a stage chain is done.** When a shot / scene / asset has several small workflows that feed each other by file (`./ref.01.png` → `i2v` → `lipsync`), `tongflow_workflow_compose({ folder })` (or an explicit `workflows` list) writes ONE big `<folder>_all.tongflow.json`: file references to another part's output become real edges, every stage stays an output named after its part (`shot_all.01.i2v.mp4`), the parts are untouched. Tell the user to open it on the canvas to see and tweak the whole; a run of it regenerates everything in one go (it is a paid run like any other).
+6. **Compose upward when a folder is done.** `tongflow_workflow_compose({ folder })` gathers every leaf workflow **under** that folder, at any depth, and writes ONE `<folder>_all.tongflow.json` beside them: file references to another part's output become real edges — across folders as well as within one — every stage stays an output named after its part (`sh010_all.01.i2v.mp4`), and the parts are untouched. Do it for the shot, then the scene, then the episode, so each level has the whole picture of what is beneath it (see **The third rule**). Tell the user to open it on the canvas; a run of it regenerates everything under that folder in one go (a paid run like any other).
 7. If it is off, name the failure and the layer that owns it (`references/failure-codes.md`), change one thing, and run again — the next number lands beside the old one. Two versions with no improvement on the same failure means the problem is not in the prompt (`references/iteration.md`). When it is right, use that file's path downstream (e.g. `./mei_ref.02.png` as the reference for a shot). Tell the user which number you picked and why.
 
 Rules of thumb:
 - Patch incrementally; never rebuild a workflow from scratch; never invent node ids. Read the patch result: `ok:false` steps must be fixed before running.
 - Prefer self-contained workflows (values written into nodes) so opening the file on the canvas shows exactly what made that output. A level-0 data node without data becomes an input you supply per run — use it only for genuinely per-run values.
-- A workflow has as many steps as *that asset* needs (fusion → upscale, i2v → lip-sync, concat → merge music) — never more.
+- A workflow is **one executable node** and the data nodes feeding it. A chain (fusion → upscale, i2v → lip-sync, concat → merge music) is that many workflows in one folder, joined by their output files, not one workflow with several steps.
 - Text you author (script, dialogue, prompts) goes into files, then into workflows by inclusion or as node text — text generation nodes are only for mechanical bulk transforms.
 - Before running, make sure the plugin for each node is installed (`tongflow_plugins_list`, `tongflow_plugins_install`) and its API keys are configured in the studio's Plugins & keys dialog.
 - **Read the plugin's own README before guessing.** `tongflow_plugins_list` gives each installed plugin's `readme` path; the file says which models it offers and which is the default, what each env key changes, the resolutions and aspect ratios it accepts, and its quirks. Read it when choosing between plugins for a slot, when setting a model or param you have not used, and when a run fails for a reason the error does not explain — it is local, authoritative, and costs nothing. Do not guess a model name; do not go looking on the web for something the installed plugin already documents.

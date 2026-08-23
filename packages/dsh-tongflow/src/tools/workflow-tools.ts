@@ -246,7 +246,7 @@ export function workflowTools(env: ToolEnv): ToolDefinition[] {
         defineTool({
             name: "tongflow_workflow_compose",
             description:
-                "Compose several small workflows into ONE big workflow file for a whole-picture canvas view and one-shot re-runs (e.g. a shot's keyframe → i2v → lip-sync, or every stage in a folder). " +
+                "Compose several small workflows into ONE big workflow file for a whole-picture canvas view and one-shot re-runs (e.g. a shot's keyframe → i2v → lip-sync, or everything under a scene folder). " +
                 "Where a part references another part's output file (an imageNode with './keyframe.02.png' while keyframe.tongflow.json sits in the same folder), that file becomes a real edge from the producing node; other file refs stay files. Every stage's product remains an output, named after its part (<all>.01.keyframe.png, <all>.01.i2v.mp4). The parts are not modified. " +
                 "Do this after the parts exist and were reviewed; tell the user to open the composed file on the canvas.",
             parameters: {
@@ -260,7 +260,7 @@ export function workflowTools(env: ToolEnv): ToolDefinition[] {
                 folder: {
                     type: "string",
                     description:
-                        "Compose every workflow directly inside this folder, sorted by file name (previous *_all files excluded).",
+                        "Compose every workflow under this folder, at any depth, sorted by path (previous *_all files excluded at every level). This is how a parent folder gets the whole picture of everything beneath it: it takes the leaf workflows, not its children's composed files, so every file reference still matches the part that produces it.",
                 },
                 path: {
                     type: "string",
