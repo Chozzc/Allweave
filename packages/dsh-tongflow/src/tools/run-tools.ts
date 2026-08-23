@@ -63,6 +63,15 @@ export async function modelTakesImages(
 }
 
 /**
+ * The clone URL as something a person or `web_fetch` can open: git remotes
+ * carry a `.git` suffix and sometimes an `scp`-style host, neither of which
+ * belongs in a link. A non-GitHub or already-clean URL passes through.
+ */
+export function browsableRepo(gitUrl: string): string {
+    return gitUrl.replace(/^git@([^:]+):/, "https://$1/").replace(/\.git$/, "");
+}
+
+/**
  * A plugin's own README, when the clone shipped one. Only the path travels in
  * the catalog: the agent reads the file when it needs to choose between
  * plugins, set an unfamiliar model, or understand a failure. An installed
@@ -600,8 +609,9 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
         defineTool({
             name: "tongflow_plugins_list",
             description:
-                "Installed TongFlow plugins (id, name, ABI slots they implement, required env keys, and the path of the plugin's own README when it has one) and the official plugin ids that can be installed. " +
-                "A plugin's README is written by whoever wrote the plugin: which models it offers and which is the default, what each env key does, resolutions and aspect ratios it accepts, and its quirks. Read that file before choosing between plugins for a slot, before setting an unfamiliar model or param, and when a run fails for a reason the error does not explain.",
+                "Installed TongFlow plugins (id, name, ABI slots they implement, required env keys, the path of the plugin's own README, and its source repo) and the official plugins that can be installed, each with its repo. " +
+                "A plugin's README is written by whoever wrote the plugin: which models it offers and which is the default, what each env key does, resolutions and aspect ratios it accepts, and its quirks. For an INSTALLED plugin read the local `readme` — it is the clone's own file, costs nothing and is already trusted, since that plugin's code runs on this machine. " +
+                "For an official plugin that is NOT installed there is no local file: `web_fetch` its README at <repo>/blob/main/README.md (raw: replace github.com with raw.githubusercontent.com and drop /blob) to see what it does before suggesting the user install it. Never recommend an install from the id alone.",
             parameters: {},
             output: { schema: { type: "json" }, render: (_a, v) => text(v) },
             async execute() {
@@ -625,13 +635,19 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
                         // pulled into the catalog. Together the installed
                         // READMEs run to thousands of lines.
                         ...(await pluginReadme(studio.paths.plugins, id)),
+                        repo: browsableRepo(studio.registry.gitUrlFor(id)),
                     })),
                 );
                 return compact({
                     installed,
+                    // Not installed: no local README, so the repo is the only
+                    // way to find out what it does before suggesting an install.
                     official: OFFICIAL_PLUGINS.filter(
                         (id) => !registry.plugins[id],
-                    ),
+                    ).map((id) => ({
+                        id,
+                        repo: browsableRepo(studio.registry.gitUrlFor(id)),
+                    })),
                     errors: registry.errors ?? [],
                 });
             },
