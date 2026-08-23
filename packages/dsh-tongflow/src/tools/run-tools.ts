@@ -1,7 +1,8 @@
 /**
  * Execution & perception tools: run a workflow (foreground or as a dsh
- * background job), look at a generated image (returned as an image block so a
- * vision model sees it), perceive video/audio through TongFlow's own
+ * background job), look at a generated image (returned as an image block when
+ * the session's model takes images, otherwise described through TongFlow's own
+ * image-describe slot), perceive video/audio through TongFlow's own
  * describe / transcribe slots, and manage plugins.
  */
 import { execFile as execFileCb } from "node:child_process";
@@ -14,8 +15,13 @@ import type {
     ImageMediaType,
 } from "@deepseek-ai/dsh-attachment";
 import type { JobRegistry } from "@deepseek-ai/dsh-jobs";
+import type { LlmRuntime } from "@deepseek-ai/dsh-llm";
 import type { JsonValue } from "@deepseek-ai/dsh-session";
-import { defineTool, type ToolDefinition } from "@deepseek-ai/dsh-tools";
+import {
+    defineTool,
+    type ToolDefinition,
+    type ToolRunContext,
+} from "@deepseek-ai/dsh-tools";
 import type { RunRecord } from "../engine/runs.ts";
 import { formatEvent } from "../engine/runs.ts";
 import { modalityOfExt } from "../shared/types.ts";
@@ -29,6 +35,89 @@ import {
 } from "./support.ts";
 
 const execFile = promisify(execFileCb);
+
+/**
+ * Whether the model this call runs under accepts image content. Mirrors the
+ * llm runtime's own predicate: it only projects images away for a model that
+ * *declares* modalities without "image", so an undeclared catalog stays
+ * image-capable here too. Unknown agent or absent llm service means "assume it
+ * takes images" — the runtime degrades gracefully either way, and guessing the
+ * other direction would spend a plugin run on every look.
+ */
+export async function modelTakesImages(
+    env: ToolEnv,
+    exec: ToolRunContext,
+): Promise<boolean> {
+    const llm = env.ctx.get("llm") as LlmRuntime | undefined;
+    const { provider, model } = exec.agent?.options ?? {};
+    if (!llm || !provider || !model) return true;
+    try {
+        const info = await llm.resolveModelInfo(provider, model, exec.signal);
+        return (
+            info.inputModalities === undefined ||
+            info.inputModalities.includes("image")
+        );
+    } catch {
+        return true;
+    }
+}
+
+/** One TongFlow describe/transcribe slot run over a local media file. */
+interface SlotDescription {
+    ok: boolean;
+    feature: string;
+    pluginId?: string;
+    answer?: string;
+    error?: string;
+    log?: string[];
+    raw?: unknown;
+}
+
+/**
+ * Understand a media file through TongFlow's own describe / transcribe slots.
+ * Shared by `tongflow_perceive` and by `tongflow_look`'s fallback for a model
+ * that does not take images.
+ */
+async function describeViaSlot(
+    env: ToolEnv,
+    pid: string,
+    feature: string,
+    prompt: Record<string, unknown>,
+    pluginId?: string,
+): Promise<SlotDescription> {
+    const { registry } = await env.api.registry();
+    const chosen = pluginId ?? registry.nodePluginMap[feature]?.[0];
+    if (!chosen)
+        return {
+            ok: false,
+            feature,
+            error: `no installed plugin implements ${feature}; install one (e.g. tongflow-api-gemini or tongflow-modal-qwen38) with tongflow_plugins_install`,
+        };
+    const record = await env.api.startCanvasRun(pid, {
+        feature,
+        pluginId: chosen,
+        prompt,
+        nodeId: "perceive",
+    });
+    await record.done;
+    if (record.summary.status !== "completed")
+        return {
+            ok: false,
+            feature,
+            pluginId: chosen,
+            error: record.error ?? "perception run failed",
+            log: record.events.slice(-10).map(formatEvent),
+        };
+    const texts = record.outcome?.texts ?? {};
+    const answer = Object.values(texts).flat().join("\n").trim();
+    return {
+        ok: true,
+        feature,
+        pluginId: chosen,
+        answer: answer || "(empty answer)",
+        raw: record.outcome?.result.outputs,
+    };
+}
 
 declare module "@deepseek-ai/dsh-jobs" {
     interface JobKindMap {
@@ -202,7 +291,8 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
         defineTool({
             name: "tongflow_look",
             description:
-                "Look at an asset. Images are returned as an image you can see (requires a vision-capable model route). Videos are returned as a contact sheet of sampled frames plus duration/resolution. " +
+                "Look at an asset. Images come back as an image you can see, videos as a contact sheet of sampled frames plus duration/resolution. " +
+                "When this session's model does not take images, both are routed through TongFlow's describe slots instead and come back as text, saying so — so a look is never silently blind. " +
                 "Audio returns metadata only — use tongflow_perceive for content. Takes a project-relative path (e.g. 'characters/mei/mei_ref.02.png').",
             parameters: {
                 project: PROJECT_PARAM,
@@ -252,6 +342,24 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
                         return compact({
                             summary: `${args.ref}: image ${st.size} bytes at ${path} (attachments service not mounted; cannot show inline)`,
                         });
+                    if (!(await modelTakesImages(env, exec))) {
+                        const described = await describeViaSlot(
+                            env,
+                            pid,
+                            "image-describe",
+                            {
+                                image: path,
+                                text: "Describe this image in detail.",
+                            },
+                        );
+                        return compact({
+                            ...described,
+                            summary: described.ok
+                                ? `${args.ref}: ${st.size} bytes. This session's model does not take images, so the image was described by ${described.pluginId} instead of shown:\n${described.answer}`
+                                : `${args.ref}: ${st.size} bytes. This session's model does not take images and the image could not be described (${described.error}). Switch to a vision-capable model, or install a plugin for the image-describe slot.`,
+                            path,
+                        });
+                    }
                     const attachment = await attachments.saveImage({
                         data: new Uint8Array(await readFile(path)),
                         mediaType: mime,
@@ -272,6 +380,24 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
                             summary: `${args.ref}: video ${st.size} bytes`,
                             probe,
                         });
+                    if (!(await modelTakesImages(env, exec))) {
+                        const described = await describeViaSlot(
+                            env,
+                            pid,
+                            "video-describe",
+                            {
+                                video: path,
+                                text: "Describe this video in detail: subjects, action, camera, continuity issues.",
+                            },
+                        );
+                        return compact({
+                            ...described,
+                            summary: described.ok
+                                ? `${args.ref}: video ${st.size} bytes; ${JSON.stringify(probe)}. This session's model does not take images, so a contact sheet would be unreadable; described by ${described.pluginId} instead:\n${described.answer}`
+                                : `${args.ref}: video ${st.size} bytes; ${JSON.stringify(probe)}. This session's model does not take images and the video could not be described (${described.error}). Switch to a vision-capable model, or install a plugin for the video-describe slot.`,
+                            probe,
+                        });
+                    }
                     try {
                         const sheet = await contactSheet(
                             path,
@@ -392,37 +518,15 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
                         error: `${args.ref} is not a video/audio/image`,
                     };
                 }
-                const { registry } = await api.registry();
-                const pluginId =
-                    args.pluginId ?? registry.nodePluginMap[feature]?.[0];
-                if (!pluginId) {
-                    return {
-                        ok: false,
-                        error: `no installed plugin implements ${feature}; install one (e.g. tongflow-api-gemini or tongflow-modal-qwen38) with tongflow_plugins_install`,
-                    };
-                }
-                const record = await api.startCanvasRun(pid, {
-                    feature,
-                    pluginId,
-                    prompt,
-                    nodeId: "perceive",
-                });
-                await record.done;
-                if (record.summary.status !== "completed")
-                    return compact({
-                        ok: false,
-                        error: record.error ?? "perception run failed",
-                        log: record.events.slice(-10).map(formatEvent),
-                    });
-                const texts = record.outcome?.texts ?? {};
-                const answer = Object.values(texts).flat().join("\n").trim();
-                return compact({
-                    ok: true,
-                    feature,
-                    pluginId,
-                    answer: answer || "(empty answer)",
-                    raw: record.outcome?.result.outputs,
-                });
+                return compact(
+                    await describeViaSlot(
+                        env,
+                        pid,
+                        feature,
+                        prompt,
+                        args.pluginId,
+                    ),
+                );
             },
         }),
         defineTool({
