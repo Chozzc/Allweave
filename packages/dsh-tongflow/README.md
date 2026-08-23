@@ -80,7 +80,7 @@ A run that uses a paid plugin spends the user's money — a paid API key, or GPU
 
 ## Agent tools
 
-`tongflow_project_create / _open / _list / _status` · `tongflow_workflow_new / _patch / _read / _list / _validate / _run / _compose` · `tongflow_node_catalog / _describe` · `tongflow_look` (images / video contact sheets, returned as an image block) · `tongflow_perceive` (video/audio/image understanding via TongFlow slots) · `tongflow_plugins_list / _install / _uninstall` · `tongflow_run_status`. Folder structure and text files are made with dsh's ordinary file tools. Long runs go through dsh background jobs (`run_in_background`).
+`tongflow_project_create / _open / _list / _status` · `tongflow_workflow_new / _patch / _read / _list / _validate / _run / _compose` · `tongflow_node_catalog / _describe` · `tongflow_look` (images / video contact sheets, returned as an image block — or described through a slot when the session's model takes no images) · `tongflow_perceive` (video/audio/image understanding via TongFlow slots; billing plugins need `user_confirmed`) · `tongflow_plugins_list / _install / _uninstall` · `tongflow_run_status`. Folder structure and text files are made with dsh's ordinary file tools. Long runs go through dsh background jobs (`run_in_background`).
 
 Skill shipped: `tongflow-studio` (the working method: research → propose a structure → one workflow per asset next to its outputs → run → review → next stage), with four method references under [`skills/references/`](skills/references/) that the agent loads only when the step needs them:
 

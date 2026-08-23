@@ -71,6 +71,29 @@ interface SlotDescription {
     error?: string;
     log?: string[];
     raw?: unknown;
+    /** Set instead of running when the slot's plugin bills the user. */
+    needs_confirmation?: true;
+    billing?: string;
+    note?: string;
+}
+
+/**
+ * What `tongflow_look` says when this session's model cannot see the asset.
+ * A free plugin has already described it; a billing one has not run, and the
+ * agent is told to ask the user and go through `tongflow_perceive`, the one
+ * tool that carries the confirmation flag.
+ */
+function blindSummary(
+    head: string,
+    kind: "image" | "video",
+    described: SlotDescription,
+): string {
+    const blind = `${head}. This session's model does not take images`;
+    if (described.ok)
+        return `${blind}, so it was described by ${described.pluginId} instead of shown:\n${described.answer}`;
+    if (described.needs_confirmation)
+        return `${blind}, and describing it would run ${described.pluginId}, which bills you (${described.billing}: ${described.note}). Tell the user what it costs, ask, and then call tongflow_perceive with user_confirmed=true — or switch this session to a vision-capable model.`;
+    return `${blind} and it could not be described (${described.error}). Switch to a vision-capable model, or install a plugin for the ${kind}-describe slot.`;
 }
 
 /**
@@ -78,12 +101,13 @@ interface SlotDescription {
  * Shared by `tongflow_perceive` and by `tongflow_look`'s fallback for a model
  * that does not take images.
  */
-async function describeViaSlot(
+export async function describeViaSlot(
     env: ToolEnv,
     pid: string,
     feature: string,
     prompt: Record<string, unknown>,
     pluginId?: string,
+    confirmed?: boolean,
 ): Promise<SlotDescription> {
     const { registry } = await env.api.registry();
     const chosen = pluginId ?? registry.nodePluginMap[feature]?.[0];
@@ -93,6 +117,20 @@ async function describeViaSlot(
             feature,
             error: `no installed plugin implements ${feature}; install one (e.g. tongflow-api-gemini or tongflow-modal-qwen38) with tongflow_plugins_install`,
         };
+    // Understanding a file is a plugin run like any other: when it bills the
+    // user, it needs their yes first, exactly like tongflow_workflow_run.
+    if (!confirmed) {
+        const { billing, note } = await env.api.pluginBilling(chosen);
+        if (billing !== "local")
+            return {
+                ok: false,
+                feature,
+                pluginId: chosen,
+                needs_confirmation: true,
+                billing,
+                note,
+            };
+    }
     const record = await env.api.startCanvasRun(pid, {
         feature,
         pluginId: chosen,
@@ -354,9 +392,11 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
                         );
                         return compact({
                             ...described,
-                            summary: described.ok
-                                ? `${args.ref}: ${st.size} bytes. This session's model does not take images, so the image was described by ${described.pluginId} instead of shown:\n${described.answer}`
-                                : `${args.ref}: ${st.size} bytes. This session's model does not take images and the image could not be described (${described.error}). Switch to a vision-capable model, or install a plugin for the image-describe slot.`,
+                            summary: blindSummary(
+                                `${args.ref}: ${st.size} bytes`,
+                                "image",
+                                described,
+                            ),
                             path,
                         });
                     }
@@ -392,9 +432,11 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
                         );
                         return compact({
                             ...described,
-                            summary: described.ok
-                                ? `${args.ref}: video ${st.size} bytes; ${JSON.stringify(probe)}. This session's model does not take images, so a contact sheet would be unreadable; described by ${described.pluginId} instead:\n${described.answer}`
-                                : `${args.ref}: video ${st.size} bytes; ${JSON.stringify(probe)}. This session's model does not take images and the video could not be described (${described.error}). Switch to a vision-capable model, or install a plugin for the video-describe slot.`,
+                            summary: blindSummary(
+                                `${args.ref}: video ${st.size} bytes; ${JSON.stringify(probe)}`,
+                                "video",
+                                described,
+                            ),
                             probe,
                         });
                     }
@@ -448,7 +490,8 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
             name: "tongflow_perceive",
             description:
                 "Understand a video, audio or image through TongFlow's describe/transcribe slots (video-describe, audio-describe / transcribe, image-describe) using an installed plugin — this is how you review generated media the chat model cannot ingest directly. " +
-                "Ask a concrete question: continuity with the reference, lip sync, motion quality, whether the line was spoken correctly, etc.",
+                "Ask a concrete question: continuity with the reference, lip sync, motion quality, whether the line was spoken correctly, etc. " +
+                "BILLING CHECKPOINT: this runs a plugin. When that plugin bills the user, the call returns needs_confirmation instead of running — tell the user which plugin will describe the file and how it is billed, ask, and only after they agree call again with user_confirmed=true. Ask every time. A plugin that runs locally needs no confirmation.",
             parameters: {
                 project: PROJECT_PARAM,
                 ref: {
@@ -471,6 +514,11 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
                     type: "string",
                     description:
                         "Force a specific plugin (default: the first installed one for the slot).",
+                },
+                user_confirmed: {
+                    type: "boolean",
+                    description:
+                        "Set to true ONLY after the user explicitly agreed, in this conversation, to this plugin running and its billing. Never set it on your own; nothing is remembered between calls.",
                 },
             },
             output: { schema: { type: "json" }, render: (_a, v) => text(v) },
@@ -525,6 +573,7 @@ export function runTools(env: ToolEnv): ToolDefinition[] {
                         feature,
                         prompt,
                         args.pluginId,
+                        args.user_confirmed,
                     ),
                 );
             },
