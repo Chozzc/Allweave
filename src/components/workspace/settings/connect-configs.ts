@@ -7,10 +7,38 @@ import {
     MODAL_TOKEN_ID_ENV,
     MODAL_TOKEN_SECRET_ENV,
 } from "@/lib/settings/env-key-metadata";
-import type { TokenProviderConfig } from "./token-connect";
+import type { TokenProviderConfig, TokenVerifyResult } from "./token-connect";
 
 // Prefix-anchored patterns; a minimum tail length avoids matching a bare
 // prefix the user is still typing.
+
+/**
+ * A Modal token can be perfectly valid and still buy nothing: Modal refuses
+ * GPU functions on accounts with no payment method, and only says so when a
+ * function is created. The cloud asks on our behalf right after connecting,
+ * so the answer arrives here rather than several minutes into a first
+ * generation. Self-host has no such endpoint — an unreachable probe is not a
+ * verdict, so it stays silent.
+ */
+async function probeModalGpu(): Promise<TokenVerifyResult | null> {
+    try {
+        const res = await fetch("/api/modal/probe", { method: "POST" });
+        if (!res.ok) return null;
+        const body = (await res.json()) as {
+            ok?: boolean | null;
+            errorCode?: string;
+            errorParams?: Record<string, string | number>;
+        };
+        if (body.ok !== false) return null;
+        return {
+            ok: false,
+            errorCode: body.errorCode,
+            errorParams: body.errorParams,
+        };
+    } catch {
+        return null;
+    }
+}
 
 export const MODAL_CONNECT: TokenProviderConfig = {
     ns: "ModalConnect",
@@ -32,6 +60,7 @@ export const MODAL_CONNECT: TokenProviderConfig = {
             missingKey: "missingSecret",
         },
     ],
+    verify: probeModalGpu,
     // The onboarding banner/wizard watch Modal connectivity.
     onConnectedStore: markModalConnected,
     onDisconnectedStore: markModalDisconnected,

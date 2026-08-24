@@ -23,11 +23,14 @@ import {
     DialogDescription,
     DialogHeader,
     DialogTitle,
+    showErrorToast,
     Textarea,
 } from "tongflow/canvas";
+import { ModalBillingRow } from "@/components/workspace/modal-billing-row";
 import { DISCORD_URL, WECHAT_GROUP_QR_SRC } from "@/constants/community";
 import { useInChinaTz } from "@/hooks/use-in-china-tz";
 import { openExternalUrl } from "@/lib/desktop/open-external";
+import { localizeTaskError } from "@/lib/task/error-localize";
 
 /** One credential extracted from the pasted blob. */
 export interface TokenSpec {
@@ -40,6 +43,17 @@ export interface TokenSpec {
     /** i18n keys (within the provider namespace) for the parse status line. */
     detectedKey: string;
     missingKey: string;
+}
+
+/**
+ * Outcome of a post-connect check against the provider. `null` means the
+ * question could not be asked (no probe endpoint, provider unreachable) —
+ * never a verdict, so nothing is shown.
+ */
+export interface TokenVerifyResult {
+    ok: boolean;
+    errorCode?: string;
+    errorParams?: Record<string, string | number>;
 }
 
 /**
@@ -59,6 +73,13 @@ export interface TokenProviderConfig {
     specs: TokenSpec[];
     /** Interpolation values for every message (e.g. { provider: "OpenAI" }). */
     tValues?: Record<string, string>;
+    /**
+     * Optional post-connect check: a saved credential can still be unusable
+     * (Modal accepts the token but won't run GPUs without a payment method).
+     * Runs after the dialog closes; a coded failure is explained via
+     * `TaskErrors.<code>`.
+     */
+    verify?: () => Promise<TokenVerifyResult | null>;
     /** Optional store flips (e.g. Modal's onboarding banner). */
     onConnectedStore?: () => void;
     onDisconnectedStore?: () => void;
@@ -192,6 +213,7 @@ export function TokenConnectForm({
     const rawT = useTranslations(config.ns);
     const t = (key: string, values?: Record<string, string>) =>
         rawT(key, { ...config.tValues, ...values });
+    const tErr = useTranslations("TaskErrors");
     const managed = process.env.NEXT_PUBLIC_MANAGED_PLUGINS === "1";
     const [raw, setRaw] = useState("");
     const [saving, setSaving] = useState(false);
@@ -202,6 +224,25 @@ export function TokenConnectForm({
         spec.pattern ? (raw.match(spec.pattern)?.[0] ?? "") : extractLoose(raw),
     );
     const allFound = parsed.every(Boolean);
+
+    const verify = async () => {
+        const result = await config.verify?.();
+        if (!result || result.ok || !result.errorCode) return;
+        showErrorToast({
+            message: localizeTaskError(tErr, result),
+            id: `token-verify:${config.ns}`,
+            footer:
+                result.errorCode === "modal_payment_required" ? (
+                    <ModalBillingRow
+                        url={
+                            typeof result.errorParams?.url === "string"
+                                ? result.errorParams.url
+                                : undefined
+                        }
+                    />
+                ) : undefined,
+        });
+    };
 
     const connect = async () => {
         setSaving(true);
@@ -214,6 +255,9 @@ export function TokenConnectForm({
             config.onConnectedStore?.();
             toast.success(t("connectedToast"));
             onConnected?.();
+            // Costs a round trip to the provider — let the dialog close and
+            // report separately if the credential turns out to be unusable.
+            void verify();
         } catch (error) {
             logger.error(`Failed to save token (${config.ns}):`, error);
             toast.error(t("connectFailed"));
