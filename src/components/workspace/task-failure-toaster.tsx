@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { TaskStatus, WorkflowStatus } from "tongflow";
 import type { SSEMessage } from "tongflow/canvas";
@@ -13,6 +14,7 @@ import {
     MissingKeyDialog,
     type MissingKeyRequest,
 } from "@/components/workspace/missing-key-dialog";
+import { ModalBillingRow } from "@/components/workspace/modal-billing-row";
 import type { SerializedWorkflowFailure } from "@/lib/task/error-envelope";
 import { buildTaskErrorDetail } from "@/lib/task/error-format";
 import {
@@ -32,10 +34,13 @@ export function TaskFailureToaster() {
     const [missingKey, setMissingKey] = useState<MissingKeyRequest | null>(
         null,
     );
+    // TaskErrors lives in the host app's catalog, which getClientTranslator
+    // (canvas messages only) cannot see — coded failures rendered as the raw
+    // key until this went through the provider instead.
+    const tErr = useTranslations("TaskErrors");
 
     useEffect(() => {
         const t = getClientTranslator("Workspace.toast");
-        const tErr = getClientTranslator("TaskErrors");
 
         const handle = (event: CustomEvent<SSEMessage>) => {
             const message = event.detail;
@@ -100,10 +105,21 @@ export function TaskFailureToaster() {
                 message: errorText || t("taskFailed"),
                 detail,
                 id: `task-failed:${taskId}`,
-                // Server-side faults get community links so users can reach us.
-                footer: shouldOfferSupport(coded) ? (
-                    <CommunitySupportRow />
-                ) : undefined,
+                // Fixable in Modal's console, not here — link straight to it.
+                // Otherwise server-side faults get community links so users
+                // can reach us.
+                footer:
+                    data?.errorCode === "modal_payment_required" ? (
+                        <ModalBillingRow
+                            url={
+                                typeof params?.url === "string"
+                                    ? params.url
+                                    : undefined
+                            }
+                        />
+                    ) : shouldOfferSupport(coded) ? (
+                        <CommunitySupportRow />
+                    ) : undefined,
             });
         };
 
@@ -117,7 +133,7 @@ export function TaskFailureToaster() {
                 handle as EventListener,
             );
         };
-    }, []);
+    }, [tErr]);
 
     return (
         <MissingKeyDialog

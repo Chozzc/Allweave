@@ -207,7 +207,8 @@
         "task_not_found": "This task no longer exists or has expired — please start it again.",
         "workflow_invalid": "The workflow has no runnable data — re-save the workflow and try again.",
         "task_failed_to_start": "The task couldn't start. Please try again in a moment.",
-        "missing_api_key": "{key} isn't set, so this plugin can't run. Paste an API key and you're set."
+        "missing_api_key": "{key} isn't set, so this plugin can't run. Paste an API key and you're set.",
+        "modal_payment_required": "Modal won't run GPU plugins until your account has a payment method on file. Add a card in Modal's billing settings, then re-run — the $30/month of free compute still applies. Plugins that call an external API work without it."
     },
     "MissingKeyDialog": {
         "title": "One API key to go",

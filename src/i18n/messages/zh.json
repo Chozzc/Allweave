@@ -207,7 +207,8 @@
         "task_not_found": "任务不存在或已过期，请重新发起一次。",
         "workflow_invalid": "工作流没有可执行的数据，请重新保存工作流后再试。",
         "task_failed_to_start": "任务启动失败，请稍后重试。",
-        "missing_api_key": "还没配置 {key}，这个插件运行不了。粘贴一个 API Key 就能跑。"
+        "missing_api_key": "还没配置 {key}，这个插件运行不了。粘贴一个 API Key 就能跑。",
+        "modal_payment_required": "Modal 要求账号先绑支付方式，才肯跑 GPU 插件。去 Modal 的账单设置加一张卡，然后重跑一次——每月 $30 的免费额度照样算。不用 GPU 的 API 类插件不受影响。"
     },
     "MissingKeyDialog": {
         "title": "还差一个 API Key",
