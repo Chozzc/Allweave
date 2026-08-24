@@ -90,6 +90,10 @@
         "detectedId": "Token ID {id}",
         "detectedSecret": "已识别 Token Secret",
         "missingId": "还没识别到 Token ID（ak- 开头）",
+        "verifying": "正在确认这个账号能不能真的拿到 GPU——往 Modal 部署一个一次性的测试函数，随即删掉。几秒钟。",
+        "verifyBlockedTitle": "Token 已存好，还差一步",
+        "verifyFixCta": "去 Modal 绑定支付方式",
+        "verifyRecheck": "重新检查",
         "missingSecret": "还没识别到 Token Secret（as- 开头）"
     },
     "HfConnect": {

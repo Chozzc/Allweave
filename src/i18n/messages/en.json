@@ -90,6 +90,10 @@
         "detectedId": "Token ID {id}",
         "detectedSecret": "Token Secret detected",
         "missingId": "Waiting for the Token ID (starts with ak-)",
+        "verifying": "Checking that this account can actually get a GPU — we deploy one throwaway test function to Modal and remove it straight away. A few seconds.",
+        "verifyBlockedTitle": "Token saved — one thing left",
+        "verifyFixCta": "Add a payment method on Modal",
+        "verifyRecheck": "Check again",
         "missingSecret": "Waiting for the Token Secret (starts with as-)"
     },
     "HfConnect": {

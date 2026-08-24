@@ -23,10 +23,8 @@ import {
     DialogDescription,
     DialogHeader,
     DialogTitle,
-    showErrorToast,
     Textarea,
 } from "tongflow/canvas";
-import { ModalBillingRow } from "@/components/workspace/modal-billing-row";
 import { DISCORD_URL, WECHAT_GROUP_QR_SRC } from "@/constants/community";
 import { useInChinaTz } from "@/hooks/use-in-china-tz";
 import { openExternalUrl } from "@/lib/desktop/open-external";
@@ -76,8 +74,11 @@ export interface TokenProviderConfig {
     /**
      * Optional post-connect check: a saved credential can still be unusable
      * (Modal accepts the token but won't run GPUs without a payment method).
-     * Runs after the dialog closes; a coded failure is explained via
-     * `TaskErrors.<code>`.
+     * Blocks the connect flow while it runs and, on a coded failure, keeps the
+     * dialog open on a fix-it panel rather than reporting success. Providers
+     * that set this must also carry `verifying`, `verifyBlockedTitle`,
+     * `verifyFixCta` and `verifyRecheck` in their namespace; the failure body
+     * comes from `TaskErrors.<code>`.
      */
     verify?: () => Promise<TokenVerifyResult | null>;
     /** Optional store flips (e.g. Modal's onboarding banner). */
@@ -206,9 +207,14 @@ function CommunityHelpFooter() {
 export function TokenConnectForm({
     config,
     onConnected,
+    onSaved,
 }: {
     config: TokenProviderConfig;
+    /** Connected *and* verified — the caller closes the dialog / advances. */
     onConnected?: () => void;
+    /** Credential persisted, verification still pending or failed. Lets the
+     * caller refresh its env map without dismissing the fix-it panel. */
+    onSaved?: () => void;
 }) {
     const rawT = useTranslations(config.ns);
     const t = (key: string, values?: Record<string, string>) =>
@@ -216,7 +222,9 @@ export function TokenConnectForm({
     const tErr = useTranslations("TaskErrors");
     const managed = process.env.NEXT_PUBLIC_MANAGED_PLUGINS === "1";
     const [raw, setRaw] = useState("");
-    const [saving, setSaving] = useState(false);
+    const [phase, setPhase] = useState<"idle" | "saving" | "verifying">("idle");
+    const [blocked, setBlocked] = useState<TokenVerifyResult | null>(null);
+    const busy = phase !== "idle";
 
     // Token pages usually show one copyable command/value, so accept any
     // pasted blob and extract the value(s) — no field splitting required.
@@ -225,27 +233,27 @@ export function TokenConnectForm({
     );
     const allFound = parsed.every(Boolean);
 
-    const verify = async () => {
-        const result = await config.verify?.();
-        if (!result || result.ok || !result.errorCode) return;
-        showErrorToast({
-            message: localizeTaskError(tErr, result),
-            id: `token-verify:${config.ns}`,
-            footer:
-                result.errorCode === "modal_payment_required" ? (
-                    <ModalBillingRow
-                        url={
-                            typeof result.errorParams?.url === "string"
-                                ? result.errorParams.url
-                                : undefined
-                        }
-                    />
-                ) : undefined,
-        });
+    /** Runs the provider check; true when the flow may report success. */
+    const runVerify = async (): Promise<boolean> => {
+        if (!config.verify) return true;
+        setPhase("verifying");
+        const result = await config.verify();
+        if (result && !result.ok && result.errorCode) {
+            setBlocked(result);
+            return false;
+        }
+        setBlocked(null);
+        return true;
+    };
+
+    const succeed = () => {
+        toast.success(t("connectedToast"));
+        onConnected?.();
     };
 
     const connect = async () => {
-        setSaving(true);
+        setBlocked(null);
+        setPhase("saving");
         try {
             const env: Record<string, string> = {};
             config.specs.forEach((spec, i) => {
@@ -253,16 +261,27 @@ export function TokenConnectForm({
             });
             await apiPatch("/api/settings/env", { env });
             config.onConnectedStore?.();
-            toast.success(t("connectedToast"));
-            onConnected?.();
-            // Costs a round trip to the provider — let the dialog close and
-            // report separately if the credential turns out to be unusable.
-            void verify();
+            // The credential is stored whatever the check says next, so let
+            // the caller refresh now; only success dismisses the dialog.
+            onSaved?.();
+            if (await runVerify()) succeed();
         } catch (error) {
             logger.error(`Failed to save token (${config.ns}):`, error);
             toast.error(t("connectFailed"));
         } finally {
-            setSaving(false);
+            setPhase("idle");
+        }
+    };
+
+    // Re-ask without re-saving: the fix happens in the provider's console, so
+    // the user comes back to this panel with the same credential in place.
+    const recheck = async () => {
+        try {
+            if (await runVerify()) succeed();
+        } catch (error) {
+            logger.error(`Verify failed (${config.ns}):`, error);
+        } finally {
+            setPhase("idle");
         }
     };
 
@@ -327,13 +346,59 @@ export function TokenConnectForm({
                 </div>
             </div>
 
+            {phase === "verifying" ? (
+                <p className="flex items-start gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin" />
+                    {t("verifying")}
+                </p>
+            ) : null}
+
+            {blocked ? (
+                <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+                    <p className="text-sm font-medium">
+                        {t("verifyBlockedTitle")}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                        {localizeTaskError(tErr, blocked)}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                        {typeof blocked.errorParams?.url === "string" ? (
+                            <Button
+                                type="button"
+                                size="sm"
+                                onClick={() =>
+                                    openExternalUrl(
+                                        String(blocked.errorParams?.url),
+                                    )
+                                }
+                            >
+                                {t("verifyFixCta")}
+                                <ExternalLink className="ml-1 h-3 w-3" />
+                            </Button>
+                        ) : null}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={busy}
+                            onClick={recheck}
+                        >
+                            {busy ? (
+                                <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                            ) : null}
+                            {t("verifyRecheck")}
+                        </Button>
+                    </div>
+                </div>
+            ) : null}
+
             <Button
                 type="button"
                 className="w-full"
-                disabled={!allFound || saving}
+                disabled={!allFound || busy}
                 onClick={connect}
             >
-                {saving ? (
+                {busy ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : null}
                 {t("saveConnect")}
@@ -368,10 +433,8 @@ export function TokenConnectDialog({
                 </DialogHeader>
                 <TokenConnectForm
                     config={config}
-                    onConnected={() => {
-                        onOpenChange(false);
-                        onConnected?.();
-                    }}
+                    onSaved={onConnected}
+                    onConnected={() => onOpenChange(false)}
                 />
             </DialogContent>
         </Dialog>

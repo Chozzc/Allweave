@@ -90,6 +90,10 @@
         "detectedId": "トークン ID {id}",
         "detectedSecret": "トークンシークレットを検出",
         "missingId": "トークン ID が見つかりません（ak- で始まります）",
+        "verifying": "このアカウントで実際に GPU を確保できるか確認しています。使い捨てのテスト関数を Modal にデプロイして、すぐ削除します。数秒で終わります。",
+        "verifyBlockedTitle": "トークンは保存しました。あと一つだけ",
+        "verifyFixCta": "Modal で支払い方法を登録する",
+        "verifyRecheck": "もう一度確認",
         "missingSecret": "シークレットが見つかりません（as- で始まります）"
     },
     "HfConnect": {

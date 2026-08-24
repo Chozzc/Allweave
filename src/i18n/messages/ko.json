@@ -90,6 +90,10 @@
         "detectedId": "토큰 ID {id}",
         "detectedSecret": "토큰 시크릿 인식됨",
         "missingId": "토큰 ID를 아직 찾지 못했어요(ak-로 시작)",
+        "verifying": "이 계정에서 GPU를 실제로 받을 수 있는지 확인하고 있어요. 일회용 테스트 함수를 Modal에 배포한 뒤 바로 지웁니다. 몇 초면 끝나요.",
+        "verifyBlockedTitle": "토큰은 저장했어요. 하나만 더",
+        "verifyFixCta": "Modal에서 결제 수단 등록하기",
+        "verifyRecheck": "다시 확인",
         "missingSecret": "토큰 시크릿을 아직 찾지 못했어요(as-로 시작)"
     },
     "HfConnect": {
