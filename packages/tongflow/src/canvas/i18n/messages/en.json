@@ -1025,6 +1025,7 @@
         "copy": "Copy",
         "copied": "Copied",
         "close": "Close",
+        "openModalBilling": "Open Modal billing",
         "needHelp": "Stuck? Come find us:",
         "wechatGroup": "WeChat group",
         "wechatQrAlt": "WeChat group QR code"

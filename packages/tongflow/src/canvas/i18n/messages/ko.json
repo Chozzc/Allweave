@@ -1025,6 +1025,7 @@
         "copy": "복사",
         "copied": "복사됨",
         "close": "닫기",
+        "openModalBilling": "Modal 결제 설정 열기",
         "needHelp": "해결이 안 되면 커뮤니티로 오세요:",
         "wechatGroup": "WeChat 그룹",
         "wechatQrAlt": "WeChat 그룹 QR 코드"

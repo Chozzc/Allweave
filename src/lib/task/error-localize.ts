@@ -16,6 +16,7 @@ const KNOWN_TASK_ERROR_CODES = new Set([
     "workflow_invalid",
     "task_failed_to_start",
     "missing_api_key",
+    "modal_payment_required",
 ]);
 
 /** Minimal translator shape satisfied by both useTranslations and getClientTranslator. */

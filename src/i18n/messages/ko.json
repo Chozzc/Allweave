@@ -207,7 +207,8 @@
         "task_not_found": "작업이 존재하지 않거나 만료되었어요. 다시 실행해 주세요.",
         "workflow_invalid": "워크플로에 실행 가능한 데이터가 없어요. 워크플로를 다시 저장한 뒤 시도해 주세요.",
         "task_failed_to_start": "작업을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.",
-        "missing_api_key": "{key}가 설정되지 않아 이 플러그인을 실행할 수 없어요. API 키를 붙여넣으면 바로 됩니다."
+        "missing_api_key": "{key}가 설정되지 않아 이 플러그인을 실행할 수 없어요. API 키를 붙여넣으면 바로 됩니다.",
+        "modal_payment_required": "Modal은 결제 수단이 등록되기 전까지 GPU 플러그인을 실행하지 않아요. Modal 결제 설정에서 카드를 추가한 뒤 다시 실행해 주세요. 매달 $30 무료 크레딧은 그대로 적용됩니다. 외부 API를 호출하는 플러그인은 등록 없이도 동작해요."
     },
     "MissingKeyDialog": {
         "title": "API 키 하나만 더",

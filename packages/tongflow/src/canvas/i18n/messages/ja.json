@@ -939,6 +939,7 @@
         "copy": "コピー",
         "copied": "コピーしました",
         "close": "閉じる",
+        "openModalBilling": "Modal の請求設定を開く",
         "needHelp": "解決しない場合はこちらへ：",
         "wechatGroup": "WeChat グループ",
         "wechatQrAlt": "WeChat グループの QR コード"
