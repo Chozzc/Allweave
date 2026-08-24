@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { logger } from "tongflow";
 import { apiGet, apiPut } from "tongflow/canvas";
@@ -33,6 +33,7 @@ export function useEnvSettings() {
     const [customRows, setCustomRows] = useState<CustomRow[]>([]);
     // Keyed by env key for declared rows, `custom:${index}` for custom rows.
     const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+    const hasLoaded = useRef(false);
 
     const applyEnv = useCallback(
         (env: Record<string, string>, nextDecls: PluginEnvDecl[]) => {
@@ -54,10 +55,15 @@ export function useEnvSettings() {
     );
 
     const fetchEnv = useCallback(async () => {
-        setLoading(true);
+        // Only the first load may blank the panel. A refetch triggered by a
+        // connect or disconnect swaps the whole body for a spinner, which
+        // unmounts the provider cards — and an open connect dialog, whose
+        // state lives inside one, vanishes with them mid-flow.
+        if (!hasLoaded.current) setLoading(true);
         try {
             const data = await apiGet<EnvResponse>("/api/settings/env");
             applyEnv(data.env ?? {}, data.pluginEnv ?? []);
+            hasLoaded.current = true;
         } catch (error) {
             logger.error("Failed to load settings:", error);
         } finally {
