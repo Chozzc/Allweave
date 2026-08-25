@@ -212,7 +212,7 @@
             "id": "a1d0567f-bf5d-42e6-868d-643c3998fc87",
             "type": "imageFusionNode",
             "feature": "image-fusion",
-            "pluginId": "tongflow-modal-flux2-klein9b",
+            "pluginId": "tongflow-modal-qwen-image-edit",
             "bindings": {
                 "text": {
                     "kind": "config",
@@ -258,7 +258,7 @@
             ],
             "level": 4,
             "rawConfig": {
-                "pluginId": "tongflow-modal-flux2-klein9b",
+                "pluginId": "tongflow-modal-qwen-image-edit",
                 "width": 720,
                 "height": 1280,
                 "text": "cat and mouse take a photo together"
@@ -553,7 +553,7 @@
                         "f224f29f-968c-466c-aa8c-2ea9735d0086",
                         "29685aa4-bab0-4047-8f90-b2ce63618037"
                     ],
-                    "pluginId": "tongflow-modal-flux2-klein9b",
+                    "pluginId": "tongflow-modal-qwen-image-edit",
                     "feature": "image-fusion",
                     "width": 720,
                     "height": 1280,
