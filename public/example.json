@@ -82,7 +82,9 @@
             "dataType": "image",
             "isInput": false,
             "staticData": {
-                "fileKeys": ["public/CKtGcdc8YMrouNZtpjbzN.png"]
+                "fileKeys": [
+                    "https://file.tongflow.com/public/CKtGcdc8YMrouNZtpjbzN.png"
+                ]
             },
             "level": 3
         },
@@ -92,7 +94,9 @@
             "dataType": "image",
             "isInput": false,
             "staticData": {
-                "fileKeys": ["public/etz5lwKJ1aXJKm4Y5kVHA.png"]
+                "fileKeys": [
+                    "https://file.tongflow.com/public/etz5lwKJ1aXJKm4Y5kVHA.png"
+                ]
             },
             "level": 3
         },
@@ -102,7 +106,9 @@
             "dataType": "image",
             "isInput": false,
             "staticData": {
-                "fileKeys": ["public/pU8sgnY8F8-hKd5L-OPBl.png"]
+                "fileKeys": [
+                    "https://file.tongflow.com/public/pU8sgnY8F8-hKd5L-OPBl.png"
+                ]
             },
             "level": 5
         },
@@ -112,7 +118,9 @@
             "dataType": "video",
             "isInput": false,
             "staticData": {
-                "fileKeys": ["public/OcvzJdnId7kk_YWkAgYwr.mp4"]
+                "fileKeys": [
+                    "https://file.tongflow.com/public/OcvzJdnId7kk_YWkAgYwr.mp4"
+                ]
             },
             "level": 7
         }
@@ -304,7 +312,9 @@
             "dependencies": ["3fd5f0d5-68e3-4afb-b1c7-073d6c8f2f56"],
             "level": 6,
             "rawConfig": {
-                "fileKeys": ["public/pU8sgnY8F8-hKd5L-OPBl.png"],
+                "fileKeys": [
+                    "https://file.tongflow.com/public/pU8sgnY8F8-hKd5L-OPBl.png"
+                ],
                 "pluginId": "tongflow-modal-minimax-h3",
                 "duration": 5,
                 "width": 576,
@@ -440,7 +450,9 @@
                 },
                 "origin": [0.5, 0.5],
                 "data": {
-                    "fileKeys": ["public/CKtGcdc8YMrouNZtpjbzN.png"]
+                    "fileKeys": [
+                        "https://file.tongflow.com/public/CKtGcdc8YMrouNZtpjbzN.png"
+                    ]
                 },
                 "measured": {
                     "width": 256,
@@ -517,7 +529,9 @@
                 },
                 "origin": [0.5, 0.5],
                 "data": {
-                    "fileKeys": ["public/etz5lwKJ1aXJKm4Y5kVHA.png"]
+                    "fileKeys": [
+                        "https://file.tongflow.com/public/etz5lwKJ1aXJKm4Y5kVHA.png"
+                    ]
                 },
                 "measured": {
                     "width": 256,
@@ -547,8 +561,8 @@
                     "prompt": {
                         "text": "cat and mouse take a photo together",
                         "images": [
-                            "public/CKtGcdc8YMrouNZtpjbzN.png",
-                            "public/etz5lwKJ1aXJKm4Y5kVHA.png"
+                            "https://file.tongflow.com/public/CKtGcdc8YMrouNZtpjbzN.png",
+                            "https://file.tongflow.com/public/etz5lwKJ1aXJKm4Y5kVHA.png"
                         ],
                         "width": 720,
                         "height": 1280
@@ -570,7 +584,9 @@
                 },
                 "origin": [0.5, 0.5],
                 "data": {
-                    "fileKeys": ["public/pU8sgnY8F8-hKd5L-OPBl.png"]
+                    "fileKeys": [
+                        "https://file.tongflow.com/public/pU8sgnY8F8-hKd5L-OPBl.png"
+                    ]
                 },
                 "measured": {
                     "width": 320,
@@ -588,7 +604,9 @@
                 },
                 "origin": [0.5, 0.5],
                 "data": {
-                    "fileKeys": ["public/pU8sgnY8F8-hKd5L-OPBl.png"],
+                    "fileKeys": [
+                        "https://file.tongflow.com/public/pU8sgnY8F8-hKd5L-OPBl.png"
+                    ],
                     "pluginId": "tongflow-modal-minimax-h3",
                     "duration": 5,
                     "feature": "image-gen-video",
@@ -600,7 +618,7 @@
                         "text": "drinking",
                         "height": 1024,
                         "width": 576,
-                        "image": "public/pU8sgnY8F8-hKd5L-OPBl.png"
+                        "image": "https://file.tongflow.com/public/pU8sgnY8F8-hKd5L-OPBl.png"
                     }
                 },
                 "measured": {
@@ -619,7 +637,9 @@
                 },
                 "origin": [0.5, 0.5],
                 "data": {
-                    "fileKeys": ["public/OcvzJdnId7kk_YWkAgYwr.mp4"]
+                    "fileKeys": [
+                        "https://file.tongflow.com/public/OcvzJdnId7kk_YWkAgYwr.mp4"
+                    ]
                 },
                 "measured": {
                     "width": 256,

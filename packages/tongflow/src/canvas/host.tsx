@@ -54,6 +54,10 @@ export function hostFetch(
 
 /** URL for an asset `file_key` (private uploads endpoint by default). */
 export function assetUrl(fileKey: string): string {
+    // Already absolute: a workflow may reference an asset that does not live
+    // behind this app at all, such as the bundled example's results on the
+    // public CDN. Prefixing those would produce /api/uploads/https://...
+    if (/^https?:\/\//.test(fileKey)) return fileKey;
     return host.resolveAssetUrl
         ? host.resolveAssetUrl(fileKey)
         : `${host.apiBaseUrl}/api/uploads/${fileKey}`;
