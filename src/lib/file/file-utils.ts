@@ -50,5 +50,7 @@ export async function downloadAndSave(
  * Get the public access URL for a file (relative path)
  */
 export function getFileUrl(fileKey: string): string {
+    // Absolute references pass through — see assetUrl in the canvas host.
+    if (/^https?:\/\//.test(fileKey)) return fileKey;
     return `/api/uploads/${fileKey}`;
 }
