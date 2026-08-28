@@ -82,9 +82,7 @@
             "dataType": "image",
             "isInput": false,
             "staticData": {
-                "fileKeys": [
-                    "tasks/82xfBRQHs2mC-WJjPgpEM/CKtGcdc8YMrouNZtpjbzN.png"
-                ]
+                "fileKeys": ["public/CKtGcdc8YMrouNZtpjbzN.png"]
             },
             "level": 3
         },
@@ -94,9 +92,7 @@
             "dataType": "image",
             "isInput": false,
             "staticData": {
-                "fileKeys": [
-                    "tasks/YNiEkIqDHWzCdKu3EGMtT/etz5lwKJ1aXJKm4Y5kVHA.png"
-                ]
+                "fileKeys": ["public/etz5lwKJ1aXJKm4Y5kVHA.png"]
             },
             "level": 3
         },
@@ -106,9 +102,7 @@
             "dataType": "image",
             "isInput": false,
             "staticData": {
-                "fileKeys": [
-                    "tasks/iokJb-SC1DeiM0S_PQv0r/pU8sgnY8F8-hKd5L-OPBl.png"
-                ]
+                "fileKeys": ["public/pU8sgnY8F8-hKd5L-OPBl.png"]
             },
             "level": 5
         },
@@ -118,9 +112,7 @@
             "dataType": "video",
             "isInput": false,
             "staticData": {
-                "fileKeys": [
-                    "tasks/02dBZ5ZhgPJLEbyLaOkRZ/thatFeeVupFMbRpFH8_eg.mp4"
-                ]
+                "fileKeys": ["public/OcvzJdnId7kk_YWkAgYwr.mp4"]
             },
             "level": 7
         }
@@ -312,9 +304,7 @@
             "dependencies": ["3fd5f0d5-68e3-4afb-b1c7-073d6c8f2f56"],
             "level": 6,
             "rawConfig": {
-                "fileKeys": [
-                    "tasks/iokJb-SC1DeiM0S_PQv0r/pU8sgnY8F8-hKd5L-OPBl.png"
-                ],
+                "fileKeys": ["public/pU8sgnY8F8-hKd5L-OPBl.png"],
                 "pluginId": "tongflow-modal-ltx",
                 "duration": 5,
                 "width": 576,
@@ -450,9 +440,7 @@
                 },
                 "origin": [0.5, 0.5],
                 "data": {
-                    "fileKeys": [
-                        "tasks/82xfBRQHs2mC-WJjPgpEM/CKtGcdc8YMrouNZtpjbzN.png"
-                    ]
+                    "fileKeys": ["public/CKtGcdc8YMrouNZtpjbzN.png"]
                 },
                 "measured": {
                     "width": 256,
@@ -529,9 +517,7 @@
                 },
                 "origin": [0.5, 0.5],
                 "data": {
-                    "fileKeys": [
-                        "tasks/YNiEkIqDHWzCdKu3EGMtT/etz5lwKJ1aXJKm4Y5kVHA.png"
-                    ]
+                    "fileKeys": ["public/etz5lwKJ1aXJKm4Y5kVHA.png"]
                 },
                 "measured": {
                     "width": 256,
@@ -561,8 +547,8 @@
                     "prompt": {
                         "text": "cat and mouse take a photo together",
                         "images": [
-                            "tasks/82xfBRQHs2mC-WJjPgpEM/CKtGcdc8YMrouNZtpjbzN.png",
-                            "tasks/YNiEkIqDHWzCdKu3EGMtT/etz5lwKJ1aXJKm4Y5kVHA.png"
+                            "public/CKtGcdc8YMrouNZtpjbzN.png",
+                            "public/etz5lwKJ1aXJKm4Y5kVHA.png"
                         ],
                         "width": 720,
                         "height": 1280
@@ -584,9 +570,7 @@
                 },
                 "origin": [0.5, 0.5],
                 "data": {
-                    "fileKeys": [
-                        "tasks/iokJb-SC1DeiM0S_PQv0r/pU8sgnY8F8-hKd5L-OPBl.png"
-                    ]
+                    "fileKeys": ["public/pU8sgnY8F8-hKd5L-OPBl.png"]
                 },
                 "measured": {
                     "width": 320,
@@ -604,9 +588,7 @@
                 },
                 "origin": [0.5, 0.5],
                 "data": {
-                    "fileKeys": [
-                        "tasks/iokJb-SC1DeiM0S_PQv0r/pU8sgnY8F8-hKd5L-OPBl.png"
-                    ],
+                    "fileKeys": ["public/pU8sgnY8F8-hKd5L-OPBl.png"],
                     "pluginId": "tongflow-modal-ltx",
                     "duration": 5,
                     "feature": "image-gen-video",
@@ -618,7 +600,7 @@
                         "text": "drinking",
                         "height": 1024,
                         "width": 576,
-                        "image": "tasks/iokJb-SC1DeiM0S_PQv0r/pU8sgnY8F8-hKd5L-OPBl.png"
+                        "image": "public/pU8sgnY8F8-hKd5L-OPBl.png"
                     }
                 },
                 "measured": {
@@ -637,9 +619,7 @@
                 },
                 "origin": [0.5, 0.5],
                 "data": {
-                    "fileKeys": [
-                        "tasks/02dBZ5ZhgPJLEbyLaOkRZ/thatFeeVupFMbRpFH8_eg.mp4"
-                    ]
+                    "fileKeys": ["public/OcvzJdnId7kk_YWkAgYwr.mp4"]
                 },
                 "measured": {
                     "width": 256,
