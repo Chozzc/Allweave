@@ -46,7 +46,7 @@ jobs:
       # dsh-npm-v* tags publish packages/dsh-tongflow; npm-v* tags publish packages/tongflow.
       PKG_DIR: ${{ (github.ref_type == 'tag' && startsWith(github.ref_name, 'dsh-npm-v')) && 'packages/dsh-tongflow' || (github.event_name == 'workflow_dispatch' && inputs.package == 'dsh-tongflow') && 'packages/dsh-tongflow' || 'packages/tongflow' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v4
         with:
