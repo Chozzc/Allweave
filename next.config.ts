@@ -12,6 +12,16 @@ const nextConfig: NextConfig = {
     // Workspace package consumed from source (tsconfig paths) — let Next
     // transpile it like app code.
     transpilePackages: ["tongflow"],
+    // Runtime APIs load these read-only assets through dynamic filesystem
+    // paths, so Next.js cannot discover them through static tracing alone.
+    outputFileTracingIncludes: {
+        "/*": [
+            "./config/**/*",
+            "./drizzle/**/*",
+            "./sdk/**/*",
+            "./public/plugins/**/*",
+        ],
+    },
     // NOTE: do not add outputFileTracingExcludes for data//plugins//desktop
     // here — its glob matching is unanchored, so "data/**" (even as
     // "./data/**") also strips next/dist/lib/metadata/** from the standalone
