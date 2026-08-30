@@ -12,7 +12,7 @@ const MATERIALS = "materials";
 const SETTINGS = "settings";
 const CURRENT_DRAFT = "current";
 const ENV_SETTINGS = "env";
-const TEMPLATES_SEEDED = "workflow-templates-v1";
+const TEMPLATES_SEEDED = "workflow-templates-v2";
 
 export interface BrowserWorkflow {
     id: number;
@@ -188,22 +188,33 @@ async function ensureWorkflowTemplates(): Promise<void> {
     if (seeded?.value) return;
 
     const now = new Date();
+    const existingWorkflows = await withStore<BrowserWorkflow[]>(
+        WORKFLOWS,
+        "readonly",
+        (store) => store.getAll(),
+    );
     for (const template of buildWorkflowTemplates()) {
-        await withStore<IDBValidKey>(WORKFLOWS, "readwrite", (store) =>
-            store.add({
-                name: template.name,
-                description: template.description,
-                flow: JSON.stringify({
-                    nodes: template.nodes,
-                    edges: template.edges,
-                }),
-                executable: JSON.stringify(template.executable),
+        const existing = existingWorkflows.find(
+            (workflow) => workflow.templateKey === template.key,
+        );
+        const next = {
+            ...(existing ?? {
                 cover: null,
                 createdAt: now,
-                updatedAt: now,
                 deleted: false,
-                templateKey: template.key,
             }),
+            name: template.name,
+            description: template.description,
+            flow: JSON.stringify({
+                nodes: template.nodes,
+                edges: template.edges,
+            }),
+            executable: JSON.stringify(template.executable),
+            updatedAt: now,
+            templateKey: template.key,
+        };
+        await withStore<IDBValidKey>(WORKFLOWS, "readwrite", (store) =>
+            existing ? store.put(next) : store.add(next),
         );
     }
     await withStore<IDBValidKey>(SETTINGS, "readwrite", (store) =>

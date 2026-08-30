@@ -18,4 +18,18 @@ describe("built-in workflow templates", () => {
             );
         }
     });
+
+    it("uses paid HTTP APIs for the competition product demo", () => {
+        const product = buildWorkflowTemplates().find(
+            (template) => template.key === "product-commercial",
+        );
+        expect(product).toBeDefined();
+        const plugins = product?.nodes
+            .map((node) => node.data.pluginId)
+            .filter(Boolean);
+        expect(plugins).toContain("tongflow-router-openrouter");
+        expect(plugins).toContain("tongflow-router-toapis");
+        expect(plugins).not.toContain("tongflow-modal-z-image");
+        expect(plugins).not.toContain("tongflow-modal-minimax-h3");
+    });
 });
