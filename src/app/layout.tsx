@@ -19,13 +19,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "TongFlow",
+    title: "Allweave",
     description:
-        "Open-source AI workflow editor — drag and drop to create AI workflows with an infinite canvas.",
+        "A browser-first canvas for building and reusing multimodal AI workflows.",
     icons: {
-        icon: "/apple-touch-icon.png",
-        shortcut: "/apple-touch-icon.png",
-        apple: "/apple-touch-icon.png",
+        icon: "/allweave-mark.svg",
+        shortcut: "/allweave-mark.svg",
     },
 };
 

@@ -1,352 +1,89 @@
 <div align="center">
-  <img src="public/logo.svg" alt="TongFlow" width="320" />
-
-  <h1>TongFlow : An Open-Source Multi-Modal GenAI Workflow Studio</h1>
-  <p>
-    <a href="https://github.com/tong-io/tongflow/stargazers"><img src="https://img.shields.io/github/stars/tong-io/tongflow?style=flat&logo=github" alt="GitHub stars" /></a>
-    <a href="https://github.com/tong-io/tongflow/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-AGPL--3.0-blue.svg" alt="License" /></a>
-    <a href="https://github.com/tong-io/tongflow/actions/workflows/ci.yml"><img src="https://github.com/tong-io/tongflow/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
-    <a href="https://pypi.org/project/tongflow/"><img src="https://img.shields.io/pypi/v/tongflow?logo=pypi&logoColor=white&label=Python%20SDK" alt="PyPI" /></a>
-    <a href="https://discord.gg/K7V8az94Zf"><img src="https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white" alt="Discord" /></a>
-    <a href="https://github.com/tong-io/tongflow/releases"><img src="https://img.shields.io/github/v/release/tong-io/tongflow?logo=github" alt="Latest Release" /></a>
-  </p>
-  <p>
-    <video src="https://github.com/user-attachments/assets/407a7e7b-2d44-4c90-8016-33d0a9f5e7d5"></video>
-  <p>
-  <p>
-    <strong>English</strong> · <a href="docs/README_ZH.md">简体中文</a> · <a href="docs/README_JA.md">日本語</a>
-  </p>
+  <img src="public/allweave-mark.svg" alt="Allweave" width="88" />
+  <h1>Allweave</h1>
+  <p><strong>在无限画布上编排文本、图像、音频与视频的开放式 AIGC 工作流。</strong></p>
+  <p>第二届“燕缘·协创者号”AI+国际创业大赛 · AIGC 技术赛道</p>
 </div>
 
+## 项目简介
 
+Allweave 是一个浏览器优先、无需登录的多模态 AI 创作工作台。创作者可以在无限画布上组合提示词、素材、模型节点和可复用工作流，把文案、图片、语音、音乐与视频生成串成一条可视化生产链路。
 
+它不是只服务广告的单一工具。广告短片、数字人口播和音乐视觉只是内置模板；同一套画布与插件协议也可以扩展到教育内容、品牌出海、短剧、数字人和其他 AIGC 场景。
 
+## AIGC 技术赛道方案
 
+- **可视化多模态编排**：通过 Add、Transform、Combine 三类操作连接不同模态。
+- **浏览器本地优先**：工作流、任务记录、作品信息与用户配置保存在浏览器 IndexedDB，不依赖登录和积分系统。
+- **开放模型路由**：节点可以切换 OpenRouter、ToAPIs、Modal 及其他兼容插件，不与单一模型供应商绑定。
+- **实时模型目录**：支持从服务商获取当前账号可用模型，避免模型列表长期写死。
+- **可复用垂直模板**：内置商品广告、数字人口播、音乐视觉三条工作流，后续可以继续扩展行业模板。
+- **可导入导出**：工作流使用开放 JSON 图结构，便于分享、迁移和二次开发。
 
+## 内置工作流
 
+| 工作流 | 主要链路 | 默认执行方式 |
+| --- | --- | --- |
+| 商品广告 · 竖屏短片 | 产品卖点 → 英文视觉创意 → 商品主视觉 → 竖屏视频 | OpenRouter + ToAPIs HTTP API |
+| 数字人口播 · 产品介绍 | 主题 → 口播稿 → 人像与语音 → 数字人视频 | OpenRouter + 可替换 GPU 插件 |
+| 音乐视觉 · MV 片段 | 主题 → 歌词与音乐 → 主视觉 → MV 片段 | OpenRouter + 可替换 GPU 插件 |
 
+比赛演示优先使用第一条 API 工作流。它不需要下载模型权重，适合本地以及容器/VPS 线上 Demo；Vercel Serverless 执行端仍需改造成 TypeScript API 路由。后两条用于展示插件系统可以承载更复杂的开源模型工作流。
 
-## Demo Examples
+## 快速开始
 
-| Workflow | Result |
-| :--: | :--: |
-| **Basic** — Type text (Add), generate images (Transform), then blend them into one (Compose).<br/><img src="https://file.tongflow.com/public/demos/basic.png" width="620" alt="workflow" /> | <img src="https://file.tongflow.com/public/demos/basic_result.png" width="200" alt="result" /> |
-| **Intermediate** — (Add topic → write script → generate speech) + (character description → generate image) → lip-synced video = talking-head avatar.<br/><img src="https://file.tongflow.com/public/demos/digitalhuman.png" width="620" alt="workflow" /> | <video src="https://github.com/user-attachments/assets/a803394d-0ccf-4023-9b06-5c1581345758" width="200"></video> |
-| **Advanced** — Generate lyrics + song + characters + scenes + storyboard → produce a music video.<br/><img src="https://file.tongflow.com/public/demos/mv.png" width="620" alt="workflow" /> | <video src="https://github.com/user-attachments/assets/2bc71e3c-3ed6-48b2-81e7-82ad5976d801" width="200"></video> |
-
-With TongFlow, you can expand your imagination and stretch your ideas with generative AI, just have a try now!
-
-## How To Start
-
-The TongFlow **desktop app** is a lightweight (~10 MB) shell around the cloud studio at **[app.tongflow.com](https://app.tongflow.com)** — install it, sign in, and start creating. The cloud studio also runs in any modern browser.
-
-### Step 1 — Install the desktop app
-
-Download the installer for your platform, install it, and open it.
-
-- **macOS (Universal — Apple Silicon & Intel):** [TongFlow-mac-universal.dmg](https://github.com/tong-io/tongflow/releases/latest/download/TongFlow-mac-universal.dmg)
-- **Windows:** [TongFlow-win-x64.msi](https://github.com/tong-io/tongflow/releases/latest/download/TongFlow-win-x64.msi)
-
-All builds are on the [Releases](https://github.com/tong-io/tongflow/releases/latest) page.
-
-> **macOS:** the builds are not yet notarized with Apple, so Gatekeeper will block the first launch ("TongFlow is damaged and can't be opened"). After moving the app to Applications, clear the quarantine flag once and it opens normally:
->
-> ```bash
-> xattr -cr /Applications/TongFlow.app
-> ```
->
-> Download from this page directly — installers passed through chat apps (e.g. WeChat) may be renamed or re-flagged.
-
-### Step 2 — Sign in and create
-
-Sign in with Google or WeChat and start creating — the cloud studio manages plugins and execution for you.
-
-> **Prefer a fully local, account-free TongFlow?** That's what self-hosting is for — see [Run from source](#run-from-source) or [Run with Docker](#run-with-docker), then follow [Self-host setup](#self-host-setup-plugins--credentials). (The desktop app up to v0.1.13 bundled this local runtime; those installers remain on the [Releases](https://github.com/tong-io/tongflow/releases) page.)
-
-## Core Concept
-
-- **All models**: AI models can be thought of as a **modality transform** (e.g. LLMs are text→text, image models are text→image, speech models are text→audio, and so on). TongFlow wraps each capability as a node.
-
-- **All modalities**: TongFlow supports almost every modality and file format that people actually ship over the web.
-
-- **Low barrier, high ceiling**: no complex AI parameters to learn, no manual node connecting; just three operations — **add**, **transform**, and **combine** — to arrange ideas freely. And by orchestrating AI models freely, you can generate unique creations and works of your own.
-
-- **Open ecosystem**: TongFlow's plugin-based design lets every platform package its own independent plugins, and we provide at least one official implementation plugin for each capability node. The core stays small, the ecosystem stays open.
-
-## What’s Defined
-
-> ✅ = available out of the box with an official plugin · ⬜ = node exists in the canvas but has no official plugin yet (planned).
-
-### Add
-
-- ✅ **Text input**: type text and add a text node.
-- ✅ **Add image**: pick a local file and add an image node.
-- ✅ **Add photo**: capture with the device camera and add an image node.
-- ✅ **Add sketch**: draw on the canvas and add an image node.
-- ✅ **Add audio**: pick a local audio file and add an audio node.
-- ✅ **Record audio**: record with the mic and add an audio node.
-- ✅ **Add video**: pick a local video file and add a video node.
-- ✅ **Record video**: record with the camera and add a video node.
-- ✅ **Add document**: pick a local file and add a document node.
-- ✅ **Add URL**: fetch a page from a link and add text, image, audio, or video nodes.
-- ✅ **Add 3D model**: choose a local model file and add a 3D model node.
-
-### Transform
-
-#### Text
-
-- ✅ **Generate / rewrite**: create or edit copy from a prompt.
-
-#### Image
-
-- ✅ **Image generation**: images from text.
-- ✅ **Image editing**: inpaint, edit, or redraw with instructions.
-- ✅ **Image understanding**: captions, Q&A, or descriptions from an image.
-- ✅ **Image upscaling**: enlarge for sharper detail.
-- ✅ **Pose detection**: 308-keypoint whole-body skeleton overlay (body, hands, face).
-- ✅ **Body-part segmentation**: 29-class human parsing overlay.
-- ✅ **Surface normals**: per-pixel normal map — human-centric or full scene.
-- ✅ **Matting**: cut the human or salient foreground out as a transparent PNG.
-
-#### Video
-
-- ✅ **Video generation**: video from text.
-- ✅ **Image-to-video**: animate a still into motion.
-- ✅ **First/last-frame video**: two key images to interpolate a clip.
-- ✅ **Images → video**: multi-image reference fusion — several reference images plus text into a new video.
-- ✅ **Omni-reference video**: mix image, video, and audio references (plus text) into one video with native stereo audio.
-- ✅ **Video understanding**: summaries or descriptions from video.
-- ✅ **Video upscaling**: higher-resolution output.
-- ✅ **Extract first / last frame**: grab a frame as an image.
-- ✅ **Video editing**: edit a video from a text instruction.
-- ✅ **Subtitle removal**: clean subtitles from a video.
-- ✅ **Watermark removal**: remove watermarks from a video.
-
-#### Audio
-
-- ✅ **Music generation**: music from text, with optional reference-audio conditioning.
-- ✅ **Audio understanding**: describe a clip (music, speech, or ambient sound) in text.
-- ✅ **Music repaint**: regenerate a chosen time range of a song.
-- ✅ **Music cover**: restyle a song via a caption and/or a reference track.
-- ✅ **Add track / complete arrangement**: generate one new stem over a mix, or fill in missing tracks.
-- ✅ **Music brief**: one-sentence idea → lyrics, style tags, BPM, key, and duration.
-- ✅ **Speech synthesis**: text-to-speech — preset style, voice clone (reference audio), or instruction-driven.
-- ✅ **Speech recognition**: transcribe speech from audio or video.
-- ✅ **Noise reduction**: denoise audio.
-- ⬜ **Speaker diarization**: separate audio by speaker.
-- ⬜ **Voice / timbre replacement**: replace or clone a voice with a reference sample.
-- ✅ **Multi-track / vocal-accompaniment separation**: isolate vocals, drums, bass, guitar, and 8 more stems.
-- ✅ **Open-vocabulary sound separation**: describe any sound in words ("dog barking") and split the audio into that sound and everything else.
-
-### Combine
-
-- ✅ **Image fusion**: blend or edit multiple references into one image.
-- ✅ **Lip sync**: audio + video → video (lip-sync); also audio + image → video and audio + text → video variants.
-- ✅ **Emotive speech**: text + voice reference → speech in that voice, with emotion control.
-- ✅ **Character swap**: video + reference (scene blend / character replacement), Animate Mix-style generation.
-- ✅ **Motion transfer**: video + reference (motion / retarget), Animate Move-style generation.
-- ✅ **Combine text**: merge multiple text nodes into one.
-
-### Other
-
-- ✅ **Image → 3D**: single-view 3D model from an image.
-- ✅ **Video → motion capture**: monocular video to skeletal animation (body + fingers + face channels, GLB).
-- ✅ **Document → text**: extract plain text from documents.
-- ✅ **Link → text**: turn page content into text.
-
-### Helpers
-
-- ✅ **Concatenate clips**: join multiple videos end to end.
-- ✅ **Mux audio + video**: merge into one file.
-- ✅ **Split by shots**: cut a long video into segments by scene.
-- ✅ **Split video & audio**: demux a video into separate video and audio tracks.
-- ✅ **Extract audio track**: pull audio into its own asset.
-- ✅ **Split long text**: break a long passage into chunks.
-- ✅ **Merge / tidy text blocks**: combine segments (use the auto-merge option).
-- ✅ **Filter or drop clips**: drop unwanted clips by rule or selection.
-- ✅ **Arrange & batch groups**: group and arrange text/clip batches for downstream processing.
-
-## Official plugins
-
-> The official GPU/CPU plugins currently run on [Modal](https://modal.com) — up to **$30/month** of free GPU compute (H100/A100, etc.). See [Self-host setup](#self-host-setup-plugins--credentials) for the `MODAL_TOKEN_*` setup. Any other platform can publish its own plugins the same way.
-
-### API plugins
-
-First-party providers (a lab's own models):
-
-- [tongflow-api-gemini](https://github.com/tong-io/tongflow-api-gemini) — Google Gemini with a per-node **model picker**: text, vision, image (Nano Banana / Imagen 4), Veo video, TTS and transcription
-- [tongflow-api-openai](https://github.com/tong-io/tongflow-api-openai) — OpenAI with a per-node **model picker**: `gen_text`, image gen/edit/fusion (`gpt-image-2`), vision, document OCR, Whisper transcription and TTS
-- [tongflow-api-deepseek](https://github.com/tong-io/tongflow-api-deepseek) — DeepSeek V4 (`flash` / `pro`, with a streaming **thinking** bubble) for `gen_text` / text tools
-- [tongflow-api-bytedance](https://github.com/tong-io/tongflow-api-bytedance) — ByteDance Volcengine Ark with a per-node **model picker**: Doubao text & vision, Seedream image gen/edit/fusion, Seedance text/image/audio → video
-- [tongflow-api-xai](https://github.com/tong-io/tongflow-api-xai) — xAI Grok with a per-node **model picker**: `gen_text` (Grok 4.x), image understanding, and Grok Imagine text-to-image
-- [tongflow-api-runway](https://github.com/tong-io/tongflow-api-runway) — Runway Dev unified API with a per-node **model picker**: video (Gen-4.5, Gen-4 Turbo, Aleph edit, Act-Two, Seedance, Veo), image (GPT Image 2, Seedream 5, Gemini image 3) and ElevenLabs TTS
-
-### Router plugins
-
-Aggregators — one key, many third-party models across labs:
-
-- [tongflow-router-openrouter](https://github.com/tong-io/tongflow-router-openrouter) — OpenRouter with a per-node **model picker**: `gen_text` (free by default, plus GPT-5.5 / Claude / Gemini / Grok / DeepSeek), vision / audio understanding, image gen/edit and transcription
-- [tongflow-router-cometapi](https://github.com/tong-io/tongflow-router-cometapi) — CometAPI gateway with a per-node **model picker** that also lists CometAPI's **live catalog**: `gen_text` / text tools (GPT-5.5, Claude, Gemini, DeepSeek, Grok, Qwen, Kimi), image / video / audio understanding, image gen/edit/fusion (GPT Image 2, Seedream), text / image(s) → video (Sora 2, Veo 3.1, Seedance, Wan, MiniMax, HappyHorse, Vidu), video edit (Omni), TTS and Whisper transcription
-- [tongflow-router-toapis](https://github.com/tong-io/tongflow-router-toapis) — ToAPIs gateway with a per-node **model picker**: `gen_text` / text tools (GPT-5.6, Claude, Gemini, DeepSeek, Qwen, GLM, Kimi, MiniMax), image understanding, image gen/edit/fusion (GPT Image 2, Seedream 5, Gemini Image, Flux 2, Grok), text / image(s) / first-last-frame / multimodal refs → video (Sora 2, Veo 3.1, Seedance 2, Kling, MiniMax H3, Wan, HappyHorse, Vidu), video edit (HappyHorse); the picker also lists the **live per-key model list**
-- [tongflow-router-apimart](https://github.com/tong-io/tongflow-router-apimart) — APIMart gateway with a per-node **model picker**: image gen/edit (Z-Image, Seedream, Nano Banana, GPT-Image), text/image → video (Kling, VEO3, Sora2, Seedance), `gen_text` (GPT-5, Claude, Gemini), Whisper transcription and TTS
-- [tongflow-router-replicate](https://github.com/tong-io/tongflow-router-replicate) — Replicate with a per-node **model picker** across the catalog: text, vision, image gen/edit/fusion/upscale/matting, text/image → video, transcription, TTS / voice clone, music, and image → 3D (FLUX, Seedream, Veo, Kling, Whisper, Hunyuan3D…)
-- [tongflow-router-fal](https://github.com/tong-io/tongflow-router-fal) — fal.ai with a per-node **model picker**: image (gen/edit/fusion/upscale/matting/pose/normal/seg), video (text/image → video, first-last frame, talking-head, lip-sync, upscale), audio (transcription, TTS, voice clone, music, source separation) and image → 3D
-
-### GPU/CPU plugins
-
-- [tongflow-modal-ffmpeg](https://github.com/tong-io/tongflow-modal-ffmpeg) — transcoding, muxing, media pipelines
-- [tongflow-modal-pyscenedetect](https://github.com/tong-io/tongflow-modal-pyscenedetect) — shot-boundary detection for splitting clips
-- [tongflow-modal-z-image](https://github.com/tong-io/tongflow-modal-z-image) — Z-Image text-to-image
-- [tongflow-modal-ernie-image](https://github.com/tong-io/tongflow-modal-ernie-image) — ERNIE Image text-to-image (alternative)
-- [tongflow-modal-krea2](https://github.com/tong-io/tongflow-modal-krea2) — Krea 2 Turbo text-to-image (open-weights 12B, 8-step, up to 2K)
-- [tongflow-modal-flux2-klein9b](https://github.com/tong-io/tongflow-modal-flux2-klein9b) — FLUX.2 Klein 9B multi-reference fusion / image editing
-- [tongflow-modal-qwen-image-edit](https://github.com/tong-io/tongflow-modal-qwen-image-edit) — Qwen-Image-Edit-2511 instruction editing / multi-image fusion (headless ComfyUI, fp8 + 8-step)
-- [tongflow-modal-boogu](https://github.com/tong-io/tongflow-modal-boogu) — Boogu-Image-0.1 (fp8) text-to-image (dense bilingual text) & single-reference image editing
-- [tongflow-modal-infinitetalk](https://github.com/tong-io/tongflow-modal-infinitetalk) — InfiniteTalk audio-driven lip-sync (audio + image / video → talking-head video)
-- [tongflow-modal-wan-animate](https://github.com/tong-io/tongflow-modal-wan-animate) — Wan-Animate character swap & motion transfer (video + reference)
-- [tongflow-modal-scail2](https://github.com/tong-io/tongflow-modal-scail2) — SCAIL-2 controlled character animation (image + driving video; same two slots as wan-animate)
-- [tongflow-modal-minimax-h3](https://github.com/tong-io/tongflow-modal-minimax-h3) — MiniMax-H3 33B video generation with native stereo audio (text / first- & last-frame / multi-image / omni-reference)
-- [tongflow-modal-bernini](https://github.com/tong-io/tongflow-modal-bernini) — Bernini-R 1.3B unified video renderer (text/image → image/video, video editing, subtitle / watermark removal)
-- [tongflow-modal-sam3](https://github.com/tong-io/tongflow-modal-sam3) — SAM 3 / SAM 3.1 text-guided matting: cut every instance of a described concept out of an image (transparent PNG) or track it through a video (green-screen matte)
-- [tongflow-modal-triposplat](https://github.com/tong-io/tongflow-modal-triposplat) — TripoSplat single image → 3D Gaussian splat
-- [tongflow-modal-sam-3d-objects](https://github.com/tong-io/tongflow-modal-sam-3d-objects) — SAM 3D Objects single image → 3D Gaussian splat of the foreground object (auto mask, robust to occlusion/clutter; alternative)
-- [tongflow-modal-sam-3d-body](https://github.com/tong-io/tongflow-modal-sam-3d-body) — SAM 3D Body single image → full-body 3D human mesh GLB (multi-person, MHR rig; alternative), and **video motion capture** (per-frame MHR regression → animated character GLB; alternative)
-- [tongflow-modal-sapiens2](https://github.com/tong-io/tongflow-modal-sapiens2) — Sapiens2 (Meta) human suite: pose detection, body-part segmentation, surface normals, human matting, image → 3D point cloud, and **video motion capture** (geometric engine: keypoints + pointmap → animated MHR character GLB)
-- [tongflow-modal-sensenova-vision](https://github.com/tong-io/tongflow-modal-sensenova-vision) — SenseNova-Vision (SenseTime) unified vision model: image understanding / visual QA, detection & OCR structured text, full-scene surface normals, salient-object matting, and human pose overlay (alternative)
-- [tongflow-modal-seedvr2](https://github.com/tong-io/tongflow-modal-seedvr2) — SeedVR2 image / video super-resolution
-- [tongflow-modal-gemma4](https://github.com/tong-io/tongflow-modal-gemma4) — Gemma-4 multimodal text (image / video understanding)
-- [tongflow-modal-qwen38](https://github.com/tong-io/tongflow-modal-qwen38) — Qwen3.8-27B multimodal text (text generation, image / video understanding; alternative)
-- [tongflow-modal-qwen3asr](https://github.com/tong-io/tongflow-modal-qwen3asr) — Qwen3 speech recognition
-- [tongflow-modal-qwen3tts](https://github.com/tong-io/tongflow-modal-qwen3tts) — Qwen3 text-to-speech
-- [tongflow-modal-indextts2](https://github.com/tong-io/tongflow-modal-indextts2) — IndexTTS-2.5 emotive text-to-speech: zero-shot voice cloning (alternative) and emotion-controlled speech from a voice reference
-- [tongflow-modal-whisper](https://github.com/tong-io/tongflow-modal-whisper) — Whisper speech recognition with timestamps (alternative)
-- [tongflow-modal-ace-step](https://github.com/tong-io/tongflow-modal-ace-step) — ACE-Step 1.5 music suite: text-to-music (sft / base / turbo selectable), repaint, cover, stem extraction, add-track, arrangement completion, music brief, and music understanding
-- [tongflow-modal-levo](https://github.com/tong-io/tongflow-modal-levo) — LeVo 2 / SongGeneration text-to-music (multilingual, commercial-grade)
-- [tongflow-modal-minimax-music3](https://github.com/tong-io/tongflow-modal-minimax-music3) — MiniMax-Music3 11B song generation: lyrics + description → complete song with vocals (up to ~5 min, 32 kHz stereo)
-- [tongflow-modal-sam-audio](https://github.com/tong-io/tongflow-modal-sam-audio) — SAM-Audio text-prompted sound separation: noise reduction, vocal isolation, and free-text stem extraction ("the piano in the background")
-- [tongflow-modal-docling](https://github.com/tong-io/tongflow-modal-docling) — Docling document → text
-- [tongflow-modal-paddle](https://github.com/tong-io/tongflow-modal-paddle) — PaddleOCR document → text
-- [tongflow-modal-unlimited-ocr](https://github.com/tong-io/tongflow-modal-unlimited-ocr) — Unlimited-OCR long-horizon document / PDF → text
-- [tongflow-modal-crawl4ai](https://github.com/tong-io/tongflow-modal-crawl4ai) — Crawl4AI URL / link → text
-- [tongflow-modal-scrapling](https://github.com/tong-io/tongflow-modal-scrapling) — Scrapling stealth-browser URL / link → text
-
-## Run from source
+需要 Node.js 20+、pnpm 10+ 和 Python 3.10+。
 
 ```bash
+git clone https://github.com/Chozzc/Allweave.git
+cd Allweave
 pnpm install
-pnpm plugins:install   # clone official plugins into plugins/
-pnpm start:prod        # builds once, then serves at http://localhost:3000
+pnpm plugins:install
+pnpm dev
 ```
 
-Requires **Node** (with `pnpm`) and a **Python 3.10+** interpreter on your `PATH` (set `PYTHON` to point at a specific one). Plugins run as local Python processes; TongFlow provisions an isolated venv for them automatically and installs each plugin's `requirements.txt` on first use — no manual Python setup.
+浏览器打开 `http://127.0.0.1:3000/workspace`。首次进入无需注册账号，可直接查看和编辑内置工作流。
 
-Open **`http://localhost:3000`** and the canvas is live. Then follow [Self-host setup](#self-host-setup-plugins--credentials) (credentials go in the in-app **Settings** dialog, or a project `.env`).
+## 配置 API
 
-## Run with Docker
+点击画布右上角的设置按钮填写密钥。配置会保存到当前浏览器，并同步给本地执行进程；密钥不会提交到 Git 仓库。
 
-A self-host image is published to GHCR — no Node/Python/pnpm setup required:
+### 推荐的比赛演示配置
 
-```bash
-docker run -d -p 3000:3000 \
-  -v tongflow-data:/data -v tongflow-plugins:/plugins \
-  ghcr.io/tong-io/tongflow:latest
+```text
+OPENROUTER_API_KEY=...
+TOAPIS_API_KEY=...
 ```
 
-Then open **`http://localhost:3000`**. Or with Compose (clones this repo's [`docker-compose.yml`](docker-compose.yml)):
+- OpenRouter 用于文本生成，也可以选择免费模型。
+- ToAPIs 用于付费图像和视频生成，节点模型可在画布中切换。
+- Modal 是可选的开源模型算力后端，不是运行 Allweave 的必要条件。
 
-```bash
-docker compose up -d
-```
+### 代理兼容
 
-To build the image yourself instead of pulling: `docker build -t tongflow .`
+Allweave 不强制使用代理：没有配置代理时直接访问服务商；系统存在 `HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY` 或系统代理时，Modal 客户端会按标准代理设置连接。两种环境互不影响。
 
-**Data & credentials.** Everything writable lives in the `/data` volume (SQLite db, uploads, settings). API keys are optional — set them in the in-app **Settings** dialog, or pass them at launch (`-e OPENROUTER_API_KEY=…`); supported keys: `OPENROUTER_API_KEY`, `GEMINI_API_KEY`, `OPENAI_API_KEY`, `MODAL_TOKEN_ID` / `MODAL_TOKEN_SECRET`.
+## 数据与隐私
 
-**Plugins.** The image ships no plugins — install them from the in-app plugin manager (first install needs network access to GitHub). On first run, a plugin provisions a shared Python venv under `/data/.tongflow/plugin-venv` (installs the SDK + the plugin's `requirements.txt` from PyPI), so the first run is slower and needs network. Modal-backed plugins additionally need a Modal token.
+- 不需要注册或登录。
+- 画布草稿、工作流、任务历史、作品记录和配置由每个访问者的浏览器独立保存。
+- 删除浏览器站点数据会清除本地内容，重要工作流请先导出 JSON。
+- API 调用仍受所选服务商的隐私政策、内容规则与计费规则约束。
 
-## Self-host setup (plugins & credentials)
+## 技术栈
 
-A self-hosted TongFlow ships with no plugins pre-installed, and the canvas is preloaded with an example workflow. Three steps get it running:
+- Next.js 15 + React 19
+- React Flow 无限画布
+- IndexedDB 浏览器持久化
+- Python 插件 ABI 与可替换模型路由
+- Vitest + TypeScript
 
-### 1 — Install plugins
+## 当前状态
 
-Open the **plugin manager** (the blocks icon, top-right) and install what you need. Newly installed plugins are usable immediately, no restart.
+这是面向比赛的早期可运行原型。当前重点是无需登录的浏览器工作台、可复用工作流和多供应商执行链路；面向生产环境的队列隔离、密钥托管和多人协作仍在后续计划中。
 
-To run the preloaded **example workflow** (text → image → fusion → video), install these three plugins:
+## 开源与致谢
 
-- [tongflow-modal-z-image](https://github.com/tong-io/tongflow-modal-z-image) — text-to-image
-- [tongflow-modal-qwen-image-edit](https://github.com/tong-io/tongflow-modal-qwen-image-edit) — image fusion / blending
-- [tongflow-modal-minimax-h3](https://github.com/tong-io/tongflow-modal-minimax-h3) — image-to-video
+Allweave 基于 [TongFlow](https://github.com/tong-io/tongflow) 二次开发，保留其开放画布、插件 ABI 与 AGPL-3.0 授权。感谢 TongFlow 及相关开源模型、插件项目的贡献者。
 
-These run on [Modal](https://modal.com) (up to **$30/month** of free GPU compute). Add `MODAL_TOKEN_ID` / `MODAL_TOKEN_SECRET` in **Settings**; create a token at [modal.com/settings/tokens](https://modal.com/settings/tokens). Any other platform can publish its own plugins the same way.
-
-Browse the full catalog — the official API plugins (OpenAI / Gemini / OpenRouter) and other GPU/CPU plugins — in the plugin manager.
-
-### 2 — Configure credentials
-
-Open **Settings** (the gear icon, top-right) and add the environment variables your plugins need — e.g. `OPENAI_API_KEY` for the API plugins, or the credentials your GPU/CPU plugins require.
-
-> **Plugin credentials live in Settings.** TongFlow is platform-agnostic and hardcodes no provider: the Settings dialog is a generic key/value editor for environment variables passed to plugins. Each plugin's README documents the keys it needs. Values are stored locally and take effect without a restart.
-
-### 3 — Run the example workflow
-
-Run the preloaded example node by node, or switch to Execute Mode and hit the run button to run the whole thing in one click.
-
-## Use it inside an agent (dsh plugin)
-
-TongFlow also runs **inside your own agent**, as a plugin for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) — no desktop app, no server of your own:
-
-```sh
-npx @deepseek-ai/dsh@next plugin --profile web add dsh-tongflow
-npx @deepseek-ai/dsh@next web
-```
-
-Then start a session whose **first message begins with `@tongflow`**. That session turns into the Studio — chat, the project's folder tree, preview / editor / the canvas, and a runs drawer — and the agent gets TongFlow's tools. Any other session stays plain dsh.
-
-The split is the point: the agent designs the project and writes the plan, briefs and prompts as ordinary files; TongFlow generates, and every generated asset comes from a saved `.tongflow.json` workflow sitting next to its outputs — so you can open it on the canvas, change it and run it again. There is no "generate an image" tool and no project template. The plugin provisions its own Python venv and clones the official plugins on first use, so the canvas offers the same catalog as the hosted app.
-
-Requirements and configuration: **[packages/dsh-tongflow/README.md](packages/dsh-tongflow/README.md)**.
-
-## Custom plugins
-
-Every runnable node is backed by a **contract** — the ABI ([`packages/tongflow/abi/tongflow.abi.json`](packages/tongflow/abi/tongflow.abi.json)) — that defines *what capabilities exist* and *what each one's input/output looks like*, independent of *who* implements it. A plugin is just a small Python package that picks one or more ABI slots and supplies the **how**, annotated against the ABI-generated types via the tongflow Python SDK.
-
-The full development flow — the ABI, the `@node_slot` decorator, the SDK, directory layout, and how to publish — lives in **[docs/plugins.md](docs/plugins.md)**.
-
-## Community
-
-Join the community on **[Discord](https://discord.gg/K7V8az94Zf)** or scan the **WeChat group** QR code below.
-
-<div>
-  <img src="docs/assets/qr.png" alt="WeChat group QR code" width="180" />
-</div>
-
-## Business
-
-For business inquiries, please contact business@tongflow.com.
-
-- **Open-source model owners**: I can integrate your models so users can try them out smoothly.
-- **Enterprise**: I can help you deploy on your local GPU, build custom nodes and plugins, and more.
-- **Platform / router**: I can integrate your APIs.
-- **VCs**: I’m interested in partnering on [tongflow.com](https://tongflow.com), a cloud-hosted AI studio.
-
-## Open-Source
-
-If you like this project, a Star on GitHub helps a lot. Thank you.
-
-<img src="docs/assets/star.gif" alt="Star on GitHub" width="480" />
-
-## License
-
-TongFlow is **dual-licensed**:
-
-- **[AGPL-3.0](LICENSE)** — free for individuals, research, open-source projects,
-  and anyone willing to comply with the AGPL (including its Section 13
-  network/source-disclosure obligation).
-- **[Commercial License](COMMERCIAL-LICENSE.md)** — for organizations that want to
-  use TongFlow in closed-source or SaaS products **without** AGPL's
-  source-disclosure obligation, or that need warranties and platform support.
-  Contact **business@tongflow.com**.
-
-This covers the entire repository, including the `sdk/` directory (the `tongflow`
-PyPI package). Contributions are covered by our [CLA](CLA.md).
+本项目采用 [AGPL-3.0](LICENSE) 许可证。

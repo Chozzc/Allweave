@@ -84,6 +84,10 @@ export function TaskFailureToaster() {
             ) {
                 setMissingKey({
                     key: params.key,
+                    pluginId:
+                        typeof params.pluginId === "string"
+                            ? params.pluginId
+                            : undefined,
                     url:
                         typeof params.url === "string" ? params.url : undefined,
                 });

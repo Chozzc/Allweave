@@ -181,6 +181,7 @@ export async function executeTask(taskId: string): Promise<void> {
                 errorCode: "missing_api_key",
                 errorParams: {
                     key: missing.key,
+                    pluginId: taskData.pluginId,
                     ...(missing.url && { url: missing.url }),
                 },
             },
@@ -196,6 +197,7 @@ export async function executeTask(taskId: string): Promise<void> {
                     errorCode: "missing_api_key",
                     errorParams: {
                         key: missing.key,
+                        pluginId: taskData.pluginId,
                         ...(missing.url && { url: missing.url }),
                     },
                 }),

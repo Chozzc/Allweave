@@ -25,16 +25,18 @@ import {
     DialogTitle,
     DialogTrigger,
     getFileUrl,
-    listMaterials,
     type Material,
     type MaterialType,
     showErrorToast,
     Tooltip,
     TooltipContent,
     TooltipTrigger,
-    toggleFavorite,
     Waterfall,
 } from "tongflow/canvas";
+import {
+    listBrowserMaterials,
+    toggleBrowserMaterialFavorite,
+} from "@/lib/browser-storage";
 import { formatDate } from "@/utils/date-utils";
 
 const TYPE_ICONS: Record<MaterialType, React.ReactNode> = {
@@ -102,7 +104,7 @@ function MaterialCard({
 
         setIsToggling(true);
         try {
-            const result = await toggleFavorite(data.id);
+            const result = await toggleBrowserMaterialFavorite(data.id);
             setIsFavorite(result.isFavorite);
             onFavoriteToggle?.(data.id, result.isFavorite);
             toast.success(
@@ -419,7 +421,7 @@ export function PortfolioDialog({ trigger, tooltip }: PortfolioDialogProps) {
         setLoading(true);
         setError(null);
         try {
-            const response = await listMaterials(
+            const response = await listBrowserMaterials(
                 filter === "all" ? undefined : filter,
             );
             setMaterials(response.materials);

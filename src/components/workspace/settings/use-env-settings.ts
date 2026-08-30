@@ -5,6 +5,11 @@ import { useCallback, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { logger } from "tongflow";
 import { apiGet, apiPut } from "tongflow/canvas";
+import {
+    loadBrowserEnv,
+    mergeBrowserEnv,
+    saveBrowserEnv,
+} from "@/lib/browser-storage";
 import type { PluginEnvDecl } from "@/lib/plugins/plugin-env-manifest-schema";
 
 interface EnvResponse {
@@ -62,7 +67,14 @@ export function useEnvSettings() {
         if (!hasLoaded.current) setLoading(true);
         try {
             const data = await apiGet<EnvResponse>("/api/settings/env");
-            applyEnv(data.env ?? {}, data.pluginEnv ?? []);
+            const browserEnv = await loadBrowserEnv();
+            const env = mergeBrowserEnv(data.env ?? {}, browserEnv);
+            // The Python runner cannot read IndexedDB. Reconcile both copies
+            // whenever settings opens so an existing browser-only credential
+            // becomes executable without asking the user to paste it again.
+            await apiPut<EnvResponse>("/api/settings/env", { env });
+            await saveBrowserEnv(env);
+            applyEnv(env, data.pluginEnv ?? []);
             hasLoaded.current = true;
         } catch (error) {
             logger.error("Failed to load settings:", error);
@@ -113,10 +125,13 @@ export function useEnvSettings() {
         }
         setSaving(true);
         try {
+            // The runner is authoritative for execution; only report success
+            // after both it and the browser-owned durable copy are in sync.
             const data = await apiPut<EnvResponse>("/api/settings/env", {
                 env,
             });
-            applyEnv(data.env ?? {}, decls);
+            await saveBrowserEnv(env);
+            applyEnv(data.env ?? env, decls);
             toast.success(t("saved"));
         } catch (error) {
             logger.error("Failed to save settings:", error);

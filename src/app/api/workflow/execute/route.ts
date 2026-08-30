@@ -31,16 +31,18 @@ async function checkConcurrentTaskLimit() {
 }
 
 interface ExecutionRequest {
-    workflowId: number;
+    workflowId?: number;
+    name?: string;
+    executable?: ExecutableWorkflow;
 }
 
 export async function POST(request: NextRequest) {
     try {
         const body = (await request.json()) as ExecutionRequest;
 
-        if (!body.workflowId) {
+        if (!body.workflowId && !body.executable) {
             return NextResponse.json(
-                { error: "Missing workflowId in request body" },
+                { error: "Missing workflowId or executable in request body" },
                 { status: 400 },
             );
         }
@@ -60,9 +62,28 @@ export async function POST(request: NextRequest) {
         }
 
         const db = await getDb();
-        const workflowRecord = await db.query.workflows.findFirst({
-            where: eq(workflows.id, body.workflowId),
-        });
+        let workflowId = body.workflowId;
+        if (body.executable) {
+            // IndexedDB owns the durable browser copy. The execution engine
+            // still expects a server row, so create only the transient bridge
+            // it needs for this run.
+            const [created] = await db
+                .insert(workflows)
+                .values({
+                    name: body.name || body.executable.name || "Workflow",
+                    description: body.executable.description,
+                    flow: JSON.stringify({ nodes: [], edges: [] }),
+                    executable: JSON.stringify(body.executable),
+                })
+                .returning({ id: workflows.id });
+            workflowId = created.id;
+        }
+
+        const workflowRecord = workflowId
+            ? await db.query.workflows.findFirst({
+                  where: eq(workflows.id, workflowId),
+              })
+            : undefined;
 
         if (!workflowRecord) {
             return NextResponse.json(
@@ -99,7 +120,7 @@ export async function POST(request: NextRequest) {
 
         logger.debug(`\n${"=".repeat(60)}`);
         logger.debug("[API /api/workflow/execute] Creating workflow task");
-        logger.debug(`WorkflowId: ${body.workflowId}`);
+        logger.debug(`WorkflowId: ${workflowId}`);
         logger.debug(`Workflow: ${workflow.name || workflowRecord.name}`);
         logger.debug(
             `DataNodes: ${workflow.dataNodes?.length || 0}`,
@@ -166,13 +187,13 @@ export async function POST(request: NextRequest) {
             nodeId: "workflow",
             feature: "workflow",
             prompt: JSON.stringify({
-                workflowId: body.workflowId,
+                workflowId,
                 workflowName: workflow.name || workflowRecord.name,
                 executableNodes: workflow.executableNodes?.length || 0,
             }),
             status: "pending",
             progress: 0,
-            workflowId: body.workflowId,
+            workflowId,
         });
 
         logger.debug(`[API] Workflow task created: ${taskId}`);

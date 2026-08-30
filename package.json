@@ -1,8 +1,8 @@
 {
-    "name": "tongflow-app",
+    "name": "allweave",
     "version": "0.3.4",
-    "description": "A multi-modal AIGC studio for building generative AI workflows",
-    "author": "tong-io",
+    "description": "A browser-first multimodal AIGC workflow studio",
+    "author": "Allweave contributors",
     "keywords": [
         "aigc",
         "ai",
@@ -12,9 +12,9 @@
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/tong-io/tongflow"
+        "url": "https://github.com/Chozzc/Allweave"
     },
-    "homepage": "https://github.com/tong-io/tongflow#readme",
+    "homepage": "https://github.com/Chozzc/Allweave#readme",
     "license": "AGPL-3.0-only",
     "private": true,
     "pnpm": {

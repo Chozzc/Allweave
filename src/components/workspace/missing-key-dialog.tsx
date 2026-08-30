@@ -15,12 +15,20 @@ import {
     DialogTitle,
     Input,
 } from "tongflow/canvas";
+import { patchBrowserEnv } from "@/lib/browser-storage";
 import { openExternalUrl } from "@/lib/desktop/open-external";
 import type { PluginEnvDecl } from "@/lib/plugins/plugin-env-manifest-schema";
+import {
+    MODAL_TOKEN_ID_ENV,
+    MODAL_TOKEN_SECRET_ENV,
+} from "@/lib/settings/env-key-metadata";
+import { MODAL_CONNECT } from "./settings/connect-configs";
+import { TokenConnectForm } from "./settings/token-connect";
 
 /** What a `missing_api_key` task failure carries (see errorParams). */
 export interface MissingKeyRequest {
     key: string;
+    pluginId?: string;
     url?: string;
 }
 
@@ -37,6 +45,7 @@ export function MissingKeyDialog({
     onClose: () => void;
 }) {
     const t = useTranslations("MissingKeyDialog");
+    const modalT = useTranslations("ModalConnect");
     const [decls, setDecls] = useState<PluginEnvDecl[]>([]);
     const [value, setValue] = useState("");
     const [saving, setSaving] = useState(false);
@@ -56,7 +65,13 @@ export function MissingKeyDialog({
     // Provider display info for the key, from the plugin env declarations.
     const info = useMemo(() => {
         if (!request) return null;
-        for (const d of decls) {
+        const ordered = request.pluginId
+            ? [
+                  ...decls.filter((d) => d.pluginId === request.pluginId),
+                  ...decls.filter((d) => d.pluginId !== request.pluginId),
+              ]
+            : decls;
+        for (const d of ordered) {
             const v = d.env.find((e) => e.key === request.key);
             if (v) {
                 return {
@@ -68,6 +83,10 @@ export function MissingKeyDialog({
         return { provider: undefined, url: request.url };
     }, [decls, request]);
 
+    const isModal =
+        request?.key === MODAL_TOKEN_ID_ENV ||
+        request?.key === MODAL_TOKEN_SECRET_ENV;
+
     const save = async () => {
         if (!request || !value.trim()) return;
         setSaving(true);
@@ -75,6 +94,7 @@ export function MissingKeyDialog({
             await apiPatch("/api/settings/env", {
                 env: { [request.key]: value.trim() },
             });
+            await patchBrowserEnv({ [request.key]: value.trim() });
             setSaved(true);
         } catch (error) {
             logger.error("Failed to save API key:", error);
@@ -92,15 +112,22 @@ export function MissingKeyDialog({
                     <DialogTitle className="flex items-center gap-2">
                         <KeyRound className="h-5 w-5 text-amber-500" />
                         {info?.provider
-                            ? `${info.provider} · ${t("title")}`
+                            ? `${isModal ? "Modal" : info.provider} · ${t("title")}`
                             : t("title")}
                     </DialogTitle>
                     <DialogDescription className="pt-2 text-left">
-                        {t("body", { key: request.key })}
+                        {isModal
+                            ? modalT("subtitle")
+                            : t("body", { key: request.key })}
                     </DialogDescription>
                 </DialogHeader>
 
-                {saved ? (
+                {isModal ? (
+                    <TokenConnectForm
+                        config={MODAL_CONNECT}
+                        onConnected={onClose}
+                    />
+                ) : saved ? (
                     <>
                         <div className="flex items-center gap-2 rounded-md bg-emerald-50 p-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
                             <CheckCircle2 className="h-4 w-4 shrink-0" />

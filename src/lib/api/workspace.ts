@@ -4,7 +4,13 @@
 
 import type { ExecutableWorkflow } from "tongflow";
 import type { Material } from "tongflow/canvas";
-import { apiDelete, apiGet, apiPost, apiPut } from "tongflow/canvas";
+import { apiGet } from "tongflow/canvas";
+import {
+    deleteBrowserWorkflow,
+    getBrowserWorkflow,
+    listBrowserWorkflows,
+    saveBrowserWorkflow,
+} from "@/lib/browser-storage";
 
 export interface Workflow {
     id: number;
@@ -50,31 +56,50 @@ export interface GetWorkflowResponse {
 export async function saveWorkflow(
     data: SaveWorkflowRequest,
 ): Promise<SaveWorkflowResponse> {
-    return await apiPost<SaveWorkflowResponse>("/api/workspace/save", data);
+    return { workflowId: await saveBrowserWorkflow(data) };
 }
 
 export async function listWorkflows(
     page = 1,
     limit = 10,
 ): Promise<ListWorkflowsResponse> {
-    return await apiGet<ListWorkflowsResponse>(
-        `/api/workspace/list?page=${page}&limit=${limit}`,
-    );
+    const all = await listBrowserWorkflows();
+    const offset = (page - 1) * limit;
+    return {
+        workflows: all.slice(offset, offset + limit),
+        pagination: {
+            page,
+            limit,
+            total: all.length,
+            hasMore: offset + limit < all.length,
+        },
+    };
 }
 
 export async function getWorkflow(id: number): Promise<GetWorkflowResponse> {
-    return await apiGet<GetWorkflowResponse>(`/api/workspace/${id}`);
+    const workflow = await getBrowserWorkflow(id);
+    if (!workflow) throw new Error("Workflow not found");
+    return { workflow };
 }
 
 export async function deleteWorkflow(id: number): Promise<void> {
-    await apiDelete(`/api/workspace/${id}`);
+    await deleteBrowserWorkflow(id);
 }
 
 export async function updateWorkflow(
     id: number,
     data: Partial<SaveWorkflowRequest>,
 ): Promise<void> {
-    await apiPut(`/api/workspace/${id}`, data);
+    const current = await getBrowserWorkflow(id);
+    if (!current) throw new Error("Workflow not found");
+    const parsedFlow = JSON.parse(current.flow) as Record<string, unknown>;
+    await saveBrowserWorkflow({
+        workflowId: id,
+        name: data.name ?? current.name,
+        description: data.description ?? current.description,
+        flow: data.flow ?? parsedFlow,
+        executable: data.executable,
+    });
 }
 
 export interface WorkflowMaterialsResponse {

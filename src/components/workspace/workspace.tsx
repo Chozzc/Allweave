@@ -9,18 +9,30 @@
  * controls and onboarding. The canvas proper is `FlowCanvas`.
  */
 
-import type { Edge, Node } from "@xyflow/react";
 import { ReactFlowProvider } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect } from "react";
 import { logger, parseWorkflowImportJson } from "tongflow";
-import { FlowCanvas, useFlow, useTaskStore } from "tongflow/canvas";
+import {
+    apiGet,
+    apiPut,
+    FlowCanvas,
+    useFlow,
+    useTaskStore,
+} from "tongflow/canvas";
 import { usePreloadFeatures } from "@/hooks/use-features";
 import { useWorkflowRecovery } from "@/hooks/use-workflow-recovery";
+import {
+    loadBrowserEnv,
+    loadWorkspaceDraft,
+    mergeBrowserEnv,
+    saveBrowserEnv,
+    saveWorkspaceDraft,
+} from "@/lib/browser-storage";
 import { AppView } from "./app-view/app-view";
+import { BrandMark } from "./brand-mark";
 import { ModeSwitch } from "./mode-switch";
-import { OnboardingGate } from "./onboarding/onboarding-gate";
 import SmartIsland from "./smart-island";
 import { TidyLayoutButton } from "./tidy-layout-button";
 import { UndoRedoButtons } from "./undo-redo-buttons";
@@ -48,6 +60,26 @@ function WorkspaceInner({
 
     // Preload feature data
     usePreloadFeatures();
+
+    // IndexedDB owns each visitor's BYOK settings, while Python plugins run
+    // server-side. Reconcile them on page load so a connected badge can never
+    // disagree with the environment inherited by the plugin subprocess.
+    useEffect(() => {
+        void (async () => {
+            try {
+                const data = await apiGet<{
+                    env: Record<string, string>;
+                }>("/api/settings/env");
+                const browserEnv = await loadBrowserEnv();
+                if (!browserEnv) return;
+                const env = mergeBrowserEnv(data.env ?? {}, browserEnv);
+                await apiPut("/api/settings/env", { env });
+                await saveBrowserEnv(env);
+            } catch (error) {
+                logger.error("Failed to sync browser settings:", error);
+            }
+        })();
+    }, []);
 
     // Node data update callback (does not depend on nodes; gets the latest state directly from the store)
     const handleNodeDataUpdate = useCallback(
@@ -78,91 +110,104 @@ function WorkspaceInner({
         onNodeDataUpdate: handleNodeDataUpdate,
     });
 
-    // Restore nodes, edges, and workflow metadata from localStorage
+    // Restore the canvas from IndexedDB. Existing localStorage drafts are
+    // migrated once so upgrades do not discard a visitor's current work.
     useEffect(() => {
-        const savedNodes = localStorage.getItem("nodes");
-        const savedEdges = localStorage.getItem("edges");
-        const savedMeta = localStorage.getItem("workflowMeta");
-
-        if (savedNodes) {
-            try {
-                const nodes = JSON.parse(savedNodes) as Node[];
-                if (nodes.length > 0) {
-                    useFlow.getState().setNodes(nodes);
-                }
-            } catch (e) {
-                logger.error("Failed to parse nodes:", e);
-            }
-        }
-
-        if (savedEdges) {
-            try {
-                const edges = JSON.parse(savedEdges) as Edge[];
-                if (edges.length > 0) {
-                    useFlow.getState().setEdges(edges);
-                }
-            } catch (e) {
-                logger.error("Failed to parse edges:", e);
-            }
-        }
-
-        if (savedMeta) {
-            try {
-                const meta = JSON.parse(savedMeta) as {
-                    id: number | null;
-                    name: string;
-                    description: string;
-                };
-                // If workflowId and name both exist, use the cached name; otherwise use the default name for the current locale
-                const effectiveName =
-                    meta.id && meta.name ? meta.name : tIndex("title");
-                useFlow.setState({
-                    workflowId: meta.id,
-                    workflowName: effectiveName,
-                    workflowDescription: meta.description || "",
-                });
-            } catch (e) {
-                logger.error("Failed to parse workflowMeta:", e);
-            }
-        } else {
-            // No cached metadata — set the default name
-            useFlow.setState({
-                workflowName: tIndex("title"),
-            });
-        }
-    }, []);
-
-    // First open: preload the bundled example workflow so the canvas isn't
-    // empty. Only when nothing has ever been saved locally, and only once.
-    useEffect(() => {
-        if (localStorage.getItem("nodes") || localStorage.getItem("edges")) {
-            return;
-        }
-        if (localStorage.getItem("exampleLoaded")) return;
-        localStorage.setItem("exampleLoaded", "1");
-
         let cancelled = false;
-        fetch("/example.json")
-            .then((r) => r.json())
-            .then((json) => {
-                if (cancelled) return;
-                const parsed = parseWorkflowImportJson(json);
-                useFlow.getState().setNodes(parsed.nodes);
-                useFlow.getState().setEdges(parsed.edges);
-                if (parsed.name)
-                    useFlow.getState().setWorkflowName(parsed.name);
-                if (parsed.description) {
-                    useFlow
-                        .getState()
-                        .setWorkflowDescription(parsed.description);
+        void (async () => {
+            try {
+                let draft = await loadWorkspaceDraft();
+                if (!draft) {
+                    const legacyNodes = localStorage.getItem("nodes");
+                    const legacyEdges = localStorage.getItem("edges");
+                    const legacyMeta = localStorage.getItem("workflowMeta");
+                    if (legacyNodes !== null || legacyEdges !== null) {
+                        draft = {
+                            nodes: legacyNodes ? JSON.parse(legacyNodes) : [],
+                            edges: legacyEdges ? JSON.parse(legacyEdges) : [],
+                            meta: legacyMeta
+                                ? JSON.parse(legacyMeta)
+                                : {
+                                      id: null,
+                                      name: "",
+                                      description: "",
+                                  },
+                        };
+                        await saveWorkspaceDraft(draft);
+                        localStorage.removeItem("nodes");
+                        localStorage.removeItem("edges");
+                        localStorage.removeItem("workflowMeta");
+                        localStorage.removeItem("exampleLoaded");
+                    }
                 }
-            })
-            .catch((e) => {
-                logger.error("Failed to load example workflow:", e);
-            });
+
+                if (cancelled) return;
+                if (draft) {
+                    useFlow.setState({
+                        nodes: draft.nodes,
+                        edges: draft.edges,
+                        workflowId: draft.meta.id,
+                        workflowName:
+                            draft.meta.id && draft.meta.name
+                                ? draft.meta.name
+                                : tIndex("title"),
+                        workflowDescription: draft.meta.description || "",
+                    });
+                    return;
+                }
+
+                const response = await fetch("/example.json");
+                const parsed = parseWorkflowImportJson(await response.json());
+                if (cancelled) return;
+                useFlow.setState({
+                    nodes: parsed.nodes,
+                    edges: parsed.edges,
+                    workflowName: parsed.name || tIndex("title"),
+                    workflowDescription: parsed.description || "",
+                });
+            } catch (error) {
+                logger.error("Failed to restore the browser workspace:", error);
+                useFlow.setState({ workflowName: tIndex("title") });
+            }
+        })();
 
         return () => {
             cancelled = true;
+        };
+    }, [tIndex]);
+
+    // The whole current document is one small IndexedDB record. A single
+    // debounced subscription keeps edits durable without re-rendering the shell.
+    useEffect(() => {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        const unsubscribe = useFlow.subscribe((state, previous) => {
+            if (
+                state.nodes === previous.nodes &&
+                state.edges === previous.edges &&
+                state.workflowId === previous.workflowId &&
+                state.workflowName === previous.workflowName &&
+                state.workflowDescription === previous.workflowDescription
+            ) {
+                return;
+            }
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                void saveWorkspaceDraft({
+                    nodes: state.nodes,
+                    edges: state.edges,
+                    meta: {
+                        id: state.workflowId,
+                        name: state.workflowId ? state.workflowName : "",
+                        description: state.workflowDescription,
+                    },
+                }).catch((error) =>
+                    logger.error("Failed to save browser workspace:", error),
+                );
+            }, 500);
+        });
+        return () => {
+            clearTimeout(timer);
+            unsubscribe();
         };
     }, []);
 
@@ -191,6 +236,7 @@ function WorkspaceInner({
                 )}
 
                 <div className="absolute left-5 top-5 z-10 flex items-center gap-3">
+                    <BrandMark />
                     <WorkflowTitleMenu />
                     <WorkspaceLeftNav />
                     <UndoRedoButtons />
@@ -204,8 +250,6 @@ function WorkspaceInner({
                 <div className="absolute right-4 bottom-5 z-10">
                     <ModeSwitch />
                 </div>
-
-                <OnboardingGate />
             </div>
         </div>
     );

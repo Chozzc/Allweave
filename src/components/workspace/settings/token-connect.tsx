@@ -27,6 +27,7 @@ import {
 } from "tongflow/canvas";
 import { DISCORD_URL, WECHAT_GROUP_QR_SRC } from "@/constants/community";
 import { useInChinaTz } from "@/hooks/use-in-china-tz";
+import { patchBrowserEnv } from "@/lib/browser-storage";
 import { openExternalUrl } from "@/lib/desktop/open-external";
 import { localizeTaskError } from "@/lib/task/error-localize";
 
@@ -260,6 +261,7 @@ export function TokenConnectForm({
                 env[spec.envKey] = parsed[i];
             });
             await apiPatch("/api/settings/env", { env });
+            await patchBrowserEnv(env);
             config.onConnectedStore?.();
             // The credential is stored whatever the check says next, so let
             // the caller refresh now; only success dismisses the dialog.
@@ -493,6 +495,7 @@ export function TokenConnectCardBody({
             const env: Record<string, string> = {};
             for (const spec of config.specs) env[spec.envKey] = "";
             await apiPatch("/api/settings/env", { env });
+            await patchBrowserEnv(env);
             config.onDisconnectedStore?.();
             toast.success(t("disconnectedToast"));
             onChanged();

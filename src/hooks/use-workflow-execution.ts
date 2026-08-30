@@ -41,6 +41,7 @@ import {
     useTaskStore,
 } from "tongflow/canvas";
 import { saveWorkflow } from "@/lib/api/workspace";
+import { recordBrowserTaskEvent, saveBrowserTask } from "@/lib/browser-storage";
 
 interface UseWorkflowExecutionArgs {
     nodes: Node[];
@@ -167,7 +168,11 @@ export function useWorkflowExecution(
     );
 
     const handleExecute = useCallback(
-        async (overrideWorkflowId: number) => {
+        async (
+            overrideWorkflowId: number,
+            executable: ReturnType<typeof exportWorkflow>,
+            name: string,
+        ) => {
             logger.debug(
                 "[workflow-exec] Starting backend workflow execution (SSE)",
             );
@@ -180,7 +185,11 @@ export function useWorkflowExecution(
                 const response = await fetch("/api/workflow/execute", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ workflowId: overrideWorkflowId }),
+                    body: JSON.stringify({
+                        workflowId: overrideWorkflowId,
+                        name,
+                        executable,
+                    }),
                 });
 
                 if (!response.ok) {
@@ -203,6 +212,17 @@ export function useWorkflowExecution(
                 };
                 logger.debug("[workflow-exec] Task created:", taskId);
                 currentTaskIdRef.current = taskId;
+                const now = new Date();
+                await saveBrowserTask({
+                    id: taskId,
+                    nodeId: "workflow",
+                    feature: name,
+                    prompt: { workflowId: overrideWorkflowId },
+                    status: "pending",
+                    progress: 0,
+                    createdAt: now,
+                    updatedAt: now,
+                });
 
                 const sseUrl = getTaskWaitUrl(taskId);
                 const eventSource = new EventSource(sseUrl);
@@ -224,6 +244,12 @@ export function useWorkflowExecution(
                             nodeId: message.nodeId || null,
                             data: message.data,
                         });
+                        void recordBrowserTaskEvent(
+                            taskId,
+                            String(message.status),
+                            message.nodeId,
+                            message.data,
+                        );
 
                         switch (message.status) {
                             case WorkflowStatus.WORKFLOW_STARTED:
@@ -445,7 +471,7 @@ export function useWorkflowExecution(
 
             setShowSaveDialog(false);
             // Pass the freshly-saved id to avoid the stale closure issue
-            handleExecute(result.workflowId);
+            handleExecute(result.workflowId, executable, effectiveName);
         } catch (error) {
             logger.error("[workflow-exec] Save failed:", error);
             showErrorToast({ message: t("saveFailed") });

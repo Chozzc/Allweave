@@ -4,14 +4,13 @@
  * The document model (nodes / edges / meta, graph mutations, undo/redo,
  * combo state) is the headless `createFlowSlice` from the `tongflow`
  * package; this hook layers the React Flow callbacks on top and persists the
- * canvas to localStorage.
+ * canvas to the host application's storage.
  */
 
 import {
     addEdge,
     applyEdgeChanges,
     applyNodeChanges,
-    type Edge,
     type Node,
     type OnConnect,
     type OnEdgesChange,
@@ -23,42 +22,6 @@ import { create } from "zustand";
 import { createFlowSlice, type FlowCoreState } from "../../core";
 
 export type { PossibleNode } from "../../core";
-
-// Simple debouncer factory
-function createDebounce<T extends unknown[]>(
-    callback: (...args: T) => void,
-    delay: number,
-) {
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-    return (...args: T) => {
-        if (timeoutId) {
-            clearTimeout(timeoutId);
-        }
-        timeoutId = setTimeout(() => {
-            callback(...args);
-            timeoutId = null;
-        }, delay);
-    };
-}
-
-// Persist React Flow nodes to localStorage with debouncing
-const debouncedSaveNodes = createDebounce((nodes: Node[]) => {
-    localStorage.setItem("nodes", JSON.stringify(nodes));
-}, 500);
-
-// Persist edges similarly
-const debouncedSaveEdges = createDebounce((edges: Edge[]) => {
-    localStorage.setItem("edges", JSON.stringify(edges));
-}, 500);
-
-// Persist workflow meta (title, ids, notes)
-const debouncedSaveWorkflowMeta = createDebounce(
-    (meta: { id: number | null; name: string; description: string }) => {
-        localStorage.setItem("workflowMeta", JSON.stringify(meta));
-    },
-    500,
-);
 
 /** React Flow bindings layered on the headless core. */
 export interface FlowReactBindings {
@@ -127,25 +90,5 @@ export const useFlow = create<FlowState>()((set, get) => ({
         });
     },
 }));
-
-// Persistence: mirror the document into localStorage (debounced) whenever the
-// relevant slice of state changes.
-useFlow.subscribe((state, prev) => {
-    if (state.nodes !== prev.nodes) debouncedSaveNodes(state.nodes);
-    if (state.edges !== prev.edges) debouncedSaveEdges(state.edges);
-    if (
-        state.workflowId !== prev.workflowId ||
-        state.workflowName !== prev.workflowName ||
-        state.workflowDescription !== prev.workflowDescription
-    ) {
-        // Unsaved canvases omit cached titles so localized defaults survive
-        // language toggles.
-        debouncedSaveWorkflowMeta({
-            id: state.workflowId,
-            name: state.workflowId ? state.workflowName : "",
-            description: state.workflowDescription,
-        });
-    }
-});
 
 export default useFlow;

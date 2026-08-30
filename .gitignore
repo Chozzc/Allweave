@@ -32,6 +32,7 @@ legal/
 .DS_Store
 *.tsbuildinfo
 next-env.d.ts
+/.codex-*.log
 
 # local Python venv (optional, e.g. pip install modal)
 .venv/

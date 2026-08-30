@@ -4,7 +4,13 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
-    output: "standalone",
+    // Windows without Developer Mode cannot create the symlinks used by the
+    // standalone bundle. Production keeps the existing standalone output;
+    // local verification can opt out without changing deploy behavior.
+    output:
+        process.env.NEXT_DISABLE_STANDALONE === "1"
+            ? undefined
+            : "standalone",
     // Workspace package consumed from source (tsconfig paths) — let Next
     // transpile it like app code.
     transpilePackages: ["tongflow"],
